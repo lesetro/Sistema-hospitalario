@@ -1,8 +1,9 @@
 const express = require('express');
+const path = require('path');
 const router = express.Router();
 
-router.get('/', (req, res) => {
-  res.render('index', { titulo: 'Bienvenido al SGHI' });
+router.get('/inicio', (req, res) => {
+  res.sendFile(path.join(__dirname, '../public/inicio/inicio.html'));
 });
 
 module.exports = router;

@@ -1,5 +1,9 @@
-💡 para aclarar mas adelante sobre las contraseñas
-Podés dejar los || en tu plantilla base, pero en producción se deben definir todas las variables del .env.
+# para aclarar mas adelante
+
+las contraseñas luego se deben cargar en el .env.
+
+
+# proyecto 
 
 1. Maquetar Login
 Form con usuario y contraseña
