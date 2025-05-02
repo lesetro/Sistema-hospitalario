@@ -1,18 +1,21 @@
-document.getElementById('loginForm').addEventListener('submit', function (e) {
-    e.preventDefault();
-  
-    const usuario = document.getElementById('usuario').value;
-    const contrasena = document.getElementById('contrasena').value;
-    const mensaje = document.getElementById('mensaje');
-  
-    // Ejemplo de validación (ficticia)
-    if (usuario === 'admin' && contrasena === '1234') {
-      mensaje.textContent = 'Ingreso exitoso 🎉';
-      mensaje.style.color = 'green';
-      // Redireccionar o continuar
-    } else {
-      mensaje.textContent = 'Usuario o contraseña incorrectos ❌';
-      mensaje.style.color = 'red';
+
+// Aquí iría el JavaScript para funcionalidades dinámicas
+document.addEventListener('DOMContentLoaded', function() {
+    // Ejemplo: Actualizar datos en tiempo real
+    setInterval(updateStats, 30000);
+    
+    function updateStats() {
+        // Simular actualización de datos
+        console.log("Actualizando datos del sistema...");
+        // Aquí iría la llamada a la API real
     }
-  });
-  
+    
+    // Menu activo
+    const menuItems = document.querySelectorAll('.menu-item');
+    menuItems.forEach(item => {
+        item.addEventListener('click', function() {
+            menuItems.forEach(i => i.classList.remove('active'));
+            this.classList.add('active');
+        });
+    });
+});

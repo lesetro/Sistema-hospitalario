@@ -1,21 +1,190 @@
 <!DOCTYPE html>
 <html lang="es">
 <head>
-  <meta charset="UTF-8">
-  <title>Login - SGHI</title>
-  <link rel="stylesheet" href="/inicio/inicio.css">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HealthConnect - Sistema Integral Hospitalario</title>
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/public/inicio/inicio.css"> <!-- Asegúrate de tener un archivo styles.css con los estilos necesarios -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 </head>
 <body>
-  <div class="contenedor">
-    <h1>SGHI - Ingreso</h1>
-    <form id="loginForm">
-      <input type="text" id="usuario" placeholder="Usuario" required>
-      <input type="password" id="contrasena" placeholder="Contraseña" required>
-      <button type="submit">Ingresar</button>
-    </form>
-    <p id="mensaje" class="error"></p>
-  </div>
-
-  <script src="/inicio/inicio.js"></script>
+    <!-- Skip Menu (Accesibilidad) -->
+    <a href="#main-content" class="skip-menu">Saltar al contenido principal</a>
+    
+    <!-- Header -->
+    <header>
+        <div class="logo">
+            <img src="https://via.placeholder.com/40x40" alt="Logo HealthConnect">
+            <span>HealthConnect</span>
+        </div>
+        
+        <div class="user-menu">
+            <a href="#"><i class="fas fa-bell"></i> Notificaciones</a>
+            <a href="#"><i class="fas fa-user"></i> Iniciar Sesión</a>
+        </div>
+    </header>
+    
+    <!-- Menú Lateral Izquierdo -->
+    <nav class="side-menu">
+        <div class="menu-group">
+            <h3>General</h3>
+            <a href="#" class="menu-item active"><i class="fas fa-home"></i> Inicio</a>
+            <a href="#" class="menu-item"><i class="fas fa-newspaper"></i> Novedades</a>
+            <a href="#" class="menu-item"><i class="fas fa-users"></i> Grupos</a>
+        </div>
+        
+        <div class="menu-group">
+            <h3>Servicios</h3>
+            <a href="#" class="menu-item"><i class="fas fa-qrcode"></i> Scaneate (Triaje)</a>
+            <a href="#" class="menu-item"><i class="fas fa-calendar-check"></i> Turnos</a>
+            <a href="#" class="menu-item"><i class="fas fa-prescription-bottle-alt"></i> Farmacia</a>
+            <a href="#" class="menu-item"><i class="fas fa-clock"></i> Horarios</a>
+        </div>
+        
+        <div class="menu-group">
+            <h3>Especialidades</h3>
+            <a href="#" class="menu-item"><i class="fas fa-heartbeat"></i> Cardiología</a>
+            <a href="#" class="menu-item"><i class="fas fa-lungs"></i> Neumología</a>
+            <a href="#" class="menu-item"><i class="fas fa-brain"></i> Neurología</a>
+            <a href="#" class="menu-item"><i class="fas fa-bone"></i> Traumatología</a>
+            <a href="#" class="menu-item"><i class="fas fa-child"></i> Pediatría</a>
+            <a href="#" class="menu-item"><i class="fas fa-eye"></i> Oftalmología</a>
+            <a href="#" class="menu-item"><i class="fas fa-tooth"></i> Odontología</a>
+        </div>
+        
+        <div class="menu-group">
+            <h3>Administración</h3>
+            <a href="#" class="menu-item"><i class="fas fa-ambulance"></i> Ambulancias</a>
+            <a href="#" class="menu-item"><i class="fas fa-procedures"></i> Camas</a>
+            <a href="#" class="menu-item"><i class="fas fa-user-md"></i> Personal</a>
+            <a href="#" class="menu-item"><i class="fas fa-chart-line"></i> Estadísticas</a>
+        </div>
+    </nav>
+    
+    <!-- Contenido Principal -->
+    <main id="main-content" class="main-content">
+        <div class="hospital-selector">
+            <select>
+                <option>Hospital Central</option>
+                <option>Hospital Norte</option>
+                <option>Hospital Sur</option>
+                <option>Hospital Este</option>
+                <option>Hospital Oeste</option>
+            </select>
+            <span>Actualizado hace 5 minutos</span>
+        </div>
+        
+        <div class="stats-grid">
+            <div class="stat-card">
+                <h3>Pacientes atendidos hoy</h3>
+                <div class="value">247</div>
+                <div class="trend up">
+                    <i class="fas fa-arrow-up"></i> 12% más que ayer
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>En espera actualmente</h3>
+                <div class="value">58</div>
+                <div class="trend down">
+                    <i class="fas fa-arrow-down"></i> 8% menos que ayer
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>Camas disponibles</h3>
+                <div class="value">32</div>
+                <div class="trend warning">
+                    <i class="fas fa-exclamation-triangle"></i> 85% ocupación
+                </div>
+            </div>
+            
+            <div class="stat-card">
+                <h3>Ambulancias activas</h3>
+                <div class="value">7/12</div>
+                <div class="trend up">
+                    <i class="fas fa-arrow-up"></i> 2 disponibles
+                </div>
+            </div>
+        </div>
+        
+        <div class="news-feed">
+            <h2><i class="fas fa-bullhorn"></i> Últimas noticias</h2>
+            
+            <div class="news-item">
+                <h3>Nuevo servicio de telemedicina disponible</h3>
+                <div class="meta">
+                    <span><i class="far fa-clock"></i> Hoy, 10:45 AM</span>
+                    <span><i class="fas fa-hospital"></i> Hospital Central</span>
+                </div>
+                <p>Hemos implementado un nuevo sistema de consultas virtuales para pacientes con síntomas leves. Accede desde la sección "Scaneate" en el menú lateral.</p>
+            </div>
+            
+            <div class="news-item">
+                <h3>Cambios en el personal de pediatría</h3>
+                <div class="meta">
+                    <span><i class="far fa-clock"></i> Ayer, 3:30 PM</span>
+                    <span><i class="fas fa-hospital"></i> Todos los hospitales</span>
+                </div>
+                <p>El Dr. Martínez asumirá como jefe de pediatría a partir del próximo lunes. Revisa los nuevos horarios de atención en la sección correspondiente.</p>
+            </div>
+            
+            <div class="news-item">
+                <h3>Actualización del sistema de turnos</h3>
+                <div class="meta">
+                    <span><i class="far fa-clock"></i> 15/05/2023</span>
+                    <span><i class="fas fa-hospital"></i> Sistema</span>
+                </div>
+                <p>Hemos mejorado nuestro sistema de gestión de turnos. Ahora podrás ver el tiempo estimado de espera real y recibir notificaciones cuando tu turno esté próximo.</p>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Menú Lateral Derecho -->
+    <aside class="right-sidebar">
+        <div class="quick-actions">
+            <h3>Acciones rápidas</h3>
+            <div class="action-buttons">
+                <a href="#" class="action-btn"><i class="fas fa-qrcode"></i> Scaneate</a>
+                <a href="#" class="action-btn"><i class="fas fa-calendar-plus"></i> Solicitar turno</a>
+                <a href="#" class="action-btn"><i class="fas fa-prescription-bottle-alt"></i> Farmacia</a>
+                <a href="#" class="action-btn"><i class="fas fa-map-marker-alt"></i> Hospitales cercanos</a>
+                <a href="#" class="action-btn"><i class="fas fa-question-circle"></i> Ayuda</a>
+            </div>
+        </div>
+        
+        <div class="emergency-card">
+            <h3><i class="fas fa-exclamation-triangle"></i> ¿Emergencia?</h3>
+            <p>Si necesitas atención inmediata, presiona el botón de emergencia y serás dirigido al servicio más cercano.</p>
+            <button class="emergency-btn"><i class="fas fa-ambulance"></i> EMERGENCIA</button>
+        </div>
+        
+        <div class="hospital-status">
+            <h3>Estado del hospital</h3>
+            
+            <div class="status-item">
+                <span class="label">Tiempo espera promedio</span>
+                <span class="value warning">45 min</span>
+            </div>
+            
+            <div class="status-item">
+                <span class="label">Médicos disponibles</span>
+                <span class="value good">18/24</span>
+            </div>
+            
+            <div class="status-item">
+                <span class="label">Ambulancias disponibles</span>
+                <span class="value bad">2/8</span>
+            </div>
+            
+            <div class="status-item">
+                <span class="label">Consultorios ocupados</span>
+                <span class="value">32/40</span>
+            </div>
+        </div>
+    </aside>
+    <script src="/public/inicio/inicio.js"></script>
+  
 </body>
 </html>
