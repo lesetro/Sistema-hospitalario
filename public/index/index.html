@@ -3,25 +3,27 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>HealthConnect - Sistema Integral Hospitalario</title>
+    <title> Sistema Integral Hospitalario</title>
     <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/public/inicio/inicio.css"> <!-- Asegúrate de tener un archivo styles.css con los estilos necesarios -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <link rel="stylesheet" href="/css/index.css">
+    <link rel="stylesheet" href="/css/inicio.css">
+    <link rel="stylesheet" href="/css/usuario.css">
+    <link rel="stylesheet" href="/css/registrar.css">
 </head>
 <body>
-    <!-- Skip Menu (Accesibilidad) -->
-    <a href="#main-content" class="skip-menu">Saltar al contenido principal</a>
     
     <!-- Header -->
     <header>
         <div class="logo">
-            <img src="https://via.placeholder.com/40x40" alt="Logo HealthConnect">
-            <span>HealthConnect</span>
+            
+            <span><i class="fa-solid fa-stethoscope"></i> Hospital General</span>
         </div>
         
         <div class="user-menu">
             <a href="#"><i class="fas fa-bell"></i> Notificaciones</a>
-            <a href="#"><i class="fas fa-user"></i> Iniciar Sesión</a>
+            <a href="/usuario/usuario.html" data-spa><i class="fas fa-user"></i> Iniciar Sesión</a>
+            <a href="/usuarios/registrar.html" data-spa><i class="fa-regular fa-comment"></i> Reclamos</a>
         </div>
     </header>
     
@@ -29,7 +31,7 @@
     <nav class="side-menu">
         <div class="menu-group">
             <h3>General</h3>
-            <a href="#" class="menu-item active"><i class="fas fa-home"></i> Inicio</a>
+            <a href="/index/index.html" data-spa class="menu-item"> <i class="fas fa-user"></i> Inicio</a>
             <a href="#" class="menu-item"><i class="fas fa-newspaper"></i> Novedades</a>
             <a href="#" class="menu-item"><i class="fas fa-users"></i> Grupos</a>
         </div>
@@ -40,6 +42,7 @@
             <a href="#" class="menu-item"><i class="fas fa-calendar-check"></i> Turnos</a>
             <a href="#" class="menu-item"><i class="fas fa-prescription-bottle-alt"></i> Farmacia</a>
             <a href="#" class="menu-item"><i class="fas fa-clock"></i> Horarios</a>
+            <a href="#" class="menu-item"><i class="fas fa-clock"></i> Calendario</a>
         </div>
         
         <div class="menu-group">
@@ -63,10 +66,15 @@
     </nav>
     
     <!-- Contenido Principal -->
+    <main id="main">
+        
+         <!-- Contenido Principal -->
     <main id="main-content" class="main-content">
+      
         <div class="hospital-selector">
-            <select>
-                <option>Hospital Central</option>
+            <label for="hospitales"> <i class="fa-solid fa-hospital"></i> Seleccionar hospital:</label>
+            <select >
+                <option >Hospital Central</option>
                 <option>Hospital Norte</option>
                 <option>Hospital Sur</option>
                 <option>Hospital Este</option>
@@ -140,6 +148,9 @@
             </div>
         </div>
     </main>
+
+    </main>
+   
     
     <!-- Menú Lateral Derecho -->
     <aside class="right-sidebar">
@@ -184,7 +195,9 @@
             </div>
         </div>
     </aside>
-    <script src="/public/inicio/inicio.js"></script>
+    <script src="/llamar.js"></script>
+   
+    
   
 </body>
 </html>

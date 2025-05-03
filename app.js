@@ -6,7 +6,7 @@ require('dotenv').config();
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.set('view engine', 'pug');
-app.set('views', path.join(__dirname, 'views'));
+app.set('usuario', path.join(__dirname, 'usuario'));
 
 const indexRoutes = require('./routes/indexRoutes');
 app.use('/', indexRoutes);
