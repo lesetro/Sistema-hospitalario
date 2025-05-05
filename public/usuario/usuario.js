@@ -1,5 +1,5 @@
 
-     
+//lo puse aca como referencia por si tengo que sacar algun dato no forma parte del proyecto     
 // Variables globales
 let currentImages = [];
 let textVariations = [];
