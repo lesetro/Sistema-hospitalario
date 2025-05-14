@@ -1,0 +1,36 @@
+.container.mt-4
+  h2.text-center Registro
+  form#registrarForm
+    .mb-3
+      label.form-label(for='rol') Selecciona tu Rol
+      select#rol.form-select(name='rol' onchange='toggleRegistroForm(this.value)')
+        option(value='') Selecciona un rol
+        option(value='Paciente') Paciente
+        option(value='Hospital') Hospital
+        option(value='Medico') Médico
+        option(value='Enfermero') Enfermero
+        option(value='Administrativo') Administrativo
+    #pacienteForm.d-none
+      .mb-3
+        label.form-label(for='dni') DNI
+        input#dni.form-control(type='text' name='dni')
+    #hospitalForm.d-none
+      .mb-3
+        label.form-label(for='cuit') CUIT
+        input#cuit.form-control(type='text' name='cuit')
+      .mb-3
+        label.form-label(for='telefonoDirector') Teléfono del Director
+        input#telefonoDirector.form-control(type='text' name='telefonoDirector')
+    .mb-3
+      label.form-label(for='username') Nombre de Usuario
+      input#username.form-control(type='text' name='username' required)
+    .mb-3
+      label.form-label(for='password') Contraseña
+      input#password.form-control(type='password' name='password' required)
+    .mb-3
+      label.form-label(for='email') Correo Electrónico
+      input#email.form-control(type='email' name='email' required)
+    .mb-3
+      label.form-label(for='telefono') Teléfono
+      input#telefono.form-control(type='text' name='telefono' required)
+    button.btn.btn-primary(type='submit') Registrarse

@@ -1,0 +1,10 @@
+.container.mt-4
+  h2.text-center Pedir Turno
+  form#turnoForm
+    .mb-3
+      label.form-label(for='dni') DNI
+      input#dni.form-control(type='text' name='dni' required)
+    .mb-3
+      label.form-label(for='fecha') Fecha
+      input#fecha.form-control(type='date' name='fecha' required)
+    button.btn.btn-primary(type='submit') Solicitar Turno

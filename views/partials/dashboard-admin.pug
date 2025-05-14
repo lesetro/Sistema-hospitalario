@@ -1,0 +1,13 @@
+.container.mt-4
+  h2.text-center Bienvenido, Administrativo
+  .row
+    .col-12
+      h3 Gestionar Noticias
+      form#noticiasForm.mb-4
+        .mb-3
+          label.form-label(for='noticia') Nueva Noticia
+          textarea#noticia.form-control(name='noticia' rows='3')
+        button.btn.btn-primary(type='submit') Publicar
+      #noticiasList.card
+        .card-body
+          p Sin noticias.

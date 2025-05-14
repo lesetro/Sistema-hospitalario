@@ -1,0 +1,12 @@
+.container.mt-4
+  h2.text-center Iniciar Sesión
+  form#loginForm
+    .mb-3
+      label.form-label(for='username') Nombre de Usuario
+      input#username.form-control(type='text' name='username' required)
+    .mb-3
+      label.form-label(for='password') Contraseña
+      input#password.form-control(type='password' name='password' required)
+    .mb-3
+      a(href='/auth/recuperar' data-spa) ¿Olvidaste tu contraseña?
+    button.btn.btn-primary(type='submit') Iniciar Sesión

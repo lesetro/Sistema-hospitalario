@@ -1,0 +1,24 @@
+.container.mt-4
+  h2.text-center Bienvenido, Paciente
+  .row
+    .col-md-6
+      h3 Mis Turnos
+      #turnosList.card
+        .card-body
+          p Sin turnos disponibles.
+    .col-md-6
+      h3 Calificar Atención
+      form#calificarForm
+        .mb-3
+          label.form-label(for='medico') Médico
+          select#medico.form-select(name='medico')
+            option(value='') Selecciona un médico
+        .mb-3
+          label.form-label(for='estrellas') Calificación
+          select#estrellas.form-select(name='estrellas')
+            option(value='1') 1 Estrella
+            option(value='2') 2 Estrellas
+            option(value='3') 3 Estrellas
+            option(value='4') 4 Estrellas
+            option(value='5') 5 Estrellas
+        button.btn.btn-primary(type='submit') Enviar Calificación
