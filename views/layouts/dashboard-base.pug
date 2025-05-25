@@ -1,0 +1,18 @@
+extends ./layout
+
+block navbar
+  if user.rol === 'AdministradorCentral' || user.rol === 'AdministradorGeneral'
+    include ./adminNavbar
+  else if user.rol === 'Medico'
+    include ./medicoNavbar
+  else if user.rol === 'Enfermero'
+    include ./enfermeroNavbar
+  else if user.rol === 'Paciente'
+    include ./pacienteNavbar
+  else
+    include ./navbar
+
+block content
+  .dashboard-container
+    main.dashboard-content
+      block dashboard-content

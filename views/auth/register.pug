@@ -1,0 +1,39 @@
+extends ../layouts/layout
+
+block content
+  .container.mt-4
+    if error
+      .alert.alert-danger= error
+    h1.text-center Registrar Usuario
+    form(method='POST' action='/auth/register' novalidate)
+      .mb-3
+        label.form-label(for='dni') DNI
+        input#dni.form-control(type='text' name='dni' required)
+      .mb-3
+        label.form-label(for='nombre') Nombre
+        input#nombre.form-control(type='text' name='nombre' required)
+      .mb-3
+        label.form-label(for='email') Correo Electrónico
+        input#email.form-control(type='email' name='email' required)
+      .mb-3
+        label.form-label(for='password') Contraseña
+        input#password.form-control(type='password' name='password' required)
+      .mb-3
+        label.form-label(for='rol') Rol
+        select#rol.form-control(name='rol' required)
+          option(value='Paciente') Paciente
+          option(value='Enfermero') Enfermero
+          option(value='Medico') Médico
+          option(value='AdministradorCentral') Administrador Central
+          option(value='Limpieza') Limpieza
+          option(value='AdministradorGeneral') Administrador General
+      .mb-3
+        select#hospital_id.form-control(name='hospital_id' required)
+          option(value='1') Hospital Juan Domingo Perón
+          option(value='2') Hospital de la Villa
+          option(value='3') Hospital Bailoni 
+          option(value='4') Hospital de la Rivera
+          option(value='5') Hospital la Merced
+
+
+      button.btn.btn-custom(type='submit') Registrar

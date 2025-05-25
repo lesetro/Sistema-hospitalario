@@ -1,0 +1,29 @@
+extends ../dashboard/admin/dashboard-admin.pug
+
+
+
+block content
+    .container.mt-4
+      if error
+        .alert.alert-danger= error
+      h1 Nueva Cama
+      form(method='POST' action='/camas' novalidate)
+        .mb-3
+          label.form-label(for='numero') Número
+          input#numero.form-control(type='text' name='numero' required)
+        .mb-3
+          label.form-label(for='estado') Estado
+          select#estado.form-control(name='estado' required)
+            option(value='Disponible') Disponible
+            option(value='Ocupada') Ocupada
+            option(value='Mantenimiento') Mantenimiento
+        .mb-3
+          label.form-label(for='hospital_id') Hospital
+          select#hospital_id.form-control(name='hospital_id' required)
+            option(value='') Seleccione un hospital
+            - if (typeof hospitales !== 'undefined')
+              each hospital in hospitales
+                option(value=hospital.id)= hospital.nombre
+        button.btn.btn-custom(type='submit') Guardar
+    script(src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js')
+    script(src='/js/script.js')

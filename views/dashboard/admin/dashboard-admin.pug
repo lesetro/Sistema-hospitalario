@@ -1,0 +1,88 @@
+extends ../../layouts/dashboard-base
+
+block dashboard-content
+  .dashboard-admin-container
+    .admin-sidebar.bg-dark
+      .sidebar-header
+        h3.text-white
+          i.bi.bi-shield-lock.me-2
+          | Panel Admin
+      
+      ul.nav.flex-column
+        li.nav-item
+          a.nav-link(href='/dashboard/admin')
+            i.bi.bi-speedometer2.me-2
+            | Inicio
+        
+        if user.rol === 'AdministradorGeneral'
+          li.nav-item
+            a.nav-link(href='/hospitales')
+              i.bi.bi-building.me-2
+              | Hospitales
+          li.nav-item
+            a.nav-link(href='/usuarios')
+              i.bi.bi-people-fill.me-2
+              | Personal
+        
+        li.nav-item
+          a.nav-link(href='/camas')
+            i.bi.bi-hospital.me-2
+            | Camas
+        li.nav-item
+          a.nav-link(href='/pacientes')
+            i.bi.bi-person-vcard.me-2
+            | Pacientes
+        
+        li.nav-item
+          a.nav-link(href='/auth/logout')
+            i.bi.bi-box-arrow-right.me-2
+            | Salir
+
+    .admin-main-content
+      nav.navbar.navbar-light.bg-light
+        .container-fluid
+          span.navbar-text
+            i.bi.bi-person-badge.me-2
+            | #{user.nombre} - #{user.rol}
+      
+      .container-fluid.mt-3
+        .d-sm-flex.align-items-center.justify-content-between.mb-4
+          h1.h3.mb-0.text-gray-800 Panel de Administración Central
+          a.d-none.d-sm-inline-block.btn.btn-sm.btn-primary.shadow-sm(href='#')
+            i.fas.fa-download.fa-sm.text-white-50
+            | Generar Reporte
+
+        .row
+          .col-xl-3.col-md-6.mb-4
+            .card.border-left-primary.shadow.h-100.py-2
+              .card-body
+                .row.no-gutters.align-items-center
+                  .col.mr-2
+                    .text-xs.font-weight-bold.text-primary.text-uppercase.mb-1
+                      | Pacientes Registrados
+                    .h5.mb-0.font-weight-bold.text-gray-800= totalPacientes
+                  .col-auto
+                    i.fas.fa-user-injured.fa-2x.text-gray-300
+
+          .col-xl-3.col-md-6.mb-4
+            .card.border-left-success.shadow.h-100.py-2
+              .card-body
+                .row.no-gutters.align-items-center
+                  .col.mr-2
+                    .text-xs.font-weight-bold.text-success.text-uppercase.mb-1
+                      | Camas Totales
+                    .h5.mb-0.font-weight-bold.text-gray-800= camas.length
+                  .col-auto
+                    i.fas.fa-bed.fa-2x.text-gray-300
+
+        .row
+          .col-lg-6.mb-4
+            .card.shadow.mb-4
+              .card-header.py-3
+                h6.m-0.font-weight-bold.text-primary Notificaciones Recientes
+              .card-body
+                each notificacion in notificaciones
+                  .alert.alert-info
+                    strong= notificacion.titulo
+                    p= notificacion.mensaje
+                    small.text-muted= notificacion.createdAt.toLocaleString()

@@ -1,55 +1,61 @@
- // backends/controlador/authController.js
+const bcrypt = require('bcrypt');
+const jwt = require('jsonwebtoken');
+const { Usuario } = require('../models');
 
-const authController = {
-  login: async (req, res) => {
-    try {
-      const { username, password } = req.body;
-      console.log('Validando datos:', username, password);
-      // Datos de usuario simulados (reemplazar cuando tengas la BD)
-      const users = [
-        { username: 'admin', password: 'admin123', name: 'Administrador' },
-        { username: 'user1', password: 'user123', name: 'Usuario de Prueba' }
-      ];
+exports.login = async (req, res) => {
+  try {
+    const { rol } = req.body;
+    console.log('Rol seleccionado:', rol);
 
-      // Validación básica
-      if (!username || !password) {
-        return res.status(400).json({
-          errors: {
-            username: !username ? 'Usuario requerido' : '',
-            password: !password ? 'Contraseña requerida' : ''
-          }
-        });
-      }
-
-      // Buscar usuario
-      const user = users.find(u =>
-        u.username === username && u.password === password
-      );
-
-      if (!user) {
-        return res.status(401).json({
-          message: 'Usuario o contraseña incorrectos',
-          errors: {
-            username: 'Credenciales inválidas',
-            password: 'Credenciales inválidas'
-          }
-        });
-      }
-
-      // Simular sesión exitosa
-      return res.status(200).json({
-        message: 'Inicio de sesión exitoso',
-        redirect: '/usuario/inicio',
-        user: {
-          name: user.name,
-          username: user.username
-        }
-      });
-    } catch (error) {
-      console.error('Error en login:', error);
-      return res.status(500).json({ message: 'Error interno del servidor' });
+    switch(rol) {
+      case 'Enfermero':
+        return res.redirect('/dashboards/enfermero');
+      case 'Paciente':
+        return res.redirect('/dashboards/paciente');
+      case 'Administrador':
+      case 'AdministradorGeneral':
+        return res.redirect('/dashboards/admin');
+      case 'Medico':
+        return res.redirect('/dashboards/medico');
+      default:
+        return res.redirect('/');
     }
+  } catch (error) {
+    res.status(500).render('error', {
+      message: 'Error al procesar login',
+      error: error.message
+    });
+  }
+};
+exports.register = async (req, res) => {
+  try {
+    const { dni, nombre, email, password, rol, hospital_id } = req.body;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const usuario = await Usuario.create({
+      dni,
+      nombre,
+      email,
+      password: hashedPassword,
+      rol,
+      hospital_id
+    });
+    res.redirect('/auth/login');
+  } catch (error) {
+    res.status(400).render('auth/register', { error: error.message, title: 'Registrar Usuario' });
   }
 };
 
-module.exports = authController;
+exports.recuperarContrasena = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    const usuario = await Usuario.findOne({ where: { email } });
+    if (!usuario) {
+      return res.status(404).render('auth/recuperarContrasena', { error: 'Usuario no encontrado', title: 'Recuperar Contraseña' });
+    }
+    usuario.password = await bcrypt.hash(newPassword, 10);
+    await usuario.save();
+    res.redirect('/auth/login');
+  } catch (error) {
+    res.status(500).render('auth/recuperarContrasena', { error: error.message, title: 'Recuperar Contraseña' });
+  }
+}; 

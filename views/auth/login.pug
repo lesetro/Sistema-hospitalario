@@ -1,0 +1,22 @@
+extends ../layouts/layout
+
+block content
+  .container.mt-4
+    if error
+      .alert.alert-danger= error
+    h1.mb-4.text-center Iniciar Sesión
+    form(method='POST' action='/auth/login' novalidate)
+      .mb-3
+        label.form-label(for='email') Correo Electrónico
+        input#email.form-control(type='email' name='email' required)
+      .mb-3
+        label.form-label(for='password') Contraseña
+        input#password.form-control(type='password' name='password' required)
+      button.btn.btn-custom(type='submit')
+        i.bi.bi-box-arrow-in-right.me-2
+        | Iniciar Sesión
+    .mt-3.text-center
+      p ¿No tienes cuenta? 
+        a(href='/auth/register' data-link) Regístrate aquí
+      p ¿Olvidaste tu contraseña? 
+        a(href='/auth/recuperarContrasena' data-link) Recupera tu contraseña

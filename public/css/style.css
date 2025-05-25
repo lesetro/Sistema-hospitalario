@@ -1,0 +1,70 @@
+body {
+  padding-top: 80px;
+  min-height: 100vh;
+  background-color: #f8f9fa;
+}
+
+.bg-custom {
+  background-color: #f8f9fa;
+}
+
+.card-custom {
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  transition: transform 0.2s;
+}
+
+.card-custom:hover {
+  transform: translateY(-5px);
+}
+
+.btn-custom {
+  background-color: #007bff;
+  color: white;
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-custom:hover {
+  background-color: #0056b3;
+}
+
+.btn-custom.loading::after {
+  content: 'Verificando...';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.navbar.fixed-top {
+  z-index: 1030;
+}
+
+.container#mainContent {
+  margin-top: 20px;
+  padding-bottom: 20px;
+}
+
+.form-control {
+  border-radius: 0.5rem;
+}
+
+.alert {
+  border-radius: 0.5rem;
+}
+
+.news-card {
+  margin-bottom: 1.5rem;
+}
+
+/* Centrar formularios */
+form {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+/* Asegurar que las tablas no se desborden */
+.table-responsive {
+  overflow-x: auto;
+}

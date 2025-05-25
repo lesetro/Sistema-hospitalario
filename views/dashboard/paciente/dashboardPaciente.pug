@@ -1,0 +1,14 @@
+extends ../../layouts/dashboard-base
+
+block dashboard-content
+  .container-fluid
+    h1 Mi Panel
+    .row
+      .col-lg-12
+        .card.shadow.mb-4
+          .card-header.py-3
+            h6.m-0.font-weight-bold.text-primary Mis Datos
+          .card-body
+            p <strong>Nombre:</strong> #{paciente.nombre}
+            p <strong>Cama:</strong> #{paciente.cama ? paciente.cama.numero : 'Sin cama'}
+            p <strong>Médico:</strong> #{paciente.medico ? paciente.medico.nombre : 'Sin médico'}

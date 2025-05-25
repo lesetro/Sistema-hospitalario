@@ -1,0 +1,37 @@
+extends ../dashboard-admin
+
+block content
+  .container.mt-4
+    if error
+      .alert.alert-danger= error
+    h1 Nuevo Usuario
+    form(method='POST' action='/usuarios' novalidate)
+      .mb-3
+        label.form-label(for='dni') DNI
+        input#dni.form-control(type='text' name='dni' required)
+      .mb-3
+        label.form-label(for='nombre') Nombre
+        input#nombre.form-control(type='text' name='nombre' required)
+      .mb-3
+        label.form-label(for='email') Correo Electrónico
+        input#email.form-control(type='email' name='email' required)
+      .mb-3
+        label.form-label(for='password') Contraseña
+        input#password.form-control(type='password' name='password' required)
+      .mb-3
+        label.form-label(for='rol') Rol
+        select#rol.form-control(name='rol' required)
+          option(value='Paciente') Paciente
+          option(value='Enfermero') Enfermero
+          option(value='Medico') Médico
+          option(value='AdministradorCentral') Administrador Central
+          option(value='Administrativo') Administrativo
+          option(value='Limpieza') Limpieza
+          option(value='AdministradorGeneral') Administrador General
+      .mb-3
+        label.form-label(for='hospital_id') Hospital
+        select#hospital_id.form-control(name='hospital_id' required)
+          option(value='') Seleccione un hospital
+          each hospital in hospitales
+            option(value=hospital.id)= hospital.nombre
+      button.btn.btn-custom(type='submit') Guardar

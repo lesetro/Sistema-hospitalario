@@ -1,0 +1,27 @@
+block navbar
+  // Navbar por defecto para páginas sin dashboard
+  nav.navbar.navbar-expand-lg.navbar-dark.bg-dark.fixed-top.shadow-sm
+    .container-fluid
+      a.navbar-brand.d-flex.align-items-center(href='/')
+        i.bi.bi-hospital-fill.me-2
+        | Sistema Hospitalario
+      button.navbar-toggler(type='button' data-bs-toggle='collapse' data-bs-target='#navbarNav' aria-controls='navbarNav' aria-expanded='false' aria-label='Toggle navigation')
+        span.navbar-toggler-icon
+      #navbarNav.collapse.navbar-collapse
+        ul.navbar-nav.ms-auto
+          li.nav-item
+            a.nav-link(href='/hospitales' data-link)
+              i.bi.bi-geo-alt.me-1
+              | Hospitales
+          li.nav-item
+            a.nav-link(href='/foro' data-link)
+              i.bi.bi-chat-text.me-1
+              | Foro
+          li.nav-item
+            a.nav-link(href='/auth/login' data-link id='iniciarSesionLink')
+              i.bi.bi-box-arrow-in-right.me-1
+              | Login
+          li.nav-item
+            a.nav-link(href='/auth/logout' data-link id='cerrarSesionLink' style='display:none;')
+              i.bi.bi-box-arrow-right.me-1
+              | Logout
