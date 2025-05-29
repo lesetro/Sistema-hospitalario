@@ -1,4 +1,8 @@
 # para aclarar mas adelante
+npm install sequelize mariadb
+node reset.js
+
+
 
 las contraseñas luego se deben cargar en el .env.
 

@@ -1,0 +1,23 @@
+module.exports = (sequelize, DataTypes) => {
+  const Medico = sequelize.define('Medico', {
+    usuario_id: { type: DataTypes.INTEGER, primaryKey: true },
+    matricula: { type: DataTypes.STRING(100), allowNull: false },
+    especialidad_id: { type: DataTypes.INTEGER, allowNull: false },
+    sector_id: { type: DataTypes.INTEGER, allowNull: false }
+  }, {
+    tableName: 'Medicos',
+    timestamps: true,
+    underscored: true
+  });
+
+  Medico.associate = function(models) {
+    Medico.belongsTo(models.Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
+    Medico.belongsTo(models.Especialidad, { foreignKey: 'especialidad_id', as: 'especialidad' });
+    Medico.belongsTo(models.Sector, { foreignKey: 'sector_id', as: 'sector' });
+    Medico.hasMany(models.Internacion, { foreignKey: 'medico_id', as: 'internaciones' });
+    Medico.hasMany(models.AltaMedica, { foreignKey: 'medico_id', as: 'altas' });
+    Medico.hasMany(models.EvaluacionEnfermeria, { foreignKey: 'medico_id', as: 'evaluaciones' }); // Nueva relación
+  };
+
+  return Medico;
+};
