@@ -10,12 +10,18 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     tableName: 'TurnosPersonal',
     timestamps: true,
-    underscored: true
+    underscored: true,
+    indexes: [
+      { fields: ['usuario_id', 'sector_id', 'tipo'] },
+      { fields: ['hora_inicio'] },
+      { fields: ['hora_fin'] }
+    ]
   });
 
   TurnoPersonal.associate = function(models) {
     TurnoPersonal.belongsTo(models.Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
     TurnoPersonal.belongsTo(models.Sector, { foreignKey: 'sector_id', as: 'sector' });
+    TurnoPersonal.hasMany(models.Administrativo, { foreignKey: 'turno_id', as: 'administrativos' });
   };
 
   return TurnoPersonal;

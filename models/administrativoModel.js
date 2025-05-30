@@ -1,8 +1,8 @@
 module.exports = (sequelize, DataTypes) => {
   const Administrativo = sequelize.define('Administrativo', {
-    usuario_id: { type: DataTypes.INTEGER, primaryKey: true },
-    sector_id: { type: DataTypes.INTEGER, allowNull: false },
-    turno_id: { type: DataTypes.INTEGER, allowNull: true },
+    usuario_id: { type: DataTypes.INTEGER, primaryKey: true , references: { model: 'Usuarios', key: 'id' } },
+    sector_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Sectores', key: 'id' } },
+    turno_id: { type: DataTypes.INTEGER, allowNull: true ,  references: { model: 'TurnosPersonales', key: 'id' } },
     responsabilidad: {
       type: DataTypes.ENUM('Expediente', 'Turnos', 'Legajos', 'Derivaciones', 'General', 'Otros'),
       defaultValue: 'General'
@@ -11,7 +11,12 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     tableName: 'Administrativos',
     timestamps: true,
-    underscored: true
+    underscored: true,
+    indexes: [
+      { fields: ['usuario_id'], unique: true },
+      { fields: ['sector_id'] },
+      { fields: ['turno_id'] }
+    ]
   });
 
   Administrativo.associate = function(models) {

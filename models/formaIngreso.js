@@ -6,7 +6,10 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     tableName: 'FormasIngreso',
     timestamps: false,
-    underscored: true
+    underscored: true,
+    indexes: [
+        { unique: true, fields: ['nombre'] }
+      ]
   });
 
   FormaIngreso.associate = function(models) {

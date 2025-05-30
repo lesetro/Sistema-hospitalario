@@ -12,11 +12,9 @@ module.exports = (sequelize, DataTypes) => {
 
   TipoEstudio.associate = function(models) {
     TipoEstudio.hasMany(models.EstudioSolicitado, { foreignKey: 'tipo_estudio_id', as: 'estudios' });
-  };
-  SolicitudDerivacion.associate = function(models) {
-    TipoEstudio.hasMany(models.EstudioSolicitado, { foreignKey: 'tipo_estudio_id', as: 'estudios_solicitados' });
-  };
-
+    TipoEstudio.hasMany(models.ListaEspera, { foreignKey: 'tipo_estudio_id', as: 'listaEspera' });
+    TipoEstudio.hasMany(models.Turno, { foreignKey: 'tipo_estudio_id', as: 'turnos' });
+ };
 
   return TipoEstudio;
 };

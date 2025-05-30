@@ -13,7 +13,7 @@ module.exports = (sequelize, DataTypes) => {
     fecha_egreso: { type: DataTypes.DATE, allowNull: true },
     estado: { type: DataTypes.ENUM('Activo', 'Inactivo', 'Baja'), defaultValue: 'Activo' },
     observaciones: { type: DataTypes.TEXT, allowNull: true },
-    motivo_ultima_consulta_id: { type: DataTypes.INTEGER, allowNull: true }
+    
     
   }, {
     tableName: 'Pacientes',
@@ -29,7 +29,8 @@ module.exports = (sequelize, DataTypes) => {
     Paciente.hasMany(models.EvaluacionMedica, { foreignKey: 'paciente_id', as: 'evaluaciones' });
     Paciente.hasMany(models.AltaMedica, { foreignKey: 'paciente_id', as: 'altas_med' });
     Paciente.hasMany(models.HistorialMedico, { foreignKey: 'paciente_id', as: 'historial' });
-    Paciente.belongsTo(models.MotivoConsulta, { foreignKey: 'motivo_ultima_consulta_id', as: 'motivo_ultima_consulta' });
+    Paciente.hasMany(models.Factura, { foreignKey: 'paciente_id', as: 'facturas' });
+  
   };
 
   return Paciente;

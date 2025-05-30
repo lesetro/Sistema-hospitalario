@@ -1,5 +1,5 @@
 // reset.js
-const db = require('./database/db'); // Cambiado a la ruta correcta
+const db = require('./database/db'); 
 const seed = require('./seed');
 
 const resetDatabase = async () => {
@@ -7,8 +7,8 @@ const resetDatabase = async () => {
     await db.sequelize.authenticate();
     console.log('🔁 Conectado a la base de datos.');
 
-    await db.sequelize.sync({ force: true });
-    console.log('✅ Base de datos reiniciada.');
+    await sequelize.sync({ force: true });
+    console.log('✔️ Estructura de la base creada');
 
     await seed(); // Ejecuta seed.js
     console.log('✅ Datos iniciales insertados.');
@@ -21,7 +21,7 @@ const resetDatabase = async () => {
       stack: error.stack
     });
   } finally {
-    await db.sequelize.close();
+    await sequelize.close();
   }
 };
 

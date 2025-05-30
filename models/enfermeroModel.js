@@ -5,7 +5,11 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     tableName: 'Enfermeros',
     timestamps: true,
-    underscored: true
+    underscored: true,
+    indexes: [
+      { fields: ['usuario_id'], unique: true },
+      { fields: ['sector_id'] }
+    ]
   });
 
   Enfermero.associate = function(models) {

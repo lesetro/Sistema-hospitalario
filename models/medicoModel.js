@@ -7,7 +7,13 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     tableName: 'Medicos',
     timestamps: true,
-    underscored: true
+    underscored: true,
+    indexes: [
+      { fields: ['usuario_id'], unique: true },
+      { fields: ['matricula'], unique: true },
+      { fields: ['especialidad_id'] },
+      { fields: ['sector_id'] }
+    ]
   });
 
   Medico.associate = function(models) {

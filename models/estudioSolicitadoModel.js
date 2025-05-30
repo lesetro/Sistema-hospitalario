@@ -1,7 +1,7 @@
 module.exports = (sequelize, DataTypes) => {
   const EstudioSolicitado = sequelize.define('EstudioSolicitado', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: false },
+    evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'EvaluacionesMedicas', key: 'id' } },
     paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Pacientes', key: 'id' } },
     tipo_estudio_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'TiposEstudio', key: 'id' }},
     urgencia: { type: DataTypes.ENUM('Normal', 'Alta'), allowNull: false, defaultValue: 'Normal' },
@@ -19,6 +19,27 @@ module.exports = (sequelize, DataTypes) => {
     ]
 
   });
+  EstudioSolicitado.afterCreate(async (estudio, options) => {
+  await sequelize.models.ListaEspera.create({
+    paciente_id: estudio.paciente_id,
+    tipo: 'ESTUDIO',
+    tipo_estudio_id: estudio.tipo_estudio_id,
+    prioridad: estudio.urgencia === 'Alta' ? 1 : 2,
+    estado: 'PENDIENTE',
+    fecha_registro: new Date()
+  });
+});
+EstudioSolicitado.beforeUpdate(async (estudio, options) => {
+  if (estudio.estado === 'Realizado') {
+    const turnoEstudio = await sequelize.models.TurnoEstudio.findOne({
+      where: { estudio_solicitado_id: estudio.id, estado: 'Realizado' }
+    });
+    if (!turnoEstudio) {
+      throw new Error('El estudio no puede marcarse como Realizado sin un turno completado');
+    }
+  }
+});
+
 
   EstudioSolicitado.associate = function(models) {
     EstudioSolicitado.belongsTo(models.EvaluacionMedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacion_medica' });

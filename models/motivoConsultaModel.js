@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
 
   MotivoConsulta.associate = function(models) {
     MotivoConsulta.hasMany(models.HistorialMedico, { foreignKey: 'motivo_consulta_id', as: 'historiales' });
-    MotivoConsulta.hasMany(models.Paciente, { foreignKey: 'motivo_ultima_consulta_id', as: 'pacientes' });
+    
   };
 
   return MotivoConsulta;

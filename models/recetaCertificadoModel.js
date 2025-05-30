@@ -6,6 +6,7 @@ module.exports = (sequelize, DataTypes) => {
     contenido: { type: DataTypes.TEXT, allowNull: false },
     fecha: { type: DataTypes.DATE, allowNull: false },
     medico_id: { type: DataTypes.INTEGER, allowNull: false },
+    evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'EvaluacionesMedicas', key: 'id' } },
   }, {
     tableName: 'RecetasCertificados',
     timestamps: true,
@@ -15,6 +16,7 @@ module.exports = (sequelize, DataTypes) => {
   RecetaCertificado.associate = function(models) {
     RecetaCertificado.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
     RecetaCertificado.belongsTo(models.Medico, { foreignKey: 'medico_id', as: 'medico' });
+    RecetaCertificado.belongsTo(models.EvaluacionMedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacionMedica' });
   };
 
   return RecetaCertificado;

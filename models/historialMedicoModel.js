@@ -2,15 +2,20 @@
 module.exports = (sequelize, DataTypes) => {
   const HistorialMedico = sequelize.define('HistorialMedico', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    paciente_id: { type: DataTypes.INTEGER, allowNull: false },
-    motivo_consulta_id: { type: DataTypes.INTEGER, allowNull: true },
+    paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Pacientes', key: 'id' } },
+    motivo_consulta_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'MotivosConsulta', key: 'id' } },
     descripcion: { type: DataTypes.TEXT, allowNull: false },
-    tipo_evento: { type: DataTypes.STRING(100), allowNull: false },
+    tipo_evento: { type: DataTypes.ENUM('Consulta', 'Internacion', 'Cirugia', 'Estudio', 'Otro'), allowNull: false },
     fecha: { type: DataTypes.DATE, allowNull: false }
   }, {
     tableName: 'HistorialesMedicos',
     timestamps: true,
-    underscored: true
+    underscored: true,
+    indexes: [
+      { fields: ['paciente_id'] },
+      { fields: ['motivo_consulta_id'] },
+      { fields: ['fecha'] }
+    ]
   });
 
   HistorialMedico.associate = function(models) {
