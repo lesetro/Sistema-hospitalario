@@ -28,7 +28,7 @@ module.exports = (sequelize, DataTypes) => {
     Habitacion.hasMany(models.Cama, { foreignKey: 'habitacion_id', as: 'camas' });
     Habitacion.hasMany(models.Internacion, { foreignKey: 'habitacion_id', as: 'internaciones' });
     Habitacion.belongsTo(models.TipoDeServicio, { foreignKey: 'tipoDeServicio_id', as: 'tipoDeServicio' });
-    Habitacion.hasMany(model.intervencionQuirurgica, { foreignKey: 'habitacion_id', as: 'intervencionQuirurgica' });
+    Habitacion.hasMany(models.IntervencionQuirurgica, { foreignKey: 'habitacion_id', as: 'intervencionQuirurgica' });
 
   };
 

@@ -100,7 +100,7 @@ module.exports = (sequelize, DataTypes) => {
       as: "especialidad",
       constraints: false,
     });
-    ListaEspera.hasOne(models.turno, {
+    ListaEspera.hasOne(models.Turno, {
       foreignKey: "lista_espera_id",
       as: "turno",
       constraints: false,

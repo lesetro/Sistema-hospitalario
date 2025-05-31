@@ -1,28 +1,24 @@
-// reset.js
-const db = require('./database/db'); 
-const seed = require('./seed');
+const runMigrations = require("./migrationMaster");
+const runSeeders = require("./seedMaster");
 
-const resetDatabase = async () => {
+async function resetDatabase() {
   try {
-    await db.sequelize.authenticate();
-    console.log('🔁 Conectado a la base de datos.');
+    console.log("🧨 Revirtiendo seeders...");
+    await runSeeders("down");
 
-    await sequelize.sync({ force: true });
-    console.log('✔️ Estructura de la base creada');
+    console.log("🧨 Revirtiendo migraciones...");
+    await runMigrations("down");
 
-    await seed(); // Ejecuta seed.js
-    console.log('✅ Datos iniciales insertados.');
+    console.log("🚀 Aplicando migraciones...");
+    await runMigrations("up");
+
+    console.log("🌱 Ejecutando seeders...");
+    await runSeeders("up");
+
+    console.log("✅ Base de datos cargada correctamente.");
   } catch (error) {
-    console.error('❌ Error al reiniciar la base:', {
-      message: error.message,
-      code: error.code,
-      sqlState: error.sqlState,
-      errno: error.errno,
-      stack: error.stack
-    });
-  } finally {
-    await sequelize.close();
+    console.error("❌ Error durante el reset:", error);
   }
-};
+}
 
 resetDatabase();

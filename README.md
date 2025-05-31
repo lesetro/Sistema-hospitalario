@@ -1,3 +1,20 @@
+## como cargar los datos en la base 
+# Crear tablas
+node migrationMaster.js up
+
+# Insertar datos
+node seedMaster.js up
+
+# Borrar datos
+node seedMaster.js down
+
+# Eliminar tablas
+node migrationMaster.js down
+
+# Reset completo (limpia y vuelve a cargar)
+node reset.js
+
+
 # para aclarar mas adelante
 npm install sequelize mariadb
 node reset.js

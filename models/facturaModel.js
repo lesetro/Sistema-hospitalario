@@ -50,7 +50,7 @@ Factura.afterCreate(async (factura, options) => {
     });
   }
 });
-Pago.beforeCreate(async (pago, options) => {
+Factura.beforeCreate(async (factura, options) => {
   if (pago.metodo === 'Obra Social' && !pago.obra_social_id) {
     throw new Error('El campo obra_social_id es obligatorio para pagos con Obra Social');
   }
