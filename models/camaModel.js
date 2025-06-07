@@ -15,8 +15,10 @@ module.exports = (sequelize, DataTypes) => {
       tableName: "Camas",
       timestamps: true,
       underscored: true,
-    }
-  );
+      indexes: [
+        { fields: ['habitacion_id'] }]
+      
+      });
   Cama.afterUpdate(async (cama, options) => {
     if (cama.estado === "EnLimpieza" && !cama.fecha_fin_limpieza) {
       const fechaFinLimpieza = new Date();

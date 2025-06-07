@@ -1,33 +1,84 @@
 const express = require('express');
-const app = express();
 const path = require('path');
-const bodyParser = require('body-parser');
 require('dotenv').config();
+const db = require('./database/db');
+const cors = require('cors');
 
+const app = express();
+app.use(cors());
 
-const authRoutes = require('./routes/authRouter');
-const indexRoutes = require('./routes/indexRoutes');
-const pacienteRouter = require('./routes/pacienteRouter');
-// Middlewares deben ir ANTES de las rutas
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: true }));
-app.use(express.urlencoded({ extended: true }));
-app.use(express.static(path.join(__dirname, 'public')));
+// Configurar Pug como motor de vistas
 app.set('view engine', 'pug');
-app.set('views', path.join(__dirname, 'views')); 
+const viewsPath = path.join(__dirname, 'views');
+app.set('views', viewsPath);
+console.log(`Directorio de vistas configurado: ${viewsPath}`);
+
+// Servir archivos estáticos
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Middleware para parsear JSON y formularios
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Middleware de depuración para rutas
+app.use((req, res, next) => {
+  console.log(`Solicitud recibida: ${req.method} ${req.url}`);
+  next();
+});
 
 // Rutas
-app.use('/', indexRoutes);
-app.use('/auth', authRoutes);
-app.use('/pacientes', pacienteRouter);
+const admisionesRoute = require('./routes/admisionesRoute');
+const configuracionRoute= require(`./routes/configuracionRoute`);
 
+app.get('/', (req, res) => {
+  console.log('Renderizando dashboard/admin/dashboard-admin');
+  res.render('dashboard/admin/dashboard-admin', { title: 'Dashboard' });
+});
+app.use('/admisiones', admisionesRoute);
+app.use(`/configuracion`, configuracionRoute);
+//app.use('/pacientes', pacienteRoute);
 
+// Rutas para secciones en construcción
+const seccionesEnConstruccion = [
+  'internaciones', 'turnos', 'pacientes', 'facturacion', 'procedimientos',
+  'derivaciones', 'comunicacion', 'personal', 'usuarios',
+  'reportes', 'recetas', 'diagnosticos'
+];
+app.use((req, res) => {
+  res.status(404).json({ message: 'Página no encontrada' });
+});
+db.sequelize.authenticate()
+  .then(() => console.log('✅ Conexión a la base de datos establecida con éxito.'))
+  .catch(err => console.error('❌ Error de conexión:', err));
+seccionesEnConstruccion.forEach(seccion => {
+  app.get(`/${seccion}`, (req, res) => {
+    console.log(`Renderizando dashboard/admin/construccion para ${seccion}`);
+    res.render('dashboard/admin/construccion', { title: seccion.charAt(0).toUpperCase() + seccion.slice(1) });
+  });
+});
+process.on('uncaughtException', (err) => {
+  console.error('Excepción no capturada:', err.message, err.stack);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Promesa rechazada no manejada:', reason, promise);
+});
 // Manejador de errores global
 app.use((err, req, res, next) => {
-    console.error(err.stack);
-    res.status(500).json({ message: 'Error interno del servidor' });
+  console.error('Error en la aplicación:', err.stack);
+  res.status(500).json({ message: 'Error interno del servidor', error: err.message });
 });
+app.use((req, res, next) => {
+  res.status(404).send('Página no encontrada'); // Esto devuelve text/html
+});
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, async () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);
+  try {
+    await db.sequelize.authenticate();
+    console.log('Conexión a la base de datos establecida');
+  } catch (error) {
+    console.error('Error al conectar con la base de datos:', error);
+  }
 });

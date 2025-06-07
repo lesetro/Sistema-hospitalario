@@ -2,6 +2,7 @@ const path = require("path");
 const fs = require("fs");
 const { sequelize } = require("./models");
 const Sequelize = require("sequelize");
+const db = require('./database/db');
 
 const seederFiles = fs
   .readdirSync(path.join(__dirname, "database/seeders"))
@@ -26,15 +27,16 @@ async function clearExistingData(queryInterface, transaction) {
     'Reclamos', 'RecetasCertificados'
   ];
 
-  await sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
+  await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
   
   for (const table of tablesToClear) {
     if (tables.includes(table)) {
       await queryInterface.bulkDelete(table, null, { transaction });
     }
   }
+
   
-  await sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
+  await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
 }
 
 async function runSeeders(direction = "up") {
@@ -42,14 +44,14 @@ async function runSeeders(direction = "up") {
     throw new Error('Direction must be either "up" or "down"');
   }
 
-  const queryInterface = sequelize.getQueryInterface();
-  const transaction = await sequelize.transaction();
+  const queryInterface = db.sequelize.getQueryInterface();
+  const transaction = await db.sequelize.transaction();
 
   try {
     // Configuración inicial
-    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
-    await sequelize.query('SET UNIQUE_CHECKS = 0', { transaction });
-    await sequelize.query('SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO"', { transaction });
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 0', { transaction });
+    await db.sequelize.query('SET UNIQUE_CHECKS = 0', { transaction });
+    await db.sequelize.query('SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO"', { transaction });
 
     // Limpiar datos existentes solo en modo 'up'
     if (direction === 'up') {
@@ -65,22 +67,22 @@ async function runSeeders(direction = "up") {
       const startTime = Date.now();
       
       const seeder = require(path.join(__dirname, "database/seeders", file));
-      await seeder[direction](queryInterface, Sequelize, { transaction });
+    await seeder[direction](queryInterface, Sequelize, { transaction });
       
       const elapsedTime = ((Date.now() - startTime) / 1000).toFixed(2);
       console.log(`✓ Completed ${file} in ${elapsedTime}s`);
     }
 
     // Restaurar configuraciones
-    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
-    await sequelize.query('SET UNIQUE_CHECKS = 1', { transaction });
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1', { transaction });
+    await db.sequelize.query('SET UNIQUE_CHECKS = 1', { transaction });
     
     await transaction.commit();
     console.log(`✅ Seeders ${direction} completed successfully!`);
   } catch (error) {
     await transaction.rollback();
-    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1').catch(console.error);
-    await sequelize.query('SET UNIQUE_CHECKS = 1').catch(console.error);
+    await db.sequelize.query('SET FOREIGN_KEY_CHECKS = 1').catch(console.error);
+    await db.sequelize.query('SET UNIQUE_CHECKS = 1').catch(console.error);
     
     console.error(`❌ Seeder failed: ${error.message}`);
     throw error;

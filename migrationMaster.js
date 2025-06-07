@@ -1,6 +1,6 @@
 const path = require("path");
 const fs = require("fs");
-const { sequelize } = require("./models"); 
+const db = require('./database/db');
 const Sequelize = require("sequelize");
 
 const migrationFiles = fs
@@ -9,14 +9,14 @@ const migrationFiles = fs
   .sort();
 
 async function runMigrations(direction = "up") {
-  const queryInterface = sequelize.getQueryInterface();
+  const queryInterface = db.sequelize.getQueryInterface(); // Corrige aquí
+  const sequelize = db.sequelize; // Usa db.sequelize
   const files = direction === "up" ? migrationFiles : [...migrationFiles].reverse();
 
-  // Deshabilitar FKs al inicio 
+  // Deshabilitar FKs al inicio
   if (direction === "up") {
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
   } else {
-    // Para el rollback también deshabilitamos
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
   }
 
@@ -32,12 +32,9 @@ async function runMigrations(direction = "up") {
     console.log(`✅ Migrations ${direction} complete.`);
   } catch (error) {
     console.error(`❌ Migration failed: ${error.message}`);
-    
-    // Asegurarnos de reactivar FKs incluso si falla
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 1').catch(e => {
       console.error("Failed to re-enable foreign key checks:", e);
     });
-    
     throw error;
   }
 }

@@ -1,36 +1,53 @@
 const fs = require('fs');
 const path = require('path');
-const { Sequelize, sequelize } = require('../database/db'); // ✅ conexión correcta
+const db = require('../database/db');
 
 const basename = path.basename(__filename);
-const db = { Sequelize, sequelize };
+const modelDb = {}; 
 
-// Leer todos los archivos de modelos
 fs.readdirSync(__dirname)
-  .filter(file => (
-    file.indexOf('.') !== 0 &&      // Ignora archivos ocultos
-    file !== basename &&            // Ignora este archivo
-    file !== 'db.js' &&             // Por si db.js estuviera acá
-    file.slice(-3) === '.js'        // Solo archivos .js
-  ))
+  .filter(file => {
+    console.log(`Filtrando archivo: ${file}`);
+    return (
+      file.indexOf('.') !== 0 &&
+      file !== basename &&
+      file !== 'db.js' &&
+      file.slice(-3) === '.js'
+    );
+  })
   .forEach(file => {
-    const modelDef = require(path.join(__dirname, file)); // importa la función
-
+    console.log(`Intentando cargar modelo desde: ${file}`);
+    const modelDef = require(path.join(__dirname, file));
+    
     if (typeof modelDef !== 'function') {
-      console.error(`⚠️ El archivo "${file}" no exporta una función. ¿Es un modelo Sequelize válido?`);
+      console.error(`⚠️ Error: El archivo "${file}" no exporta una función.`);
       return;
     }
 
-    const model = modelDef(sequelize, Sequelize.DataTypes); // ejecuta la función
-    db[model.name] = model; // guarda el modelo
+    try {
+      const model = modelDef(db.sequelize, db.Sequelize.DataTypes);
+      if (!model || !model.name) {
+        console.error(`⚠️ Error: El modelo en "${file}" no tiene un nombre válido.`);
+        return;
+      }
+      console.log(`Modelo cargado: ${model.name}`);
+      modelDb[model.name] = model;
+    } catch (error) {
+      console.error(`⚠️ Error al cargar el modelo en "${file}": ${error.message}`);
+    }
   });
 
-// Asociaciones entre modelos
-Object.keys(db).forEach(modelName => {
-  if (db[modelName].associate) {
-    db[modelName].associate(db);
+console.log('Modelos cargados:', Object.keys(modelDb));
+
+Object.keys(modelDb).forEach(modelName => {
+  if (modelDb[modelName].associate) {
+    console.log(`Ejecutando asociaciones para: ${modelName}`);
+    try {
+      modelDb[modelName].associate(modelDb);
+    } catch (error) {
+      console.error(`⚠️ Error en asociaciones de "${modelName}": ${error.message}`);
+    }
   }
 });
 
-// Exportamos todos los modelos + sequelize y Sequelize
-module.exports = db;
+module.exports = modelDb; 

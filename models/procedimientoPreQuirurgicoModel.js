@@ -8,7 +8,8 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     tableName: 'ProcedimientosPreQuirurgicos',
     timestamps: true,
-    underscored: true
+    underscored: true,
+     indexes: [{ fields: ['evaluacion_id'] }] 
   });
 
   ProcedimientoPreQuirurgico.associate = function(models) {

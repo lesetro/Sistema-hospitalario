@@ -1,0 +1,99 @@
+doctype html
+html(lang='es')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    title #{title} - Sistema de Gestión Hospitalaria
+    link(href='https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css', rel='stylesheet')
+    link(href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css', rel='stylesheet')
+    link(rel='stylesheet', href='/css/style.css')
+  body
+    // Sidebar
+    nav#sidebar.sidebar
+      .sidebar-header
+        h4
+          i.fas.fa-hospital
+          |  Hospital
+        p Sistema de Gestión
+      .sidebar-menu
+        .menu-item
+          a.menu-link(href='/', class=(title === 'Dashboard' ? 'active' : ''))
+            i.fas.fa-tachometer-alt
+            span Inicio
+        .menu-item
+          a.menu-link(href='/admisiones', class=(title === 'Admisiones' ? 'active' : ''))
+            i.fas.fa-user-plus
+            span Admisiones
+        .menu-item
+          a.menu-link(href='/internaciones', class=(title === 'Internaciones' ? 'active' : ''))
+            i.fas.fa-bed
+            span Internaciones
+        .menu-item
+          a.menu-link(href='/turnos', class=(title === 'Turnos' ? 'active' : ''))
+            i.fas.fa-calendar-alt
+            span Turnos
+        .menu-item
+          a.menu-link(href='/pacientes', class=(title === 'Pacientes' ? 'active' : ''))
+            i.fas.fa-users
+            span Pacientes
+        .menu-item
+          a.menu-link(href='/facturacion', class=(title === 'Facturación y Pagos' ? 'active' : ''))
+            i.fas.fa-file-invoice-dollar
+            span Facturación y Pagos
+        .menu-item
+          a.menu-link(href='/procedimientos', class=(title === 'Procedimientos y Estudios' ? 'active' : ''))
+            i.fas.fa-stethoscope
+            span Procedimientos y Estudios
+        .menu-item
+          a.menu-link(href='/derivaciones', class=(title === 'Derivaciones y Reclamos' ? 'active' : ''))
+            i.fas.fa-exchange-alt
+            span Derivaciones y Reclamos
+        .menu-item
+          a.menu-link(href='/comunicacion', class=(title === 'Comunicación' ? 'active' : ''))
+            i.fas.fa-comments
+            span Comunicaciones
+        .menu-item
+          a.menu-link(href='/personal', class=(title === 'Gestión de Personal' ? 'active' : ''))
+            i.fas.fa-user-md
+            span Gestión de Personal
+        .menu-item
+          a.menu-link(href='/configuracion', class=(title === 'Configuración del Hospital' ? 'active' : ''))
+            i.fas.fa-cogs
+            span Configuración
+        .menu-item
+          a.menu-link(href='/usuarios', class=(title === 'Usuarios y Seguridad' ? 'active' : ''))
+            i.fas.fa-shield-alt
+            span Usuarios
+        .menu-item
+          a.menu-link(href='/reportes', class=(title === 'Reporte' ? 'active' : ''))
+            i.fas.fa-chart-bar
+            span Reportes
+        .menu-item
+          a.menu-link(href='/diagn', class=(title === 'Recetas y Diagnosticos' ? 'active' : ''))
+            i.fas.fa-prescription-bottle-alt
+            span Diagnósticos
+
+    // Main Content
+    .main-content
+      // Header
+      header.header
+        .d-flex.align-items-center
+          button.btn.btn-link.mobile-menu-toggle.me-3(onclick='toggleSidebar()')
+            i.fas.fa-bars
+          .search-bar
+            i.fas.fa-search
+            input.form-control(type='text', placeholder='Buscar pacientes, turnos...', id='global-search')
+        .user-info
+          span.me-2 #{user ? user.nombre : 'Dr. Admin'}
+          .user-avatar
+            i.fas.fa-user
+      // Content Area
+      .content-area
+        block content
+
+    // Scripts
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js')
+    script(src='/js/script.js')
+    block scripts
+      if title === 'Admisiones'
+        script(src='/js/admision.js')

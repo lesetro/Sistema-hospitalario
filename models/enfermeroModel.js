@@ -1,6 +1,7 @@
 module.exports = (sequelize, DataTypes) => {
   const Enfermero = sequelize.define('Enfermero', {
-    usuario_id: { type: DataTypes.INTEGER, primaryKey: true },
+    id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
+    usuario_id: { type: DataTypes.INTEGER, allowNull: true },
     sector_id: { type: DataTypes.INTEGER, allowNull: false }
   }, {
     tableName: 'Enfermeros',

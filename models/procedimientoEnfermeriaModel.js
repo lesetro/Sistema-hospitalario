@@ -11,7 +11,13 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     tableName: 'procedimientos_enfermeria',
     timestamps: true,
-    underscored: true
+    underscored: true,
+    indexes: [
+      { fields: ['evaluacion_id'] },
+      { fields: ['tratamiento_id'] }
+    ]
+
+
   });
 
   ProcedimientoEnfermeria.associate = function(models) {

@@ -1,6 +1,6 @@
 document.addEventListener('DOMContentLoaded', () => {
-  // Validación de formularios
-  const forms = document.querySelectorAll('form');
+  // Validación genérica para formularios (excepto admisiones)
+  const forms = document.querySelectorAll('form:not(#nuevoPacienteForm, #nuevaAdmisionForm, #editarAdmisionForm)');
   forms.forEach(form => {
     form.addEventListener('submit', async (e) => {
       e.preventDefault();
@@ -10,13 +10,13 @@ document.addEventListener('DOMContentLoaded', () => {
         return;
       }
 
-      // Agregar estado de carga al botón
       const submitBtn = form.querySelector('button[type="submit"]');
-      submitBtn.classList.add('loading');
-      submitBtn.disabled = true;
+      if (submitBtn) {
+        submitBtn.classList.add('loading');
+        submitBtn.disabled = true;
+      }
 
       try {
-        // Simular envío (reemplazar con llamada real al servidor)
         await new Promise(resolve => setTimeout(resolve, 1000));
         form.submit();
       } catch (error) {
@@ -26,8 +26,10 @@ document.addEventListener('DOMContentLoaded', () => {
         alert.textContent = 'Error al enviar el formulario. Por favor, intenta de nuevo.';
         form.prepend(alert);
       } finally {
-        submitBtn.classList.remove('loading');
-        submitBtn.disabled = false;
+        if (submitBtn) {
+          submitBtn.classList.remove('loading');
+          submitBtn.disabled = false;
+        }
       }
     });
   });
@@ -39,10 +41,36 @@ document.addEventListener('DOMContentLoaded', () => {
   // Alternar login/logout
   const loginLink = document.getElementById('loginLink');
   const logoutLink = document.getElementById('logoutLink');
-  // Reemplazar con verificación real de autenticación
-  const isAuthenticated = false; // Mock
-  if (isAuthenticated) {
+  const isAuthenticated = false; // Cambiar según lógica de autenticación
+  if (isAuthenticated && loginLink && logoutLink) {
     loginLink.style.display = 'none';
     logoutLink.style.display = 'block';
   }
+
+  // Toggle sidebar
+  function toggleSidebar() {
+    const sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      sidebar.classList.toggle('show');
+    }
+  }
+
+  const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
+  if (mobileMenuToggle) {
+    mobileMenuToggle.addEventListener('click', toggleSidebar);
+  }
+
+  document.addEventListener('click', (e) => {
+    const sidebar = document.getElementById('sidebar');
+    const toggleBtn = document.querySelector('.mobile-menu-toggle');
+    if (
+      window.innerWidth <= 768 &&
+      sidebar &&
+      sidebar.classList.contains('show') &&
+      !sidebar.contains(e.target) &&
+      !toggleBtn.contains(e.target)
+    ) {
+      sidebar.classList.remove('show');
+    }
+  });
 });

@@ -1,88 +1,76 @@
-extends ../../layouts/dashboard-base
+extends layout
 
-block dashboard-content
-  .dashboard-admin-container
-    .admin-sidebar.bg-dark
-      .sidebar-header
-        h3.text-white
-          i.bi.bi-shield-lock.me-2
-          | Panel Admin
-      
-      ul.nav.flex-column
-        li.nav-item
-          a.nav-link(href='/dashboard/admin')
-            i.bi.bi-speedometer2.me-2
-            | Inicio
-        
-        if user.rol === 'AdministradorGeneral'
-          li.nav-item
-            a.nav-link(href='/hospitales')
-              i.bi.bi-building.me-2
-              | Hospitales
-          li.nav-item
-            a.nav-link(href='/usuarios')
-              i.bi.bi-people-fill.me-2
-              | Personal
-        
-        li.nav-item
-          a.nav-link(href='/camas')
-            i.bi.bi-hospital.me-2
-            | Camas
-        li.nav-item
-          a.nav-link(href='/pacientes')
-            i.bi.bi-person-vcard.me-2
-            | Pacientes
-        
-        li.nav-item
-          a.nav-link(href='/auth/logout')
-            i.bi.bi-box-arrow-right.me-2
-            | Salir
-
-    .admin-main-content
-      nav.navbar.navbar-light.bg-light
-        .container-fluid
-          span.navbar-text
-            i.bi.bi-person-badge.me-2
-            | #{user.nombre} - #{user.rol}
-      
-      .container-fluid.mt-3
-        .d-sm-flex.align-items-center.justify-content-between.mb-4
-          h1.h3.mb-0.text-gray-800 Panel de Administración Central
-          a.d-none.d-sm-inline-block.btn.btn-sm.btn-primary.shadow-sm(href='#')
-            i.fas.fa-download.fa-sm.text-white-50
-            | Generar Reporte
-
-        .row
-          .col-xl-3.col-md-6.mb-4
-            .card.border-left-primary.shadow.h-100.py-2
-              .card-body
-                .row.no-gutters.align-items-center
-                  .col.mr-2
-                    .text-xs.font-weight-bold.text-primary.text-uppercase.mb-1
-                      | Pacientes Registrados
-                    .h5.mb-0.font-weight-bold.text-gray-800= totalPacientes
-                  .col-auto
-                    i.fas.fa-user-injured.fa-2x.text-gray-300
-
-          .col-xl-3.col-md-6.mb-4
-            .card.border-left-success.shadow.h-100.py-2
-              .card-body
-                .row.no-gutters.align-items-center
-                  .col.mr-2
-                    .text-xs.font-weight-bold.text-success.text-uppercase.mb-1
-                      | Camas Totales
-                    .h5.mb-0.font-weight-bold.text-gray-800= camas.length
-                  .col-auto
-                    i.fas.fa-bed.fa-2x.text-gray-300
-
-        .row
-          .col-lg-6.mb-4
-            .card.shadow.mb-4
-              .card-header.py-3
-                h6.m-0.font-weight-bold.text-primary Notificaciones Recientes
-              .card-body
-                each notificacion in notificaciones
-                  .alert.alert-info
-                    strong= notificacion.titulo
-                    p= notificacion.mensaje
-                    small.text-muted= notificacion.createdAt.toLocaleString()
+block content
+  #dashboard-content
+    .welcome-card
+      h1
+        i.fas.fa-hospital-alt
+        |  Sistema de Gestión Hospitalaria
+      p.lead Bienvenido al panel administrativo del hospital. Desde aquí puedes gestionar todos los aspectos operativos.
+    .stats-grid
+      .stat-card
+        h3 245
+        p
+          i.fas.fa-users.text-primary
+          |  Pacientes Activos
+      .stat-card
+        h3 38
+        p
+          i.fas.fa-bed.text-success
+          |  Camas Ocupadas
+      .stat-card
+        h3 127
+        p
+          i.fas.fa-calendar.text-warning
+          |  Turnos Hoy
+      .stat-card
+        h3 $47,230
+        p
+          i.fas.fa-dollar-sign.text-info
+          |  Facturación Mes
+      .stat-card
+        h3.text-primary 2
+        p
+          i.fas.fa-user-md.text-primary
+          |  Médicos en Guardia
+    
+        h3.text-success 4
+        p
+          i.fas.fa-user-nurse.text-success
+          |  Enfermeros en Guardia
+    
+        h3.text-info 2
+        p
+          i.fas.fa-user.text-info
+          |  Camilleros en Guardia
+      .stat-card
+        h3.text-warning 12 días
+        p
+          i.fas.fa-exclamation-triangle.text-warning
+          |  Próximo Vencimiento de Servicios
+    .quick-actions
+      h4.mb-4
+        i.fas.fa-bolt
+        |  Acciones Rápidas
+      button.btn.btn-primary.btn-quick-action(onclick="showSection('admisiones')")
+        i.fas.fa-user-plus
+        |  Nueva Admisión
+      button.btn.btn-success.btn-quick-action(onclick="showSection('turnos')")
+        i.fas.fa-calendar-plus
+        |  Nuevo Turno
+      button.btn.btn-info.btn-quick-action(onclick="showSection('pacientes')")
+        i.fas.fa-user-plus
+        |  Nuevo Paciente
+      button.btn.btn-warning.btn-quick-action(onclick="showSection('facturacion')")
+        i.fas.fa-file-invoice
+        |  Nueva Factura
+      button.btn.btn-secondary.btn-quick-action(onclick="showSection('reportes')")
+        i.fas.fa-chart-line
+        |  Ver Reportes
+  #section-content(style='display: none;')
+    .alert.alert-info
+      h4
+        i.fas.fa-info-circle
+        |  Sección en Desarrollo
+      p Esta sección será desarrollada paso a paso. Por favor selecciona una opción del menú lateral para comenzar.
+  

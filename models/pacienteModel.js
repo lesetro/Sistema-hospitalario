@@ -2,19 +2,28 @@
 module.exports = (sequelize, DataTypes) => {
   const Paciente = sequelize.define('Paciente', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    dni: { type: DataTypes.STRING, allowNull: false },
-    nombre: { type: DataTypes.STRING, allowNull: false },
-    usuario_id: { type: DataTypes.INTEGER, allowNull: true },
-    administrativo_id: { type: DataTypes.INTEGER, allowNull: true },
-    obra_social_id: { type: DataTypes.INTEGER, allowNull: true },
-    fecha_nacimiento: { type: DataTypes.DATE, allowNull: false },
-    sexo: { type: DataTypes.ENUM('Masculino', 'Femenino', 'Otro'), allowNull: true },
+    usuario_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: { model: 'Usuarios', key: 'id' }
+    },
+    administrativo_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: { model: 'Administrativos', key: 'id' }
+    },
+    obra_social_id: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: { model: 'ObrasSociales', key: 'id' }
+    },
     fecha_ingreso: { type: DataTypes.DATE, allowNull: false },
     fecha_egreso: { type: DataTypes.DATE, allowNull: true },
-    estado: { type: DataTypes.ENUM('Activo', 'Inactivo', 'Baja'), defaultValue: 'Activo' },
-    observaciones: { type: DataTypes.TEXT, allowNull: true },
-    
-    
+    estado: {
+      type: DataTypes.ENUM('Activo', 'Inactivo', 'Baja'),
+      defaultValue: 'Activo'
+    },
+    observaciones: { type: DataTypes.TEXT, allowNull: true }
   }, {
     tableName: 'Pacientes',
     timestamps: true,
@@ -30,7 +39,7 @@ module.exports = (sequelize, DataTypes) => {
     Paciente.hasMany(models.AltaMedica, { foreignKey: 'paciente_id', as: 'altas_med' });
     Paciente.hasMany(models.HistorialMedico, { foreignKey: 'paciente_id', as: 'historial' });
     Paciente.hasMany(models.Factura, { foreignKey: 'paciente_id', as: 'facturas' });
-  
+    Paciente.hasMany(models.Admision, { foreignKey: 'paciente_id', as: 'admisiones' });
   };
 
   return Paciente;

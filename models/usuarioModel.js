@@ -4,13 +4,17 @@ module.exports = (sequelize, DataTypes) => {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     dni: { type: DataTypes.STRING, allowNull: false },
     nombre: { type: DataTypes.STRING, allowNull: false },
+    apellido: { type: DataTypes.STRING, allowNull: false },
     email: { type: DataTypes.STRING, allowNull: false, unique: true },
     password: { type: DataTypes.STRING, allowNull: false },
-    rol_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'Roles', key: 'id' } },
+    rol_id: {
+      type: DataTypes.INTEGER,
+      allowNull: false,
+      references: { model: 'Roles', key: 'id' }
+    },
     telefono: { type: DataTypes.STRING, allowNull: true },
     fecha_nacimiento: { type: DataTypes.DATE, allowNull: false },
-    sexo: { type: DataTypes.ENUM('Masculino', 'Femenino', 'Otro'), allowNull: false },
-   
+    sexo: { type: DataTypes.ENUM('Masculino', 'Femenino', 'Otro'), allowNull: false }
   }, {
     tableName: 'Usuarios',
     timestamps: true,

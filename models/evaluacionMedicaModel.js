@@ -16,11 +16,7 @@ module.exports = (sequelize, DataTypes) => {
       },
       estudio_solicitado_id: { type: DataTypes.INTEGER, allowNull: true },
       observaciones_diagnostico: { type: DataTypes.TEXT, allowNull: true },
-      tratamiento_id: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: { model: "Tratamientos", key: "id" },
-      },
+      tratamiento_id: { type: DataTypes.INTEGER,allowNull: true,references: { model: "Tratamientos", key: "id" },},
     },
     {
       tableName: "EvaluacionesMedicas",

@@ -7,11 +7,12 @@ const sequelize = new Sequelize(
   process.env.DB_PASSWORD,
   {
     host: process.env.DB_HOST,
+    port: 3306, 
     dialect: 'mariadb',
     dialectOptions: {
-      connectTimeout: 30000 
+      connectTimeout: 30000
     },
-    logging: process.env.NODE_ENV === 'development' ? console.log : false,
+    logging: false,
     define: {
       timestamps: true,
       underscored: true
@@ -40,5 +41,7 @@ const db = {
     return false;
   }
 };
+
+
 
 module.exports = db;

@@ -7,7 +7,7 @@ module.exports = (sequelize, DataTypes) => {
     enfermero_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Enfermeros', key: 'usuario_id' } },
     medico_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Medicos', key: 'usuario_id' } },
     fecha: { type: DataTypes.DATE, allowNull: false },
-    signos_vitales: { type: DataTypes.JSON, allowNull: true },
+    signos_vitales: { type: DataTypes.STRING(300), allowNull: true },
     procedimiento_pre_quirurgico_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'ProcedimientosPreQuirurgicos', key: 'id' } },
     nivel_triaje: { type: DataTypes.ENUM('Rojo', 'Amarillo', 'Verde', 'Negro'), allowNull: true }, // Sistema de triaje
     observaciones: { type: DataTypes.TEXT, allowNull: true }, // Incluye evolución del tratamiento

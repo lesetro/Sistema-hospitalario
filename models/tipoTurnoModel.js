@@ -1,10 +1,10 @@
 module.exports = (sequelize, DataTypes) => {
   const TipoTurno = sequelize.define('TipoTurno', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    nombre: { type: DataTypes.STRING, allowNull: false, unique: true }, // Ej: 'MEDICO'
+    nombre: { type: DataTypes.STRING, allowNull: false, unique: true }, // Ej: 'Consulta'
     descripcion: { type: DataTypes.TEXT, allowNull: true }
   }, {
-    tableName: 'tipos_turno',
+    tableName: 'tipos_turno', 
     timestamps: true,
     underscored: true
   });

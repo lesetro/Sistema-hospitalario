@@ -1,0 +1,374 @@
+extends layout.pug
+
+block content
+  .row
+    // Tarjeta: Urgencias
+    .col-md-12
+      .card.mb-4
+        .card-header.urgencias-header
+          h5.mb-0
+            button#urgenciasBtn.btn.btn-danger(type='button')
+              i.fas.fa-plus-circle.me-2
+              | Generar Paciente de Urgencia
+
+    // Tarjeta: Nuevo Paciente
+    .col-md-12
+      .card.mb-4
+        .card-header
+          h5.mb-0
+            a(data-bs-toggle='collapse' href='#nuevoPacienteCollapse' role='button' aria-expanded='false' aria-controls='nuevoPacienteCollapse')
+              i.fas.fa-plus-circle.me-2
+              | Nuevo Paciente
+        #nuevoPacienteCollapse.collapse
+          .card-body.bg-light.p-3
+            .row
+              .col-md-10
+                form#nuevoPacienteForm(method='POST' novalidate)
+                  .row
+                    .col-md-6.mb-3
+                      label.form-label(for='nombre') Nombre *
+                      input#nombre.form-control(type='text' name='nombre' required)
+                      span.error-message#nombreError.text-danger(style='display: none;') Campo requerido
+                    .col-md-6.mb-3
+                      label.form-label(for='apellido') Apellido *
+                      input#apellido.form-control(type='text' name='apellido' required)
+                      span.error-message#apellidoError.text-danger(style='display: none;') Campo requerido
+                    .col-md-6.mb-3
+                      label.form-label(for='dni') DNI *
+                      input#dni.form-control(type='text' name='dni' required pattern='[0-9]{7,8}')
+                      span.error-message#dniError.text-danger(style='display: none;') DNI debe tener 7 u 8 dígitos
+                    .col-md-6.mb-3
+                      label.form-label(for='email') Email *
+                      input#email.form-control(type='email' name='email' required)
+                      span.error-message#emailError.text-danger(style='display: none;') Email inválido
+                    .col-md-6.mb-3
+                      label.form-label(for='password') Contraseña *
+                      input#password.form-control(type='password' name='password' required minlength='6')
+                      span.error-message#passwordError.text-danger(style='display: none;') Contraseña requerida (mínimo 6 caracteres)
+                    .col-md-6.mb-3
+                      label.form-label(for='telefono') Teléfono
+                      input#telefono.form-control(type='text' name='telefono' pattern='[0-9]{10,15}')
+                      span.error-message#telefonoError.text-danger(style='display: none;') Teléfono inválido (10-15 dígitos)
+                    .col-md-6.mb-3
+                      label.form-label(for='administrativo_id_paciente') Administrativo Responsable *
+                      select#administrativo_id_paciente.form-select(name='administrativo_id' required)
+                        option(value='') Seleccione un administrativo
+                        if administrativos && Array.isArray(administrativos) && administrativos.length
+                          each administrativo in administrativos
+                            option(value=administrativo.id) #{administrativo.nombre || administrativo.responsabilidad || 'N/A'}
+                        else
+                          option(value='' disabled) No hay administrativos disponibles
+                      span.error-message#administrativoError.text-danger(style='display: none;') Campo requerido
+                    .col-md-6.mb-3
+                      label.form-label(for='obra_social_id') Obra Social
+                      select#obra_social_id.form-select(name='obra_social_id')
+                        option(value='') Sin obra social
+                        if obrasSociales && Array.isArray(obrasSociales) && obrasSociales.length
+                          each obraSocial in obrasSociales
+                            option(value=obraSocial.id) #{obraSocial.nombre || 'N/A'}
+                        else
+                          option(value='' disabled) No hay obras sociales disponibles
+                      span.error-message#obraSocialError.text-danger(style='display: none;') Obra social inválida
+                    .col-md-6.mb-3
+                      label.form-label(for='fecha_nacimiento') Fecha de Nacimiento *
+                      input#fecha_nacimiento.form-control(type='date' name='fecha_nacimiento' required)
+                      span.error-message#fechaNacimientoError.text-danger(style='display: none;') Campo requerido
+                    .col-md-6.mb-3
+                      label.form-label(for='sexo') Sexo *
+                      select#sexo.form-select(name='sexo' required)
+                        option(value='') Seleccione una opción
+                        option(value='Masculino') Masculino
+                        option(value='Femenino') Femenino
+                        option(value='Otro') Otro
+                      span.error-message#sexoError.text-danger(style='display: none;') Campo requerido
+                    .col-md-6.mb-3
+                      label.form-label(for='fecha_ingreso') Fecha de Ingreso *
+                      input#fecha_ingreso.form-control(type='date' name='fecha_ingreso' required value='2025-06-04')
+                      span.error-message#fechaIngresoError.text-danger(style='display: none;') Campo requerido
+                    .col-md-6.mb-3
+                      label.form-label(for='estado') Estado
+                      select#estado.form-select(name='estado')
+                        option(value='Activo' selected) Activo
+                        option(value='Inactivo') Inactivo
+                        option(value='Baja') Baja
+                    .col-md-12.mb-3
+                      label.form-label(for='observaciones') Observaciones
+                      textarea#observaciones.form-control(name='observaciones' rows='3')
+                  .d-flex.justify-content-end.mt-3
+                    button.btn.btn-primary(type='submit')
+                      i.fas.fa-save.me-2
+                      | Guardar Paciente
+
+    // Sección: Nueva Admisión
+    .col-md-12
+      .card.mb-4
+        .card-header
+          h5.mb-0
+            i.fas.fa-plus-circle.me-2
+            | Nueva Admisión
+        .card-body.bg-light.p-3
+          form#nuevaAdmisionForm(method='POST' novalidate)
+            .row
+              .col-md-6.mb-3
+                label.form-label(for='paciente_search') Buscar Paciente por DNI *
+                .input-group
+                  input#paciente_search.form-control(type='text' placeholder='Ingrese DNI del paciente' required)
+                  button.btn.btn-outline-secondary#buscar_paciente(type='button')
+                    i.fas.fa-search.me-2
+                    | Buscar
+                input#paciente_id(type='hidden' name='paciente_id' required)
+                .mt-2#paciente_info(style='display: none;')
+                  .alert.alert-info.mb-0
+                    strong#paciente_nombre Paciente encontrado
+                span.error-message#pacienteError.text-danger(style='display: none;') Debe buscar y seleccionar un paciente
+              .col-md-6.mb-3
+                label.form-label(for='administrativo_id') Administrativo Responsable *
+                select#administrativo_id.form-select(name='administrativo_id' required)
+                  option(value='') Seleccione un administrativo
+                  if administrativos && Array.isArray(administrativos) && administrativos.length
+                    each administrativo in administrativos
+                      option(value=administrativo.id) #{administrativo.nombre || administrativo.responsabilidad || 'N/A'}
+                  else
+                    option(value='' disabled) No hay administrativos disponibles
+                span.error-message#administrativoAdmisionError.text-danger(style='display: none;') Campo requerido
+              .col-md-6.mb-3
+                label.form-label(for='motivo_id') Motivo de Admisión *
+                select#motivo_id.form-select(name='motivo_id' required)
+                  option(value='') Seleccione un motivo
+                  if motivos && Array.isArray(motivos) && motivos.length
+                    each motivo in motivos
+                      option(value=motivo.id) #{motivo.nombre || 'N/A'}
+                  else
+                    option(value='' disabled) No hay motivos disponibles
+                span.error-message#motivoError.text-danger(style='display: none;') Campo requerido
+              .col-md-6.mb-3
+                label.form-label(for='forma_ingreso_id') Forma de Ingreso *
+                select#forma_ingreso_id.form-select(name='forma_ingreso_id' required)
+                  option(value='') Seleccione una forma
+                  if formas && Array.isArray(formas) && formas.length
+                    each forma in formas
+                      option(value=forma.id) #{forma.nombre || 'N/A'}
+                  else
+                    option(value='' disabled) No hay formas disponibles
+                span.error-message#formaIngresoError.text-danger(style='display: none;') Campo requerido
+              .col-md-6.mb-3
+                label.form-label(for='fecha_admision') Fecha de Admisión *
+                input#fecha_admision.form-control(type='date' name='fecha' required value='2025-06-04')
+                span.error-message#fechaAdmisionError.text-danger(style='display: none;') Campo requerido
+              .col-md-6.mb-3
+                label.form-label(for='tipo_turno_id') Tipo de Turno *
+                select#tipo_turno_id.form-select(name='tipo_turno_id' required)
+                  option(value='') Seleccione un tipo
+                  if tiposTurno && Array.isArray(tiposTurno) && tiposTurno.length
+                    each tipo in tiposTurno
+                      option(value=tipo.id) #{tipo.nombre || 'N/A'}
+                  else
+                    option(value='' disabled) No hay tipos de turno disponibles
+                span.error-message#tipoTurnoError.text-danger(style='display: none;') Campo requerido
+              .col-md-6.mb-3
+                label.form-label(for='medico_id') Médico *
+                select#medico_id.form-select(name='medico_id' required)
+                  option(value='') Seleccione un médico
+                  if medicos &&  medicos.length
+                    each medico in medicos
+                      option(value=medico.id)= `${medico.usuario.nombre} ${medico.usuario.apellido}`
+                  else
+                    option(value='' disabled) No hay médicos disponibles
+                span.error-message#medicoError.text-danger(style='display: none;') Campo requerido
+              .col-md-6.mb-3
+                label.form-label(for='sector_id') Sector *
+                select#sector_id.form-select(name='sector_id' required)
+                  option(value='') Seleccione un sector
+                  if sectores && Array.isArray(sectores) && sectores.length
+                    each sector in sectores
+                      option(value=sector.id) #{sector.nombre || 'N/A'}
+                  else
+                    option(value='' disabled) No hay sectores disponibles
+                span.error-message#sectorError.text-danger(style='display: none;') Campo requerido
+              .col-md-6.mb-3
+                label.form-label(for='turno_fecha') Fecha del Turno *
+                input#turno_fecha.form-control(type='date' name='turno_fecha' required value='2025-06-04')
+                span.error-message#turnoFechaError.text-danger(style='display: none;') Campo requerido
+              .col-md-6.mb-3
+                label.form-label(for='turno_hora') Hora del Turno *
+                select#turno_hora.form-select(name='turno_hora' required)
+                  option(value='') Seleccione un horario
+                span.error-message#turnoHoraError.text-danger(style='display: none;') Campo requerido
+              .col-md-6.mb-3
+                label.form-label(for='lista_espera_tipo') Tipo de Lista de Espera *
+                select#lista_espera_tipo.form-select(name='lista_espera_tipo' required)
+                  option(value='') Seleccione un tipo
+                  option(value='ESTUDIO') Estudio
+                  option(value='EVALUACION') Evaluación
+                  option(value='INTERNACION') Internación
+                  option(value='CIRUGIA') Cirugía
+                span.error-message#listaEsperaError.text-danger(style='display: none;') Campo requerido
+              .col-md-6.mb-3
+                label.form-label(for='tipo_estudio_id') Tipo de Estudio
+                select#tipo_estudio_id.form-select(name='tipo_estudio_id')
+                  option(value='') Seleccione un tipo (opcional)
+                  if tiposEstudio && Array.isArray(tiposEstudio) && tiposEstudio.length
+                    each tipo in tiposEstudio
+                      option(value=tipo.id) #{tipo.nombre || 'N/A'}
+                  else
+                    option(value='' disabled) No hay tipos de estudio disponibles
+              .col-md-6.mb-3
+                label.form-label(for='especialidad_id') Especialidad
+                select#especialidad_id.form-select(name='especialidad_id')
+                  option(value='') Seleccione una especialidad (opcional)
+                  if especialidades && Array.isArray(especialidades) && especialidades.length
+                    each especialidad in especialidades
+                      option(value=especialidad.id) #{especialidad.nombre || 'N/A'}
+                  else
+                    option(value='' disabled) No hay especialidades disponibles
+              .col-md-6.mb-3
+                label.form-label(for='prioridad') Prioridad *
+                select#prioridad.form-select(name='prioridad' required)
+                  option(value='1') Alta
+                  option(value='2' selected) Media
+                  option(value='3') Baja
+                span.error-message#prioridadError.text-danger(style='display: none;') Campo requerido
+            .d-flex.justify-content-end.mt-3
+              button.btn.btn-primary(type='submit')
+                i.fas.fa-save.me-2
+                | Guardar Admisión
+
+    // Sección: Listado de Admisiones
+    .col-md-12
+      .card.mb-4
+        .card-header
+          h5.mb-0
+            i.fas.fa-list.me-2
+            | Listado de Admisiones
+        .card-body.bg-light.p-3
+          // Filtros
+          .row.mb-3
+            .col-md-3
+              label.form-label(for='filtro_estado') Estado
+              select#filtro_estado.form-select
+                option(value='') Todos
+                option(value='Pendiente') Pendiente
+                option(value='Cancelada') Cancelada
+                option(value='Completada') Completada
+            .col-md-3
+              label.form-label(for='filtro_paciente') Paciente
+              input#filtro_paciente.form-control(type='text' placeholder='Nombre o DNI')
+            .col-md-3
+              label.form-label(for='filtro_fecha') Fecha
+              input#filtro_fecha.form-control(type='date')
+            .col-md-3
+              label.form-label(for='filtro_motivo') Motivo
+              select#filtro_motivo.form-select
+                option(value='') Todos
+                if motivos && Array.isArray(motivos) && motivos.length
+                  each motivo in motivos
+                    option(value=motivo.id) #{motivo.nombre || 'N/A'}
+                else
+                  option(value='' disabled) No hay motivos disponibles
+          // Tabla
+          .table-responsive
+            table.table.table-hover
+              thead
+                tr
+                  th ID
+                  th Paciente
+                  th Administrativo
+                  th Estado
+                  th Fecha
+                  th Motivo
+                  th Forma de Ingreso
+                  th Turno
+                  th Médico
+                  th Sector
+                  th Lista de Espera
+                  th Acciones
+              tbody
+                if admisiones && Array.isArray(admisiones) && admisiones.length
+                  each admision in admisiones
+                    tr
+                      td #{admision.id || 'N/A'}
+                      td
+                        if admision.paciente && admision.paciente.usuario
+                          | #{admision.paciente.usuario.nombre || 'N/A'} #{admision.paciente.usuario.apellido || 'N/A'}
+                        else
+                          | Sin paciente
+                      td
+                        if admision.administrativo
+                          | #{admision.administrativo.responsabilidad || 'N/A'}
+                        else
+                          | Sin administrativo
+                      td #{admision.estado || 'N/A'}
+                      td #{admision.fecha || 'N/A'}
+                      td
+                        if admision.motivo
+                          | #{admision.motivo.nombre || 'N/A'}
+                        else
+                          | N/A
+                      td
+                        if admision.forma_ingreso
+                          | #{admision.forma_ingreso.nombre || 'N/A'}
+                        else
+                          | N/A
+                      td
+                        if admision.turno
+                          | #{admision.turno.fecha || 'N/A'} #{admision.turno.hora_inicio || 'N/A'}
+                        else
+                          | N/A
+                      td
+                        if admision.medico && admision.medico.usuario
+                          | #{admision.medico.usuario.nombre || 'N/A'} #{admision.medico.usuario.apellido || 'N/A'}
+                        else
+                          | N/A
+                      td
+                        if admision.sector
+                          | #{admision.sector.nombre || 'N/A'}
+                        else
+                          | N/A
+                      td
+                        if admision.turno && admision.turno.listaEsperaTurno
+                          | #{admision.turno.listaEsperaTurno.tipo || 'N/A'} (Prioridad: #{admision.turno.listaEsperaTurno.prioridad || 'N/A'})
+                        else
+                          | N/A
+                      td
+                        button.btn.btn-primary.btn-sm(data-bs-toggle='modal' data-bs-target='#editarAdmisionModal' data-id=admision.id) Editar
+                        button.btn.btn-outline-danger.btn-sm(data-id=admision.id) Eliminar
+                else
+                  tr
+                    td(colspan='12' class='text-center text-warning')
+                      | No hay admisiones disponibles.
+                      a.btn.btn-primary.btn-sm.ms-2(href='/admisiones/nueva') Agregar nueva admisión
+
+  // Modal para editar admisión
+  .modal.fade(id='editarAdmisionModal' tabindex='-1' aria-labelledby='editarAdmisionModalLabel' aria-hidden='true')
+    .modal-dialog
+      .modal-content
+        .modal-header
+          h5.modal-title(id='editarAdmisionModalLabel') Editar Admisión
+          button.btn-close(type='button' data-bs-dismiss='modal' aria-label='Close')
+        .modal-body
+          form#editarAdmisionForm
+            input(type='hidden' name='id')
+            .mb-3
+              label.form-label(for='edit_paciente_id') Paciente ID *
+              input#edit_paciente_id.form-control(type='text' name='paciente_id' required)
+            .mb-3
+              label.form-label(for='edit_administrativo_id') Administrativo ID *
+              input#edit_administrativo_id.form-control(type='text' name='administrativo_id' required)
+            .mb-3
+              label.form-label(for='edit_motivo_id') Motivo ID *
+              input#edit_motivo_id.form-control(type='text' name='motivo_id' required)
+            .mb-3
+              label.form-label(for='edit_forma_ingreso_id') Forma de Ingreso ID *
+              input#edit_forma_ingreso_id.form-control(type='text' name='forma_ingreso_id' required)
+            .mb-3
+              label.form-label(for='edit_turno_id') Turno ID
+              input#edit_turno_id.form-control(type='text' name='turno_id')
+            .mb-3
+              label.form-label(for='edit_fecha') Fecha *
+              input#edit_fecha.form-control(type='date' name='fecha' required)
+            .mb-3
+              label.form-label(for='edit_estado') Estado *
+              input#edit_estado.form-control(type='text' name='estado' required)
+            button.btn.btn-primary(type='submit')
+              i.fas.fa-save.me-2
+              | Guardar Cambios
