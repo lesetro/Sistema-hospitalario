@@ -3,7 +3,7 @@ module.exports = (sequelize, DataTypes) => {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     usuario_id: { type: DataTypes.INTEGER, allowNull: true , references: { model: 'Usuarios', key: 'id' } },
     sector_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Sectores', key: 'id' } },
-    turno_id: { type: DataTypes.INTEGER, allowNull: true ,  references: { model: 'TurnosPersonales', key: 'id' } },
+    turno_id: { type: DataTypes.INTEGER, allowNull: true ,  references: { model: 'TurnosPersonal', key: 'id' } },
     responsabilidad: {
       type: DataTypes.ENUM('Expediente', 'Turnos', 'Legajos', 'Derivaciones', 'General', 'Otros'),
       defaultValue: 'General'

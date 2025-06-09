@@ -54,24 +54,32 @@ module.exports = {
       const existingServicioNames = existingServicios.map(s => s.nombre);
       const serviciosToInsert = [
         { nombre: 'General', descripcion: 'Servicio general', created_at: new Date(), updated_at: new Date() },
-        { nombre: 'Quirurgico', descripcion: 'Servicio quirúrgico', created_at: new Date(), updated_at: new Date() }
+        { nombre: 'Quirurgico', descripcion: 'Servicio quirúrgico', created_at: new Date(), updated_at: new Date() },
+        { nombre: 'Clínica Médica', descripcion: 'Internación médica general', created_at: new Date(), updated_at: new Date() },
+        { nombre: 'UTI', descripcion: 'Unidad de Terapia Intensiva', created_at: new Date(), updated_at: new Date() },
+        { nombre: 'Ambulatorio', descripcion: 'Área de atención ambulatoria', created_at: new Date(), updated_at: new Date() },
+        { nombre: 'Materno', descripcion: 'Área de maternidad', created_at: new Date(), updated_at: new Date() },
+        { nombre: 'Pediatría', descripcion: 'Área de pediatría', created_at: new Date(), updated_at: new Date() },
+        { nombre: 'Cardiología', descripcion: 'Área de cardiología', created_at: new Date(), updated_at: new Date() },
+        { nombre: 'Neurología', descripcion: 'Área de neurología', created_at: new Date(), updated_at: new Date() },
+       
       ].filter(s => !existingServicioNames.includes(s.nombre));
       if (serviciosToInsert.length > 0) {
-        await queryInterface.bulkInsert('tiposdeservicio', serviciosToInsert, { transaction });
+        await queryInterface.bulkInsert('TiposDeServicio', serviciosToInsert, { transaction });
       }
 
       // TiposInternacion
       const existingInternaciones = await queryInterface.sequelize.query(
         'SELECT nombre FROM tiposinternacion WHERE nombre IN (:nombres)',
         {
-          replacements: { nombres: ['UTI', 'General'] },
+          replacements: { nombres: ['General'] },
           type: queryInterface.sequelize.QueryTypes.SELECT,
           transaction
         }
       );
       const existingInternacionNames = existingInternaciones.map(i => i.nombre);
       const internacionesToInsert = [
-        { nombre: 'UTI', descripcion: 'Unidad de Terapia Intensiva', created_at: new Date(), updated_at: new Date() },
+       
         { nombre: 'General', descripcion: 'Internación general', created_at: new Date(), updated_at: new Date() }
       ].filter(i => !existingInternacionNames.includes(i.nombre));
       if (internacionesToInsert.length > 0) {
@@ -118,7 +126,7 @@ module.exports = {
       const existingTurnos = await queryInterface.sequelize.query(
         'SELECT nombre FROM tipos_turno WHERE nombre IN (:nombres)',
         {
-          replacements: { nombres: ['Consulta', 'Estudio'] },
+          replacements: { nombres: ['Consulta', 'Estudio','Guardia','Programado'] },
           type: queryInterface.sequelize.QueryTypes.SELECT,
           transaction
         }
@@ -126,7 +134,10 @@ module.exports = {
       const existingTurnoNames = existingTurnos.map(t => t.nombre);
       const turnosToInsert = [
         { nombre: 'Consulta', descripcion: 'Turno para consulta médica', created_at: new Date(), updated_at: new Date() },
-        { nombre: 'Estudio', descripcion: 'Turno para estudio', created_at: new Date(), updated_at: new Date() }
+        { nombre: 'Estudio', descripcion: 'Turno para estudio', created_at: new Date(), updated_at: new Date() },
+        { nombre: 'Guardia', descripcion: 'Turno para guardia', created_at: new Date(), updated_at: new Date() },
+        { nombre: 'Programado', descripcion: 'tiene una cita', created_at: new Date(), updated_at: new Date() }
+        
       ].filter(t => !existingTurnoNames.includes(t.nombre));
       if (turnosToInsert.length > 0) {
         await queryInterface.bulkInsert('tipos_turno', turnosToInsert, { transaction });
@@ -136,7 +147,7 @@ module.exports = {
       const existingMotivosAdm = await queryInterface.sequelize.query(
         'SELECT nombre FROM motivosadmision WHERE nombre IN (:nombres)',
         {
-          replacements: { nombres: ['Consulta médica', 'Urgencia', 'Cirugía'] },
+          replacements: { nombres: ['Consulta médica', 'Urgencia', 'Cirugía', 'Programado'] },
           type: queryInterface.sequelize.QueryTypes.SELECT,
           transaction
         }
@@ -145,7 +156,8 @@ module.exports = {
       const motivosAdmToInsert = [
         { nombre: 'Consulta médica', descripcion: 'Admisión para evaluación médica', created_at: new Date(), updated_at: new Date() },
         { nombre: 'Urgencia', descripcion: 'Admisión por urgencia', created_at: new Date(), updated_at: new Date() },
-        { nombre: 'Cirugía', descripcion: 'Admisión para procedimiento quirúrgico', created_at: new Date(), updated_at: new Date() }
+        { nombre: 'Cirugía', descripcion: 'Admisión para procedimiento quirúrgico', created_at: new Date(), updated_at: new Date() },
+        { nombre: 'Programado', descripcion: 'Cita medica', created_at: new Date(), updated_at: new Date() },
       ].filter(m => !existingMotivoAdmNames.includes(m.nombre));
       if (motivosAdmToInsert.length > 0) {
         await queryInterface.bulkInsert('motivosadmision', motivosAdmToInsert, { transaction });
@@ -218,7 +230,11 @@ module.exports = {
       const existingEspecialidadNames = existingEspecialidades.map(e => e.nombre);
       const especialidadesToInsert = [
         { nombre: 'Cardiología',  descripcion: 'Especialidad cardíaca',created_at: new Date(), updated_at: new Date() },
-        { nombre: 'Traumatología', descripcion: 'Especialidad ósea', created_at: new Date(), updated_at: new Date() }
+        { nombre: 'Traumatología', descripcion: 'Especialidad ósea', created_at: new Date(), updated_at: new Date() },
+        { nombre: 'Neurología', descripcion: 'Especialidad en neurología', created_at: new Date(), updated_at: new Date() },
+        { nombre: 'Pediatría', descripcion: 'Especialidad en pediatría', created_at: new Date(), updated_at: new Date() },
+        { nombre: 'Materno', descripcion: 'Especialidad en maternidad', created_at: new Date(), updated_at: new Date() },
+
       ].filter(e => !existingEspecialidadNames.includes(e.nombre));
       if (especialidadesToInsert.length > 0) {
         await queryInterface.bulkInsert('especialidades', especialidadesToInsert, { transaction });
@@ -228,17 +244,23 @@ module.exports = {
       const existingSectores = await queryInterface.sequelize.query(
         'SELECT nombre FROM sectores WHERE nombre IN (:nombres)',
         {
-          replacements: { nombres: ['Administración', 'Recepción', 'Emergencias', 'Traumatología'] },
+          replacements: { nombres: ['Clínica Médica', 'UTI','Administracion','Ambulatorio',
+            'Materno', 'Pediatría','Cardiología','Neurología'] },
           type: queryInterface.sequelize.QueryTypes.SELECT,
           transaction
         }
       );
       const existingSectorNames = existingSectores.map(s => s.nombre);
       const sectoresToInsert = [
-        { nombre: 'Administración',descripcion: ' antibióticos', created_at: new Date(), updated_at: new Date() },
-        { nombre: 'Recepción', descripcion: ' farmacia',created_at: new Date(), updated_at: new Date() },
-        { nombre: 'Emergencias', descripcion: ' clinica medica',created_at: new Date(), updated_at: new Date() },
-        { nombre: 'Traumatología', descripcion: ' quirofanos',created_at: new Date(), updated_at: new Date() }
+        {  nombre: 'Administracion', descripcion: 'sector administrativo', created_at: new Date(), updated_at: new Date() },
+        {  nombre: 'Clínica Médica', descripcion: 'Internación médica general', created_at: new Date(), updated_at: new Date() },
+        {  nombre: 'UTI', descripcion: 'Unidad de Terapia Intensiva', created_at: new Date(), updated_at: new Date() },
+        {  nombre: 'Ambulatorio', descripcion: 'Área de atención ambulatoria', created_at: new Date(), updated_at: new Date() },
+        {  nombre: 'Materno', descripcion: 'Área de maternidad', created_at: new Date(), updated_at: new Date() },
+        {  nombre: 'Pediatría', descripcion: 'Área de pediatría', created_at: new Date(), updated_at: new Date() },
+        {  nombre: 'Cardiología', descripcion: 'Área de cardiología', created_at: new Date(), updated_at: new Date() },
+        {  nombre: 'Neurología', descripcion: 'Área de neurología', created_at: new Date(), updated_at: new Date() }
+      
       ].filter(s => !existingSectorNames.includes(s.nombre));
       if (sectoresToInsert.length > 0) {
         await queryInterface.bulkInsert('sectores', sectoresToInsert, { transaction });
@@ -272,18 +294,22 @@ module.exports = {
       await queryInterface.sequelize.query('ALTER TABLE usuarios AUTO_INCREMENT = 1', { transaction });
 
       // 3. Insert Usuarios
-      await queryInterface.bulkInsert('usuarios', [
+      await queryInterface.bulkInsert('Usuarios', [
         { rol_id: 1,dni: '00000001', nombre: 'Admin 1', apellido: `Torres`,password: '123456789',sexo: 'Masculino', fecha_nacimiento: '1990-01-15', email: 'admin1@hospital.com', created_at: new Date(), updated_at: new Date() },
         { rol_id: 2,dni: '00000002', nombre: 'Dr. García', apellido: `Torres`,password: '123456789',sexo: 'Masculino', fecha_nacimiento: '1990-01-15', email: 'garcia@hospital.com', created_at: new Date(), updated_at: new Date() },
         { rol_id: 3, dni: '00000003',nombre: 'Enf. López', apellido: `Torres`,password: '123456789', sexo: 'Masculino',fecha_nacimiento: '1990-01-15', email: 'lopez@hospital.com', created_at: new Date(), updated_at: new Date() },
-        { rol_id: 4,dni: '00000004', nombre: 'Juan Pérez', apellido: `Torres`,password: '123456789',sexo: 'Masculino', fecha_nacimiento: '1990-01-15', email: 'perez@hospital.com', created_at: new Date(), updated_at: new Date() }
+        { rol_id: 4,dni: '00000004', nombre: 'Juan Pérez', apellido: `Torres`,password: '123456789',sexo: 'Masculino', fecha_nacimiento: '1990-01-15', email: 'perez@hospital.com', created_at: new Date(), updated_at: new Date() },
+        { rol_id: 2, dni: '00000005', nombre: 'Dra. Martínez', apellido: 'Gómez', password: '123456789', sexo: 'Femenino', fecha_nacimiento: '1985-03-22', email: 'martinez@hospital.com', created_at: new Date(), updated_at: new Date() },
+        { rol_id: 2, dni: '00000006', nombre: 'Dr. Fernández', apellido: 'Ruiz', password: '123456789', sexo: 'Masculino', fecha_nacimiento: '1978-07-10', email: 'fernandez@hospital.com', created_at: new Date(), updated_at: new Date() },
+        { rol_id: 2, dni: '00000007', nombre: 'Dra. Sánchez', apellido: 'López', password: '123456789', sexo: 'Femenino', fecha_nacimiento: '1992-11-30', email: 'sanchez@hospital.com', created_at: new Date(), updated_at: new Date() }
+       
       ], { transaction });
 
       // 4. Get inserted usuarios and obrassociales for foreign keys
       const usuarios = await queryInterface.sequelize.query(
         'SELECT id, nombre FROM usuarios WHERE email IN (:emails)',
         {
-          replacements: { emails: ['admin1@hospital.com', 'garcia@hospital.com', 'lopez@hospital.com', 'perez@hospital.com'] },
+          replacements: { emails: ['admin1@hospital.com', 'garcia@hospital.com', 'lopez@hospital.com', 'perez@hospital.com', 'martinez@hospital.com', 'fernandez@hospital.com',,'sanchez@hospital.com'] },
           type: queryInterface.sequelize.QueryTypes.SELECT,
           transaction
         }
@@ -299,28 +325,30 @@ module.exports = {
       );
 
       const sectores = await queryInterface.sequelize.query(
-        'SELECT id, nombre FROM sectores WHERE nombre = :nombre',
+        'SELECT id, nombre FROM sectores WHERE nombre IN (:nombres)',
         {
-          replacements: { nombre: 'Administración' },
+          replacements: { nombres: ['Administracion', 'Cardiología', 'Neurología', 'Pediatría', 'Materno']},
           type: queryInterface.sequelize.QueryTypes.SELECT,
           transaction
         }
       );
 
       const especialidades = await queryInterface.sequelize.query(
-        'SELECT id, nombre FROM especialidades WHERE nombre = :nombre',
+        'SELECT id, nombre FROM especialidades WHERE nombre IN (:nombre)',
+       
         {
-          replacements: { nombre: 'Cardiología' },
+          replacements: { nombre: ['Cardiología','Traumatología', 'Neurología','Pediatría','Materno']},
           type: queryInterface.sequelize.QueryTypes.SELECT,
           transaction
         }
       );
+    
 
       // 5. Insert Pacientes
       const pacienteUsuario = usuarios.find(u => u.nombre === 'Juan Pérez');
       const obraSocial = obrasSociales.find(o => o.nombre === 'OSDE');
       if (pacienteUsuario && obraSocial) {
-        await queryInterface.bulkInsert('pacientes', [
+        await queryInterface.bulkInsert('Pacientes', [
           {
             usuario_id: 1,
             obra_social_id: 1, // OSDE
@@ -352,9 +380,20 @@ module.exports = {
       // 6. Insert Medicos
       const medicoUsuario = usuarios.find(u => u.nombre === 'Dr. García');
       const especialidad = especialidades.find(e => e.nombre === 'Cardiología');
-      const sector = sectores.find(s => s.nombre === 'Administración');
+      const sector = sectores.find(s => s.nombre === 'Administracion');
+      const medicoUsuario2 = usuarios.find(u => u.nombre === 'Dra. Martínez');
+      const medicoUsuario3 = usuarios.find(u => u.nombre === 'Dr. Fernández');
+      const medicoUsuario4 = usuarios.find(u => u.nombre === 'Dra. Sánchez');
+      const especialidad2 = especialidades.find(e => e.nombre === 'Neurología');
+      const especialidad3 = especialidades.find(e => e.nombre === 'Pediatría');
+      const especialidad4 = especialidades.find(e => e.nombre === 'Materno');
+      const sector2 = sectores.find(s => s.nombre === 'Administracion');
+      const sector3 = sectores.find(s => s.nombre === 'Pediatría');
+      const sector4 = sectores.find(s => s.nombre === 'Materno');
+      console.log(`usuario `,medicoUsuario , `especialidad `,especialidad ,`Sector :`, sector);
       if (medicoUsuario && especialidad && sector) {
-        await queryInterface.bulkInsert('medicos', [
+
+        await queryInterface.bulkInsert('Medicos', [
           {
             usuario_id: medicoUsuario.id,
             especialidad_id: especialidad.id,
@@ -362,7 +401,32 @@ module.exports = {
             matricula: 'MED123',
             created_at: new Date(),
             updated_at: new Date()
+          },
+          {
+            usuario_id: medicoUsuario2.id, 
+            especialidad_id: especialidad2.id, 
+            sector_id: sector2.id, 
+            matricula: 'MED456',
+            created_at: new Date(),
+            updated_at: new Date()
+          },
+          {
+            usuario_id: medicoUsuario3.id, 
+            especialidad_id: especialidad3.id,
+            sector_id: sector3.id,
+            matricula: 'MED789',
+            created_at: new Date(),
+            updated_at: new Date()
+          },
+        {
+            usuario_id: medicoUsuario4.id,
+            especialidad_id: especialidad4.id, 
+            sector_id: sector4.id, 
+            matricula: 'MED012',
+            created_at: new Date(),
+            updated_at: new Date()
           }
+
         ], { transaction });
       }
 
@@ -382,11 +446,11 @@ module.exports = {
       // 8. Insert Administrativos
       const adminUsuario = usuarios.find(u => u.nombre === 'Admin 1');
       if (adminUsuario && sector) {
-        await queryInterface.bulkInsert('administrativos', [
+        await queryInterface.bulkInsert('Administrativos', [
           {
             usuario_id: adminUsuario.id,
             sector_id: sector.id,
-            turno_id: null, // Will be assigned later if needed
+            turno_id: null, 
             responsabilidad: 'General',
             estado: 'Activo',
             descripcion: 'Administrativo general',
@@ -406,46 +470,324 @@ module.exports = {
         }
       );
       if (admin.length > 0) {
-        await queryInterface.bulkUpdate('pacientes', {
+        await queryInterface.bulkUpdate('Pacientes', {
           administrativo_id: admin[0].id
         }, { usuario_id: pacienteUsuario.id }, { transaction });
       }
        await queryInterface.bulkDelete('Admisiones', null, { transaction });
       await queryInterface.bulkDelete('Turnos', null, { transaction });
       await queryInterface.bulkDelete('TurnosPersonal', null, { transaction });
-      await queryInterface.bulkDelete('Camas', null, { transaction });
-      await queryInterface.bulkDelete('Habitaciones', null, { transaction });
-      await queryInterface.bulkInsert('Habitaciones', [
-        {
-          id: 1,
-          tipo_servicio_id: 1,
-          tipo_internacion_id: 2,
-          numero: '101',
-          tipo_habitacion: 'General',
-          created_at: new Date(),
-          updated_at: new Date()
-        },
-        {
-          id: 2,
-          tipo_servicio_id: 2,
-          tipo_internacion_id: 1,
-          numero: 'Q1',
-          tipo_habitacion: 'Quirofano',
-          created_at: new Date(),
-          updated_at: new Date()
-        }
-      ], { transaction });
+ 
+      //Habitaciones
+     let habitacionId = 1;
+const habitaciones = [
+  {
+    id: habitacionId++,
+    tipo_de_servicio_id: 1,
+    tipo: 'Colectiva',
+    sector_id: 1,
+    sexo_permitido: 'Mixto',
+    tipo_internacion_id: 2,
+    
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    id: habitacionId++,
+    tipo_de_servicio_id: 3,
+    tipo: 'Colectiva',
+    sector_id: 2,
+    sexo_permitido: 'Mixto',
+    tipo_internacion_id: 2,
+    numero: 'U1',
+    created_at: new Date(),
+    updated_at: new Date()
+  },
+  {
+    id: habitacionId++,
+    tipo_de_servicio_id: 4,
+    tipo: 'Individual',
+    sector_id: 3,
+    sexo_permitido: 'Mixto',
+    tipo_internacion_id: 2,
+    numero: 'A1',
+    created_at: new Date(),
+    updated_at: new Date()
+  }
+];
 
-      await queryInterface.bulkInsert('Camas', [
-        {
-          id: 1,
+// Materno: 6 dobles (401-406), 4 individuales (407-410)
+for (let i = 1; i <= 6; i++) {
+  habitaciones.push({
+    id: habitacionId++,
+    tipo_de_servicio_id: 5,
+    tipo: 'Doble',
+    sector_id: 4,
+    sexo_permitido: 'Mixto',
+    tipo_internacion_id: 2,
+    numero: `4${String(i).padStart(2, '0')}`,
+    created_at: new Date(),
+    updated_at: new Date()
+  });
+}
+for (let i = 7; i <= 10; i++) {
+  habitaciones.push({
+    id: habitacionId++,
+    tipo_de_servicio_id: 6,
+    tipo: 'Individual',
+    sector_id: 4,
+    sexo_permitido: 'Mixto',
+    tipo_internacion_id: 2,
+    numero: `4${String(i).padStart(2, '0')}`,
+    created_at: new Date(),
+    updated_at: new Date()
+  });
+}
+
+// Pediatría: 6 dobles (501-506), 4 individuales (507-510)
+for (let i = 1; i <= 6; i++) {
+  habitaciones.push({
+    id: habitacionId++,  
+    tipo_de_servicio_id: 7,
+    tipo: 'Doble',
+    sector_id: 5,
+    sexo_permitido: 'Mixto',
+    tipo_internacion_id: 2,
+    numero: `5${String(i).padStart(2, '0')}`,
+    created_at: new Date(),
+    updated_at: new Date()
+  });
+}
+for (let i = 7; i <= 10; i++) {
+  habitaciones.push({
+    id: habitacionId++, 
+    tipo_de_servicio_id: 8, 
+    tipo: 'Individual',
+    sector_id: 5,
+    sexo_permitido: 'Mixto',
+    tipo_internacion_id: 2,
+    numero: `5${String(i).padStart(2, '0')}`,
+    created_at: new Date(),
+    updated_at: new Date()
+  });
+}
+
+// Cardiología: 6 dobles (601-606), 4 individuales (607-610)
+for (let i = 1; i <= 6; i++) {
+  habitaciones.push({
+    id: habitacionId++,
+  
+    tipo: 'Doble',
+    tipo_de_servicio_id: 1,
+    sector_id: 6,
+    sexo_permitido: 'Mixto',
+    tipo_internacion_id: 2,
+    numero: `6${String(i).padStart(2, '0')}`,
+    created_at: new Date(),
+    updated_at: new Date()
+  });
+}
+for (let i = 7; i <= 10; i++) {
+  habitaciones.push({
+    id: habitacionId++,
+    tipo_de_servicio_id: 2,
+    tipo: 'Individual',
+    sector_id: 6,
+    sexo_permitido: 'Mixto',
+    tipo_internacion_id: 2,
+    numero: `6${String(i).padStart(2, '0')}`,
+    created_at: new Date(),
+    updated_at: new Date()
+  });
+}
+
+// Neurología: 4 individuales (701-704)
+for (let i = 1; i <= 4; i++) {
+  habitaciones.push({
+    id: habitacionId++,
+    tipo_de_servicio_id: 3,
+    tipo: 'Individual',
+    sector_id: 7,
+    sexo_permitido: 'Mixto',
+    tipo_internacion_id: 2,
+    numero: `7${String(i).padStart(2, '0')}`,
+    created_at: new Date(),
+    updated_at: new Date()
+  });
+}
+
+await queryInterface.bulkInsert('Habitaciones', habitaciones, { transaction });
+
+ // Crear Camas
+      const camas = [];
+      let camaId = 1;
+
+      // Clínica Médica: 20 camas en C1
+      for (let i = 1; i <= 20; i++) {
+        camas.push({
+          id: camaId++,
           habitacion_id: 1,
-          numero: '101-A',
-          estado: 'Disponible',
+          numero: String(i),
+          estado: 'Libre',
+          sexo_ocupante: null,
+          fecha_fin_limpieza: null,
           created_at: new Date(),
           updated_at: new Date()
-        }
-      ], { transaction });
+        });
+      }
+
+      // UTI: 20 camas en U1
+      for (let i = 1; i <= 20; i++) {
+        camas.push({
+          id: camaId++,
+          habitacion_id: 2,
+          numero: String(i),
+          estado: 'Libre',
+          sexo_ocupante: null,
+          fecha_fin_limpieza: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      }
+
+      // Ambulatorio: 20 camas en A1
+      for (let i = 1; i <= 20; i++) {
+        camas.push({
+          id: camaId++,
+          habitacion_id: 3,
+          numero: String(i),
+          estado: 'Libre',
+          sexo_ocupante: null,
+          fecha_fin_limpieza: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      }
+
+      // Materno: 6 dobles (401-406), 4 individuales (407-410)
+      for (let i = 4; i <= 9; i++) {
+        camas.push({
+          id: camaId++,
+          habitacion_id: i,
+          numero: '1',
+          estado: 'Libre',
+          sexo_ocupante: null,
+          fecha_fin_limpieza: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+        camas.push({
+          id: camaId++,
+          habitacion_id: i,
+          numero: '2',
+          estado: 'Libre',
+          sexo_ocupante: null,
+          fecha_fin_limpieza: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      }
+      for (let i = 10; i <= 13; i++) {
+        camas.push({
+          id: camaId++,
+          habitacion_id: i,
+          numero: '1',
+          estado: 'Libre',
+          sexo_ocupante: null,
+          fecha_fin_limpieza: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      }
+
+      // Pediatría: 6 dobles (501-506), 4 individuales (507-510)
+      for (let i = 14; i <= 19; i++) {
+        camas.push({
+          id: camaId++,
+          habitacion_id: i,
+          numero: '1',
+          estado: 'Libre',
+          sexo_ocupante: null,
+          fecha_fin_limpieza: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+        camas.push({
+          id: camaId++,
+          habitacion_id: i,
+          numero: '2',
+          estado: 'Libre',
+          sexo_ocupante: null,
+          fecha_fin_limpieza: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      }
+      for (let i = 20; i <= 23; i++) {
+        camas.push({
+          id: camaId++,
+          habitacion_id: i,
+          numero: '1',
+          estado: 'Libre',
+          sexo_ocupante: null,
+          fecha_fin_limpieza: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      }
+
+      // Cardiología: 6 dobles (601-606), 4 individuales (607-610)
+      for (let i = 24; i <= 29; i++) {
+        camas.push({
+          id: camaId++,
+          habitacion_id: i,
+          numero: '1',
+          estado: 'Libre',
+          sexo_ocupante: null,
+          fecha_fin_limpieza: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+        camas.push({
+          id: camaId++,
+          habitacion_id: i,
+          numero: '2',
+          estado: 'Libre',
+          sexo_ocupante: null,
+          fecha_fin_limpieza: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      }
+      for (let i = 30; i <= 33; i++) {
+        camas.push({
+          id: camaId++,
+          habitacion_id: i,
+          numero: '1',
+          estado: 'Libre',
+          sexo_ocupante: null,
+          fecha_fin_limpieza: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      }
+
+      // Neurología: 4 individuales (701-704)
+      for (let i = 34; i <= 37; i++) {
+        camas.push({
+          id: camaId++,
+          habitacion_id: i,
+          numero: '1',
+          estado: 'Libre',
+          sexo_ocupante: null,
+          fecha_fin_limpieza: null,
+          created_at: new Date(),
+          updated_at: new Date()
+        });
+      }
+
+      await queryInterface.bulkInsert('Camas', camas, { transaction });
+
 
       await queryInterface.bulkInsert('TurnosPersonal', [
         {
@@ -1061,16 +1403,25 @@ module.exports = {
     
       await queryInterface.bulkInsert('Internaciones', [
         {
-          id: 1,
-          paciente_id: 4,
-          cama_id: 1,
-          admision_id: 1,
-          fecha_inicio: '2025-05-20',
-          fecha_fin: null,
-          created_at: new Date(),
-          updated_at: new Date()
-        }
-      ], { transaction });
+    id: 1,
+    paciente_id: 1, 
+    medico_id: 1, 
+    cama_id: 1, 
+    tipo_internacion_id: 1, 
+    administrativo_id: 1, 
+    evaluacion_medica_id: 1, 
+    intervencion_quirurgica_id: null, 
+    es_prequirurgica: false, 
+    estado_operacion: 'No aplica', 
+    estado_estudios: 'Pendientes', 
+    estado_paciente: 'Sin Evaluar',
+    fecha_inicio: '2025-05-20',
+    fecha_cirugia: null, 
+    fecha_alta: null, 
+    lista_espera_id: 1, 
+    admision_id: 1 
+  }
+], { transaction });
 
       await queryInterface.bulkInsert('IntervencionesQuirurgicas', [
         {

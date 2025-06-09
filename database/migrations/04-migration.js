@@ -4,8 +4,8 @@ module.exports = {
     try {
       await queryInterface.createTable('EvaluacionesMedicas', {
         id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
-        paciente_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'Pacientes', key: 'usuario_id' } },
-        medico_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'Medicos', key: 'usuario_id' } },
+        paciente_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'Pacientes', key: 'id' } },
+        medico_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'Medicos', key: 'id' } },
         tratamiento_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'Tratamientos', key: 'id' } },
         fecha: { type: Sequelize.DATE, allowNull: false },
         observaciones_diagnostico: { type: Sequelize.TEXT, allowNull: true },
@@ -75,6 +75,7 @@ module.exports = {
         tipo_estudio_id: { type: Sequelize.INTEGER,allowNull: true, references: { model: "TiposEstudio", key: "id" },},
         estado: {  type: Sequelize.ENUM( "PENDIENTE", "ASIGNADO","CANCELADO", "COMPLETADO"), allowNull: false,defaultValue: "PENDIENTE",},
         fecha_registro: { type: Sequelize.DATE, allowNull: false },
+        habitacion_id: { type: Sequelize.INTEGER,allowNull: true,references: { model: 'Habitaciones', key: 'id' }},
 
         created_at: { type: Sequelize.DATE, allowNull: false },
         updated_at: { type: Sequelize.DATE, allowNull: false }
@@ -86,9 +87,9 @@ module.exports = {
       );
       await queryInterface.createTable('EvaluacionesEnfermeria', {
         id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
-        paciente_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'Pacientes', key: 'usuario_id' } },
-        enfermero_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'Enfermeros', key: 'usuario_id' } },
-        medico_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'Medicos', key: 'usuario_id' } },
+        paciente_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'Pacientes', key: 'id' } },
+        enfermero_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'Enfermeros', key: 'id' } },
+        medico_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'Medicos', key: 'id' } },
         fecha: { type: Sequelize.DATE, allowNull: false },
         signos_vitales: { type: Sequelize.JSON, allowNull: true },
         procedimiento_pre_quirurgico_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'ProcedimientosPreQuirurgicos', key: 'id' } },

@@ -12,9 +12,17 @@ const {
   TipoTurno, 
   Medico, 
   Sector, 
+  Cama,
+  EvaluacionMedica,
+  Habitacion,
+  Internacion,
+  TipoInternacion,
+  TipoDeServicio,
   TipoEstudio, 
   Especialidad, 
-  ListasEsperas
+  ListasEsperas,
+ 
+
 } = require('../models');
 
 // Obtener el último ID de paciente
@@ -82,6 +90,7 @@ const getHorariosDisponibles = async (req, res) => {
     if (!fecha || !medico_id || !sector_id) {
       return res.status(400).json({ message: 'Faltan parámetros requeridos' });
     }
+    console.log('parametros:', fecha, medico_id, sector_id);
 
     // Verificar que médico y sector existen
     const [medico, sector] = await Promise.all([
@@ -104,6 +113,7 @@ const getHorariosDisponibles = async (req, res) => {
       attributes: ['hora_inicio'],
       raw: true
     });
+    console.log('Turnos ocupados:', turnosOcupados);
 
     // Generar horarios posibles (8:00 a 17:00 cada 20 mins)
     const horariosPosibles = [];
@@ -114,14 +124,21 @@ const getHorariosDisponibles = async (req, res) => {
     }
 
     // Filtrar horarios ocupados
-    const ocupados = turnosOcupados.map(t => t.hora_inicio);
+    const ocupados = turnosOcupados
+      .map(t => t.hora_inicio?.substring(0, 5) || '')
+      .filter(h => h);
     const horariosDisponibles = horariosPosibles.filter(h => !ocupados.includes(h));
+    console.log('HorariosDisponibles:', horariosDisponibles);
 
-    res.json({ horariosDisponibles });
+    res.json({ horariosDisponibles: horariosDisponibles || [] });
 
   } catch (error) {
     console.error('Error en getHorariosDisponibles:', error);
-    res.status(500).json({ message: 'Error al obtener horarios' });
+    res.status(500).json({ 
+      message: 'Error al obtener horarios',
+      error: error.message,
+      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+    });
   }
 };
 // Generar paciente temporal para el botón "Generar"
@@ -347,7 +364,7 @@ const crearAdmision = async (req, res) => {
       medico_id, 
       sector_id, 
       fecha, 
-      turno_hora, 
+      turno_hora, //no tengo dato tengo que revisar esto null por el momento  
       motivo_id, 
       forma_ingreso_id, 
       administrativo_id, 
@@ -442,6 +459,64 @@ const crearAdmision = async (req, res) => {
       await transaction.rollback();
       return res.status(404).json({ message: 'Administrativo no encontrado' });
     }
+    
+let internacionCreada = null;
+    let mensajeAdicional = '';
+
+    const esInternacionAutomatica = async () => {
+      try {
+        const [tipoTurno, formaIngreso] = await Promise.all([
+          TipoTurno.findByPk(tipo_turno_id, { transaction }),
+          FormaIngreso.findByPk(forma_ingreso_id, { transaction })
+        ]);
+        console.log("tipo turno ", tipoTurno,"  " , formaIngreso);
+        if (!tipoTurno) throw new Error(`Tipo de turno con ID ${tipo_turno_id} no encontrado`);
+        if (!formaIngreso) throw new Error(`Forma de ingreso con ID ${forma_ingreso_id} no encontrada`);
+
+        const isProgramado = (
+          tipoTurno.nombre.toLowerCase() === 'programado' &&
+          formaIngreso.nombre.toLowerCase() === 'programado' &&
+          lista_espera_tipo?.toUpperCase() === 'INTERNACION'
+        );
+
+        console.log('esInternacion  ***************    Automatica:', {
+          tipoTurno: tipoTurno.nombre,
+          formaIngreso: formaIngreso.nombre,
+          lista_espera_tipo,
+          isProgramado
+        });
+        
+        return isProgramado;
+      } catch (error) {
+        console.error('Error en esInternacionAutomatica:', error.message);
+        throw error;
+      }
+    };
+
+    // Crear internación si es automática
+    if (await esInternacionAutomatica()) {
+      console.log(`verifico si es internacionacion`,esInternacionAutomatica);
+      const { internacionId, mensaje } = await asignarCamaInternacion({
+        
+        paciente,
+        medico_id,
+        administrativo_id,
+        sector_id,
+        transaction
+      });
+
+      internacionCreada = { id: internacionId };
+      mensajeAdicional = mensaje;
+    }
+    console.log('verifico paciente medico administrados sector transaction:', {
+            paciente,
+            medico_id,
+            administrativo_id,
+            sector_id,
+            transaction,
+            internacionCreada,
+            mensajeAdicional
+        });
 
     // Verificar disponibilidad del turno
     if (turno_hora && medico_id && sector_id) {
@@ -505,12 +580,13 @@ const crearAdmision = async (req, res) => {
       especialidad_id: especialidad_id || null,
       estado: 'Pendiente',
       prioridad,
+      internacion_id: internacionCreada ? internacionCreada.id : null, // Asociar internación
       created_at: new Date(),
       updated_at: new Date()
     }, { transaction });
 
-    // Crear lista de espera si es necesario
-    if (lista_espera_tipo && prioridad) {
+    // Crear lista de espera solo si no es internación automática
+    if (lista_espera_tipo && prioridad && !internacionCreada) {
       await ListasEsperas.create({
         paciente_id,
         turno_id: turno ? turno.id : null,
@@ -526,25 +602,35 @@ const crearAdmision = async (req, res) => {
     }
 
     await transaction.commit();
-    
-    return res.status(201).json({ 
-      success: true, 
-      message: 'Admisión creada exitosamente', 
+    const response = {
+      success: true,
+      message: 'Admisión creada exitosamente' + (mensajeAdicional ? ` - ${mensajeAdicional}` : ''),
       admisionId: admision.id,
       turnoId: turno ? turno.id : null
-    });
+    };
 
+    if (internacionCreada) {
+      response.internacionId = internacionCreada.id;
+      response.direccionPaciente = mensajeAdicional;
+    }
+
+    return res.status(201).json(response);
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al crear admisión:', error);
-    return res.status(500).json({ 
-      message: 'Error al crear admisión', 
+    console.error('Error completo al crear admisión:', {
+      message: error.message,
+      stack: error.stack,
+      requestBody: req.body,
+      errorDetails: error.errors || error
+    });
+    return res.status(500).json({
+      success: false,
+      message: 'Error al crear admisión',
       error: error.message,
-      stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
+      details: process.env.NODE_ENV === 'development' ? { stack: error.stack, fullError: JSON.stringify(error) } : undefined
     });
   }
 };
-
 // Obtener admisiones
 const getAdmisiones = async (req, res) => {
   try {
@@ -577,7 +663,7 @@ const getAdmisiones = async (req, res) => {
       ]
       
     });
-  
+  console.log("Admisiones encontradas:", admisiones.map(a => a.id));
     const listaEsperaIds = admisiones
       .filter(admision => admision.turno && admision.turno.lista_espera_id)
       .map(admision => admision.turno.lista_espera_id);
@@ -685,6 +771,7 @@ const updateAdmision = async (req, res) => {
     } = req.body;
 
     const admision = await Admision.findByPk(id, { transaction });
+    console.log("Amision encontrada ", admision);
     if (!admision) {
       await transaction.rollback();
       return res.status(404).json({ message: 'Admisión no encontrada' });
@@ -819,6 +906,135 @@ const getMedicos = async (req, res) => {
     res.status(500).json({ message: 'Error interno del servidor', error: error.message });
   }
 };
+
+//logica para la internacion
+const asignarCamaInternacion = async ({
+  paciente,
+  medico_id,
+  administrativo_id,
+  sector_id,
+  transaction
+}) => {
+  try {
+    console.log('Buscando sector: ____________________', sector_id);
+
+    if (!paciente || !paciente.usuario || !paciente.usuario.sexo) {
+      throw new Error('No se pudo determinar el sexo del paciente');
+    }
+    const sexoPaciente = paciente.usuario.sexo;
+    console.log("sexo paciente ",  sexoPaciente );
+    const sector = await Sector.findByPk(sector_id, {
+      include: [{
+        model: Habitacion,
+        as: 'habitaciones', 
+        include: [{
+          model: Cama,
+          as: 'camas', 
+          where: { estado: 'Libre' }
+        }]
+      }],
+      transaction
+    });
+console.log('Cama encontrada en sector solicitado:', sector);
+    let camaEncontrada = null;
+    let habitacionSeleccionada = null;
+console.log('Cama encontrada en sector solicitado:', sector.id);
+    if (sector && sector.habitaciones && sector.habitaciones.length > 0) {
+      for (const habitacion of sector.habitaciones) {
+        if (habitacion.camas && habitacion.camas.length > 0) {
+          camaEncontrada = habitacion.camas[0];
+          habitacionSeleccionada = habitacion;
+          console.log('Cama encontrada en otro sector:', habitacion.camas);
+          console.log('Cama encontrada en otro sector:', sector.habitaciones);
+          
+          break;
+        }
+      }
+    }
+
+    if (!camaEncontrada) {
+      console.log('Cama encontrada en otro sector:', camaEncontrada);
+      console.log('Cama encontrada en otro sector:', camaAlternativa.id);
+      console.log('Alert: No hay camas disponibles en el sector', sector_id);
+      const camaDisponible = await Cama.findOne({
+        include: [{
+          model: Habitacion,
+          as: 'habitaciones',
+          include: [{
+            model: Sector,
+            where: { id: { [Op.ne]: sector_id } }
+          }]
+        }],
+        where: { estado: 'Libre' },
+        transaction
+      });
+      if (camaDisponible) {
+        camaEncontrada = camaDisponible;
+        habitacionSeleccionada = camaDisponible.habitaciones;
+        console.log('Cama encontrada en sector', habitacionSeleccionada.sector_id);
+      }
+    }
+
+    if (!camaEncontrada) {
+      console.log('Alert: No se encontraron camas disponibles en ningún sector');
+      console.log('Creando nueva cama en el sector', sector_id);
+      if (!sector) throw new Error(`Sector con ID ${sector_id} no encontrado`);
+
+      let habitacion = await Habitacion.findOne({ where: { sector_id }, transaction });
+      if (!habitacion) {
+        habitacion = await Habitacion.create({
+          tipo: 'Individual', sector_id, sexo_permitido: 'Mixto', tipo_internacion_id: 1,
+          numero: `AUTO_${sector_id}_${Date.now()}`, created_at: new Date(), updated_at: new Date()
+        }, { transaction });
+      }
+      const newCama = await Cama.create({
+        habitacion_id: habitacion.id, numero: `AUTO_${habitacion.id}_${Date.now()}`,
+        estado: 'Libre', sexo_ocupante: null, fecha_fin_limpieza: null,
+        created_at: new Date(), updated_at: new Date()
+      }, { transaction });
+      camaEncontrada = newCama;
+      habitacionSeleccionada = habitacion;
+    }
+
+    const tipoInternacion = await TipoInternacion.findByPk(1, { transaction });
+    if (!tipoInternacion) throw new Error('Tipo de internación con ID 2 no encontrado');
+    const tipoServicio = await TipoDeServicio.findByPk(habitacionSeleccionada.tipo_de_servicio_id || 1, { transaction });
+    if (!tipoServicio) throw new Error('Tipo de servicio no encontrado');
+
+    const evaluacionMedica = await EvaluacionMedica.create({
+      paciente_id: paciente.id, medico_id, diagnostico: 'Ingreso programado',
+      observaciones: 'Paciente admitido para internación programada', fecha: new Date(),
+      created_at: new Date(), updated_at: new Date()
+    }, { transaction });
+
+    const internacion = await Internacion.create({
+      paciente_id: paciente.id, medico_id, tipo_de_servicio_id: habitacionSeleccionada.tipo_de_servicio_id || 1,
+      cama_id: camaEncontrada.id, tipo_internacion_id: tipoInternacion.id, administrativo_id,
+      evaluacion_medica_id: evaluacionMedica.id, intervencion_quirurgica_id: null, es_prequirurgica: false,
+      estado_operacion: 'No aplica', estado_estudios: 'Pendientes', estado_paciente: 'Estable',
+      fecha_inicio: new Date(), fecha_cirugia: null, fecha_alta: null, lista_espera_id: null, admision_id: null
+    }, { transaction });
+
+    await camaEncontrada.update({
+      estado: 'Ocupada', sexo_ocupante: sexoPaciente, updated_at: new Date()
+    }, { transaction });
+
+    const listaEspera = await ListasEsperas.create({
+      paciente_id: paciente.id, tipo: 'INTERNACION', prioridad: 'ALTA', estado: 'COMPLETADO',
+      habitacion_id: habitacionSeleccionada.id, fecha_registro: new Date(),
+      created_at: new Date(), updated_at: new Date()
+    }, { transaction });
+
+    await internacion.update({ lista_espera_id: listaEspera.id }, { transaction });
+
+    const mensaje = `Paciente internado en ${tipoServicio.nombre}, sector ${sector?.nombre || habitacionSeleccionada.Sector?.nombre}, habitación ${habitacionSeleccionada.numero}, cama ${camaEncontrada.numero}.`;
+    return { internacionId: internacion.id, mensaje };
+  } catch (error) {
+    console.error('Error en asignarCamaInternacion:', error.message);
+    throw error;
+  }
+};
+
 
 module.exports = {
   obtenerUltimoIdPaciente,

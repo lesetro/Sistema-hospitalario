@@ -18,32 +18,32 @@ module.exports = (sequelize, DataTypes) => {
       paciente_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'paciente', key: 'id' } 
+        references: { model: 'Paciente', key: 'id' } 
       },
       medico_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'medicos', key: 'usuario_id' }
+        references: { model: 'Medicos', key: 'id' }
       },
       lista_espera_id: { 
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'listasesperas', key: 'id' } 
+        references: { model: 'ListasEsperas', key: 'id' } 
       },
       usuario_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'usuarios', key: 'id' }
+        references: { model: 'Usuarios', key: 'id' }
       },
       sector_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'sectores', key: 'id' }
+        references: { model: 'Sectores', key: 'id' }
       },
       evaluacion_medica_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'evaluacionesmedicas', key: 'id' } 
+        references: { model: 'Evaluacionesmedicas', key: 'id' } 
       },
       tipo_estudio_id: {
         type: DataTypes.INTEGER,

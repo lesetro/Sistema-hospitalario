@@ -2,7 +2,7 @@ module.exports = (sequelize, DataTypes) => {
   const IntervencionQuirurgica = sequelize.define('IntervencionQuirurgica', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Pacientes', key: 'id' } },
-    medico_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Medicos', key: 'usuario_id' } },
+    medico_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Medicos', key: 'id' } },
     habitacion_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Habitaciones', key: 'id' } },
     evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'EvaluacionesMedicas', key: 'id' } },
     tipo_procedimiento: { type: DataTypes.STRING(100), allowNull: false }, // Ejemplo: "Apendicectomía"
@@ -142,7 +142,7 @@ module.exports = (sequelize, DataTypes) => {
     models.IntervencionQuirurgica.belongsTo(models.Medico, { foreignKey: 'medico_id', as: 'medico' });
     models.IntervencionQuirurgica.belongsTo(models.Habitacion, { foreignKey: 'habitacion_id', as: 'habitacion' });
     models.IntervencionQuirurgica.belongsTo(models.EvaluacionMedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacion_medica' });
-    models.IntervencionQuirurgica.hasOne(models.Internacion, { foreignKey: 'intervencion_quirurgica_id', as: 'internacion' });
+    models.IntervencionQuirurgica.hasOne(models.Internacion, { foreignKey: 'intervencion_quirurgica_id', as: 'intervencion_quirurgica' });
     
   };
 

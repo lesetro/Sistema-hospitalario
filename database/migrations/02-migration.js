@@ -80,7 +80,7 @@ module.exports = {
         },
         usuario_id: {
           type: Sequelize.INTEGER,
-          allowNull: false,
+          allowNull: true,
           unique: true,
           references: { model: 'Usuarios', key: 'id' },
           onUpdate: 'CASCADE',
@@ -223,7 +223,7 @@ module.exports = {
         },
         usuario_id: {
           type: Sequelize.INTEGER,
-          allowNull: false,
+          allowNull: true,
           unique: true,
           references: { model: 'Usuarios', key: 'id' },
           onUpdate: 'CASCADE',

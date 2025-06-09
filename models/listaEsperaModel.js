@@ -32,10 +32,15 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: 'PENDIENTE'
       },
+      habitacion_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { model: 'Habitaciones', key: 'id' }
+      },
       fecha_registro: { type: DataTypes.DATE, allowNull: false }
     },
     {
-      tableName: 'listasesperas',
+      tableName: 'ListasEsperas',
       schema: 'integrador_db',
       timestamps: true,
       underscored: true,
@@ -93,6 +98,11 @@ module.exports = (sequelize, DataTypes) => {
       as: 'listaEsperaTurno',
       constraints: false
     });
+    ListasEsperas.belongsTo(models.Habitacion, {
+      foreignKey: 'habitacion_id',
+      as: 'habitacion'
+    });
+
     
   };
 

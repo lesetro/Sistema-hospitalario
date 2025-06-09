@@ -1,8 +1,10 @@
 module.exports = (sequelize, DataTypes) => {
   const Habitacion = sequelize.define('Habitacion', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    tipoDeServicio_id: { type: DataTypes.INTEGER, allowNull: false , References: { model: 'TipoDeServicio', key: 'id' }},
-    tipo: { type: DataTypes.ENUM('Individual', 'Doble', 'Colectiva'), allowNull: false },
+    tipo_de_servicio_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'tiposdeservicio', key: 'id' }},
+    tipo: { type: DataTypes.ENUM('Doble', 'Colectiva', 'Individual'),defaultValue: `Colectiva`,},
+    numero: { type: DataTypes.STRING(10), allowNull: false },
+    sector_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Sectores', key: 'id' }},
     sexo_permitido: { type: DataTypes.ENUM('Masculino', 'Femenino', 'Mixto'), defaultValue: 'Mixto' },
     tipo_internacion_id: { type: DataTypes.INTEGER, allowNull: false }
   }, {
@@ -22,15 +24,19 @@ module.exports = (sequelize, DataTypes) => {
     if (!tipoInternacion) {
       throw new Error('El tipo de internación especificado no existe');
     }
+    const sector = await sequelize.models.Sector.findByPk(habitacion.sector_id);
+    if (!sector) {
+      throw new Error('El sector especificado no existe');
+    }
   });
   Habitacion.associate = function(models) {
-    Habitacion.belongsTo(models.TipoInternacion, { foreignKey: 'tipo_internacion_id', as: 'tipo_internacion' });
+    Habitacion.belongsTo(models.TipoInternacion, { foreignKey: 'tipo_internacion_id', as: 'TipoDeServicio' });
     Habitacion.hasMany(models.Cama, { foreignKey: 'habitacion_id', as: 'camas' });
-    Habitacion.hasMany(models.Internacion, { foreignKey: 'habitacion_id', as: 'internaciones' });
-    Habitacion.belongsTo(models.TipoDeServicio, { foreignKey: 'tipoDeServicio_id', as: 'tipoDeServicio' });
+    Habitacion.belongsTo(models.TipoDeServicio, { foreignKey: 'tipo_de_servicio_id', as: 'habitacion' });
     Habitacion.hasMany(models.IntervencionQuirurgica, { foreignKey: 'habitacion_id', as: 'intervencionQuirurgica' });
-
+    Habitacion.belongsTo(models.Sector, {foreignKey: 'sector_id', as: 'sector' })
   };
+
 
   return Habitacion;
 };

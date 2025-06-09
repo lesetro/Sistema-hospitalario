@@ -44,18 +44,11 @@ const seccionesEnConstruccion = [
   'derivaciones', 'comunicacion', 'personal', 'usuarios',
   'reportes', 'recetas', 'diagnosticos'
 ];
-app.use((req, res) => {
-  res.status(404).json({ message: 'Página no encontrada' });
-});
+
 db.sequelize.authenticate()
   .then(() => console.log('✅ Conexión a la base de datos establecida con éxito.'))
   .catch(err => console.error('❌ Error de conexión:', err));
-seccionesEnConstruccion.forEach(seccion => {
-  app.get(`/${seccion}`, (req, res) => {
-    console.log(`Renderizando dashboard/admin/construccion para ${seccion}`);
-    res.render('dashboard/admin/construccion', { title: seccion.charAt(0).toUpperCase() + seccion.slice(1) });
-  });
-});
+
 process.on('uncaughtException', (err) => {
   console.error('Excepción no capturada:', err.message, err.stack);
 });
@@ -68,10 +61,12 @@ app.use((err, req, res, next) => {
   console.error('Error en la aplicación:', err.stack);
   res.status(500).json({ message: 'Error interno del servidor', error: err.message });
 });
-app.use((req, res, next) => {
-  res.status(404).send('Página no encontrada'); // Esto devuelve text/html
+seccionesEnConstruccion.forEach(seccion => {
+  app.get(`/${seccion}`, (req, res) => {
+    console.log(`Renderizando dashboard/admin/construccion para ${seccion}`);
+    res.render('dashboard/admin/construccion', { title: seccion.charAt(0).toUpperCase() + seccion.slice(1) });
+  });
 });
-
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, async () => {
   console.log(`Servidor corriendo en http://localhost:${PORT}`);

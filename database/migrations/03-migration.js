@@ -4,10 +4,12 @@ module.exports = {
     try {
       await queryInterface.createTable('Habitaciones', {
         id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
-        tipo_servicio_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'TiposDeServicio', key: 'id' } },
-        tipo_internacion_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'TiposInternacion', key: 'id' } },
-        numero: { type: Sequelize.STRING(50), allowNull: false, unique: true },
-        tipo_habitacion: { type: Sequelize.ENUM('General', 'UTI', 'Quirofano'), allowNull: false },
+        tipo: { type: Sequelize.ENUM('Doble', 'Colectiva', 'Individual'),defaultValue: `Colectiva`,},
+        tipo_de_servicio_id: { type: Sequelize.INTEGER, allowNull: false , references: { model: 'tiposdeservicio', key: 'id' }},
+        sector_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'Sectores', key: 'id' }},
+        numero: { type: Sequelize.STRING(10), allowNull: false },
+        sexo_permitido: { type: Sequelize.ENUM('Masculino', 'Femenino', 'Mixto'), defaultValue: 'Mixto' },
+        tipo_internacion_id: { type: Sequelize.INTEGER, allowNull: false },
         created_at: { type: Sequelize.DATE, allowNull: false },
         updated_at: { type: Sequelize.DATE, allowNull: false }
       }, { transaction, indexes: [{ fields: ['tipo'] }, { fields: ['tipo_internacion_id'] }] });
@@ -16,29 +18,12 @@ module.exports = {
         id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
         habitacion_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'Habitaciones', key: 'id' } },
         numero: { type: Sequelize.STRING(50), allowNull: false },
-        estado: { type: Sequelize.ENUM('Disponible', 'Ocupada', 'Reservada'), defaultValue: 'Disponible' },
+        sexo_ocupante: { type: Sequelize.ENUM('Masculino', 'Femenino', 'Otro'), allowNull: true },
+        estado: { type: Sequelize.ENUM('Libre', 'Ocupada', 'EnLimpieza'), defaultValue: 'Libre' },
         created_at: { type: Sequelize.DATE, allowNull: false },
         updated_at: { type: Sequelize.DATE, allowNull: false },
         fecha_fin_limpieza: { type: Sequelize.DATE, allowNull: true },
       }, { transaction, indexes: [{ fields: ['habitacion_id'] }] });
-
-      await queryInterface.createTable('TurnosPersonal', {
-        id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
-        sector_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'Sectores', key: 'id' } },
-        fecha_inicio: { type: Sequelize.DATE, allowNull: false },
-        fecha_fin: { type: Sequelize.DATE, allowNull: false },
-        usuario_id: { type: Sequelize.INTEGER, allowNull: false },
-        tipo: { type: Sequelize.ENUM('Guardia Activa', 'Guardia Pasiva', 'Atencion'), allowNull: false },
-        dias: { type: Sequelize.STRING(100), allowNull: false },
-
-        created_at: { type: Sequelize.DATE, allowNull: false },
-        updated_at: { type: Sequelize.DATE, allowNull: false }
-      }, { transaction, indexes: [
-      { fields: ['usuario_id', 'sector_id', 'tipo'] },
-      { fields: ['hora_inicio'] },
-      { fields: ['hora_fin'] }
-      ]
-     });
 
       await queryInterface.createTable('Turnos', {
         id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
@@ -47,15 +32,15 @@ module.exports = {
         hora_inicio: { type: Sequelize.TIME, allowNull: false },
         hora_fin: { type: Sequelize.TIME, allowNull: true },
         estado: { type: Sequelize.ENUM('PENDIENTE', 'CONFIRMADO', 'COMPLETADO', 'CANCELADO'), defaultValue: 'PENDIENTE' },
-        paciente_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'pacientes', key: 'id' } },
-        medico_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'medicos', key: 'id' } },
-        usuario_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'usuarios', key: 'id' } },
+        paciente_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'Pacientes', key: 'id' } },
+        medico_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'Medicos', key: 'id' } },
+        usuario_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'Usuarios', key: 'id' } },
         sector_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'Sectores', key: 'id' } },
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
         updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP') },
         lista_espera_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: "ListasEspera", key: "id" },},
-        evaluacion_medica_id: { type: Sequelize.INTEGER,allowNull: true, references: { model: 'evaluacionesmedicas', key: 'id' } },
-        tipo_estudio_id: { type: Sequelize.INTEGER,  allowNull: true,references: { model: 'tiposestudio', key: 'id' } }
+        evaluacion_medica_id: { type: Sequelize.INTEGER,allowNull: true, references: { model: 'Evaluacionesmedicas', key: 'id' } },
+        tipo_estudio_id: { type: Sequelize.INTEGER,  allowNull: true,references: { model: 'TiposEstudio', key: 'id' } }
   
         }, {
        transaction,

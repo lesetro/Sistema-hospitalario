@@ -56,7 +56,7 @@ document.addEventListener("DOMContentLoaded", () => {
           const pacienteSearchInput =
             document.getElementById("paciente_search");
           if (pacienteSearchInput) {
-            pacienteSearchInput.value = `${data.paciente.nombre} ${data.paciente.apellido} (DNI: ${data.paciente.dni})`;
+            pacienteSearchInput.value = `${data.paciente.dni}`;
           }
         } else {
           alert(`Error al generar paciente temporal: ${data.message}`);
@@ -309,7 +309,7 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   const formAdmision = document.getElementById("nuevaAdmisionForm");
   const turno_fecha = document.getElementById("turno_fecha");
-  const medicoSelect = document.getElementById("medico_id"); //no estoy mandando el id medico es el rol, hasta que cargue datos 
+  const medicoSelect = document.getElementById("medico_id"); 
   const sectorSelect = document.getElementById("sector_id");
   const turnoHoraSelect = document.getElementById("turno_hora");
   // Actualizar horarios disponibles dinámicamente
@@ -490,7 +490,7 @@ document.addEventListener("DOMContentLoaded", () => {
   console.log('Datos enviados:', admisionData);
 
   const submitBtn = formAdmision.querySelector('button[type="submit"]');
-  submitBtn.classList.add('loading');
+  submitBtn.classList.add('cargando');
   submitBtn.disabled = true;
 
   //fech 
@@ -507,18 +507,96 @@ document.addEventListener("DOMContentLoaded", () => {
   }
   
   const data = await response.json();
-  alert(data.message || 'Admisión creada exitosamente');
-  resetearFormularioAdmision();
-  
-} catch (error) {
-  console.error('Error detallado:', error);
-  alert(`Error: ${error.message}`);
-  
+if (data.internacionId) {
+      // Mostrar modal especial para internación
+      mostrarModalInternacion({
+        mensaje: data.message,
+        direccion: data.direccionPaciente,
+        internacionId: data.internacionId
+      });
+    } else {
+      // admision
+      alert(data.message || 'Admisión creada exitosamente');
+    }
+    
+    resetearFormularioAdmision();
+    
+  } catch (error) {
+    console.error('Error detallado:', error);
+     alert('No hay camas disponibles en el sector seleccionado. Por favor, elija otro sector.');
+    alert(`Error: ${error.message}`);
   } finally {
-    submitBtn.classList.remove('loading');
+    submitBtn.classList.remove('cargando');
     submitBtn.disabled = false;
   }
 });
+
+// Función para mostrar modal de internación
+function mostrarModalInternacion({ mensaje, direccion, internacionId }) {
+  // Crear o mostrar un modal existente
+  const modal = document.getElementById('modalInternacion') || crearModalInternacion();
+  
+  // Configurar contenido
+  document.getElementById('modalInternacionTitulo').textContent = 'Internación Automática';
+  document.getElementById('modalInternacionMensaje').textContent = mensaje;
+  document.getElementById('modalInternacionDireccion').textContent = direccion;
+  document.getElementById('modalInternacionId').textContent = `ID de Internación: ${internacionId}`;
+  
+  // Mostrar modal
+  const respuestaInternacion = new bootstrap.Modal(modal);
+  respuestaInternacion.show();
+}
+
+// Función para crear el modal
+function crearModalInternacion() {
+  const modalHTML = `
+    <div class="modal fade" id="modalInternacion" tabindex="-1" aria-labelledby="modalInternacionLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header bg-primary text-white">
+            <h5 class="modal-title" id="modalInternacionTitulo"></h5>
+            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          </div>
+          <div class="modal-body">
+            <div class="alert alert-success">
+              <p id="modalInternacionMensaje"></p>
+              <p><strong id="modalInternacionDireccion"></strong></p>
+              <p id="modalInternacionId"></p>
+            </div>
+            <div class="text-center mt-3">
+              <button type="button" class="btn btn-primary" data-bs-dismiss="modal">
+                Entendido
+              </button>
+              <button type="button" class="btn btn-outline-secondary ms-2" onclick="imprimirInternacion()">
+                <i class="bi bi-printer-fill"></i> Imprimir
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+  
+  // modal al body
+  document.body.insertAdjacentHTML('beforeend', modalHTML);
+  return document.getElementById('modalInternacion');
+}
+
+// Función para imprimir 
+window.imprimirInternacion = function() {
+  const printContent = `
+    <h3>Internación Registrada</h3>
+    <p>${document.getElementById('modalInternacionMensaje').textContent}</p>
+    <p><strong>${document.getElementById('modalInternacionDireccion').textContent}</strong></p>
+    <p>${document.getElementById('modalInternacionId').textContent}</p>
+    <p>Fecha: ${new Date().toLocaleString()}</p>
+  `;
+  
+  const ventana = window.open('', '_blank');
+  ventana.document.write(printContent);
+  ventana.document.close();
+  ventana.print();
+};
 function resetearFormularioAdmision() {
   const nuevaAdmisionForm = document.getElementById('nuevaAdmisionForm');
   if (nuevaAdmisionForm) nuevaAdmisionForm.reset();
@@ -555,10 +633,18 @@ function resetearFormularioAdmision() {
     '[data-bs-target="#editarAdmisionModal"]'
   );
   editarAdmisionButtons.forEach((button) => {
+    
     button.addEventListener("click", async () => {
       const id = button.getAttribute("data-id");
+       console.log("ID obtenido del botón:", id); 
+       console.log("ID obtenido del botón:", button);
       try {
         const response = await fetch(`/admisiones/${id}`);
+        console.log("URL solicitada:", `/admisiones/${id}`);
+        if (!response.ok) {
+            throw new Error(`Error HTTP: ${response.status}`);
+        }
+    
         const admision = await response.json();
         if (response.ok) {
           document.querySelector('#editarAdmisionForm input[name="id"]').value =
