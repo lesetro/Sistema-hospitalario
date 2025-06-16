@@ -7,7 +7,7 @@ services:
       - DB_HOST=db
       - DB_USER=root
       - DB_PASSWORD=
-      - DB_NAME=hospital_db
+      - DB_NAME=integrador_db
     depends_on:
       - db
     restart: always
@@ -15,7 +15,7 @@ services:
   db:
     image: mysql:8.0
     environment:
-      - MYSQL_DATABASE=hospital_db
+      - MYSQL_DATABASE=integrador_db
       - MYSQL_ALLOW_EMPTY_PASSWORD=true
     ports:
       - "3306:3306"
