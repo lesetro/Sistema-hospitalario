@@ -2,9 +2,10 @@ services:
   app:
     build: .
     ports:
-      - "3030:3030"
+      - "3000:3000" 
     environment:
-      - DB_HOST=db
+      - PORT=3000
+      - DB_HOST=host.docker.internal
       - DB_USER=root
       - DB_PASSWORD=
       - DB_NAME=integrador_db
