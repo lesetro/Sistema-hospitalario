@@ -1,23 +1,21 @@
-# Usa imagen oficial de Node.js
+# Usa una imagen base de Node.js
 FROM node:18
 
 # Establece el directorio de trabajo
 WORKDIR /app
 
-# Copia archivos de dependencias
-COPY package*.json ./
+# Copia los archivos del proyecto
+COPY package.json .
+COPY . .
 
 # Instala dependencias
 RUN npm install
 
-npm install express pug
+# Instala paquetes adicionales (como express y pug)
+RUN npm install express pug
 
-
-# Copia el resto del proyecto
-COPY . .
-
-# Expone el puerto (ajusta si usas otro)
+# Expone el puerto (ajusta según tu app)
 EXPOSE 3000
 
-# Comando para iniciar la aplicación
-CMD ["npm", "start"]
+# Comando para iniciar la app
+CMD ["node", "app.js"]
