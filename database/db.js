@@ -1,14 +1,15 @@
 const { Sequelize } = require('sequelize');
 require('dotenv').config();
 
+// Configuración corregida
 const sequelize = new Sequelize(
-  process.env.DB_NAME,
-  process.env.DB_USER,
-  process.env.DB_PASSWORD,
+  process.env.DB_NAME,    
+  process.env.DB_USER,    
+  process.env.DB_PASSWORD || null,  
   {
-    host: process.env.DB_HOST,
-    port: 3306, 
-    dialect: 'mariadb',
+    host: process.env.DB_HOST,  
+    port: process.env.DB_PORT || 32167, 
+    dialect: 'mysql',           
     dialectOptions: {
       connectTimeout: 30000
     },
@@ -16,6 +17,14 @@ const sequelize = new Sequelize(
     define: {
       timestamps: true,
       underscored: true
+    },
+    retry: {  // Configuración de reintentos integrada
+      max: 5,
+      match: [
+        'ECONNREFUSED',
+        'ETIMEDOUT',
+        'ER_ACCESS_DENIED_ERROR'
+      ]
     }
   }
 );
@@ -23,25 +32,16 @@ const sequelize = new Sequelize(
 const db = {
   Sequelize,
   sequelize,
-  connectWithRetry: async (retries = 5, delay = 5000) => {
-    for (let i = 0; i < retries; i++) {
-      try {
-        await sequelize.authenticate();
-        console.log('✅ Conexión a la base de datos establecida con éxito.');
-        return true;
-      } catch (error) {
-        console.error(`⛔ Intento ${i + 1} fallido: ${error.message}`);
-        if (i < retries - 1) {
-          console.log(`🔁 Reintentando en ${delay / 1000} segundos...`);
-          await new Promise(resolve => setTimeout(resolve, delay));
-        }
-      }
+  testConnection: async () => {
+    try {
+      await sequelize.authenticate();
+      console.log('✅ Conexión exitosa a la base de datos');
+      return true;
+    } catch (error) {
+      console.error('❌ Error de conexión:', error.message);
+      return false;
     }
-    console.error('❌ No se pudo conectar a la base de datos después de varios intentos.');
-    return false;
   }
 };
-
-
 
 module.exports = db;
