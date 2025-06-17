@@ -1,6 +1,6 @@
 // models/Noticia.js
 module.exports = (sequelize, DataTypes) => {
-  const Noticia = sequelize.define('Noticia', {
+  const Noticia = sequelize.define('noticia', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     titulo: { type: DataTypes.STRING(255), allowNull: false },
     texto: { type: DataTypes.TEXT, allowNull: false },
@@ -13,7 +13,7 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Noticia.associate = function(models) {
-    Noticia.belongsTo(models.Usuario, { foreignKey: 'autor_id', as: 'autor' });
+    Noticia.belongsTo(models.usuario, { foreignKey: 'autor_id', as: 'autor' });
   };
 
   return Noticia;

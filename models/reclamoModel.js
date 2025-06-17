@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const Reclamo = sequelize.define('Reclamo', {
+  const Reclamo = sequelize.define('reclamo', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     usuario_id: { type: DataTypes.INTEGER, allowNull: false },
     texto: { type: DataTypes.TEXT, allowNull: false },
@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Reclamo.associate = function(models) {
-    Reclamo.belongsTo(models.Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
+    Reclamo.belongsTo(models.usuario, { foreignKey: 'usuario_id', as: 'usuario' });
   };
 
   return Reclamo;

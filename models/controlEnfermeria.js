@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const ControlEnfermeria = sequelize.define('ControlEnfermeria', {
+  const ControlEnfermeria = sequelize.define('controlenfermeria', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     evaluacion_enfermeria_id: { type: DataTypes.INTEGER, allowNull: false,references: { model: 'EvaluacionesEnfermeria', key: 'id' }},
     alergias: { type: DataTypes.TEXT, allowNull: true },
@@ -40,7 +40,7 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   ControlEnfermeria.associate = function(models) {
-    ControlEnfermeria.belongsTo(models.EvaluacionEnfermeria, { foreignKey: 'evaluacion_enfermeria_id', as: 'evaluacion' });
+    ControlEnfermeria.belongsTo(models.evaluacionenfermeria, { foreignKey: 'evaluacion_enfermeria_id', as: 'evaluacion' });
     
     
   };

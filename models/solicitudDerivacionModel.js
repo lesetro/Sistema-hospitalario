@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const SolicitudDerivacion = sequelize.define('SolicitudDerivacion', {
+  const SolicitudDerivacion = sequelize.define('solicitudderivacion', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
     origen_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'sectores', key: 'id' } },
@@ -30,9 +30,9 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   SolicitudDerivacion.associate = function(models) {
-    SolicitudDerivacion.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
-    SolicitudDerivacion.belongsTo(models.Sector, { foreignKey: 'origen_id', as: 'origen' });
-    SolicitudDerivacion.belongsTo(models.Sector, { foreignKey: 'destino_id', as: 'destino' });
+    SolicitudDerivacion.belongsTo(models.paciente_idaciente, { foreignKey: 'paciente_id', as: 'paciente' });
+    SolicitudDerivacion.belongsTo(models.sector, { foreignKey: 'origen_id', as: 'origen' });
+    SolicitudDerivacion.belongsTo(models.sector, { foreignKey: 'destino_id', as: 'destino' });
   };
 
   return SolicitudDerivacion;

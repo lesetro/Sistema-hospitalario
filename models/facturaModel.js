@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const Factura = sequelize.define('Factura', {
+  const Factura = sequelize.define('factura', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
     monto: { type: DataTypes.DECIMAL(10,2), allowNull: false },
@@ -58,9 +58,9 @@ Factura.beforeCreate(async (factura, options) => {
 
 
   Factura.associate = function(models) {
-    Factura.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
-    Factura.hasMany(models.Pago, { foreignKey: 'factura_id', as: 'pagos' });
-    Factura.belongsTo(models.Admision, { foreignKey: 'admision_id', as: 'admision' });
+    Factura.belongsTo(models.paciente, { foreignKey: 'paciente_id', as: 'paciente' });
+    Factura.hasMany(models.pago, { foreignKey: 'factura_id', as: 'pagos' });
+    Factura.belongsTo(models.admision, { foreignKey: 'admision_id', as: 'admision' });
   };
 
   return Factura;

@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const EstudioSolicitado = sequelize.define('EstudioSolicitado', {
+  const EstudioSolicitado = sequelize.define('estudiosolicitado', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'evaluacionesmedicas', key: 'id' } },
     paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
@@ -42,10 +42,10 @@ EstudioSolicitado.beforeUpdate(async (estudio, options) => {
 
 
   EstudioSolicitado.associate = function(models) {
-    EstudioSolicitado.belongsTo(models.EvaluacionMedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacion_medica' });
-    EstudioSolicitado.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
-    EstudioSolicitado.hasOne(models.TurnoEstudio, { foreignKey: 'estudio_solicitado_id', as: 'turno_estudio' });
-    EstudioSolicitado.belongsTo(models.TipoEstudio, { foreignKey: 'tipo_estudio_id', as: 'tipo_estudio' });
+    EstudioSolicitado.belongsTo(models.evaluacionmedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacion_medica' });
+    EstudioSolicitado.belongsTo(models.paciente, { foreignKey: 'paciente_id', as: 'paciente' });
+    EstudioSolicitado.hasOne(models.turnoestudio, { foreignKey: 'estudio_solicitado_id', as: 'turno_estudio' });
+    EstudioSolicitado.belongsTo(models.tipoestudio, { foreignKey: 'tipo_estudio_id', as: 'tipo_estudio' });
     
   };
 

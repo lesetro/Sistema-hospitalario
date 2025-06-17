@@ -1,6 +1,6 @@
 // models/MotivoConsulta.js
 module.exports = (sequelize, DataTypes) => {
-  const MotivoConsulta = sequelize.define('MotivoConsulta', {
+  const MotivoConsulta = sequelize.define('motivoconsulta', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     nombre: { type: DataTypes.STRING(100), allowNull: false },
     descripcion: { type: DataTypes.TEXT, allowNull: true }
