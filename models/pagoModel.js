@@ -8,7 +8,11 @@ module.exports = (sequelize, DataTypes) => {
     fecha: { type: DataTypes.DATE, allowNull: false },
     metodo: { type: DataTypes.ENUM('Efectivo', 'Tarjeta', 'Transferencia', 'Obra Social'), allowNull: false },
     estado: { type: DataTypes.ENUM('Pendiente', 'Completado', 'Rechazado'), defaultValue: 'Pendiente' },
-    motivo_rechazo: { type: DataTypes.TEXT, allowNull: true }
+    motivo_rechazo: { type: DataTypes.TEXT, allowNull: true },
+    tipo_pago: {
+  type: DataTypes.STRING,
+  allowNull: true // o false según tus requisitos
+}
 
   }, {
     tableName: 'pagos',
