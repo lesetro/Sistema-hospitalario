@@ -12,7 +12,7 @@ module.exports = (sequelize, DataTypes) => {
     estado_paciente: { type: DataTypes.ENUM('Estable', 'Crítico', 'Fallecido'), allowNull: false }
     
   }, {
-    tableName: 'altasMedicas',
+    tableName: 'altasmedicas',
     timestamps: true,
     underscored: true,
     indexes: [

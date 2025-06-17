@@ -53,7 +53,6 @@ module.exports = (sequelize, DataTypes) => {
     },
     { 
       tableName: 'turnos',
-      schema: 'integrador_db',
       timestamps: true,
       underscored: true,
       indexes: [
