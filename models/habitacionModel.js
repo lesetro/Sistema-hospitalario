@@ -30,7 +30,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   });
   Habitacion.associate = function(models) {
-    Habitacion.belongsTo(models.TipoInternacion, { foreignKey: 'tipo_internacion_id', as: 'TipoDeServicio' });
+    Habitacion.belongsTo(models.TipoInternacion, { foreignKey: 'tipo_internacion_id', as: 'tipodeservicio' });
     Habitacion.hasMany(models.Cama, { foreignKey: 'habitacion_id', as: 'camas' });
     Habitacion.belongsTo(models.TipoDeServicio, { foreignKey: 'tipo_de_servicio_id', as: 'habitacion' });
     Habitacion.hasMany(models.IntervencionQuirurgica, { foreignKey: 'habitacion_id', as: 'intervencionQuirurgica' });
