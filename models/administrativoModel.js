@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const Administrativo = sequelize.define('Administrativo', {
+  const Administrativo = sequelize.define('administrativo', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     usuario_id: { type: DataTypes.INTEGER, allowNull: true , references: { model: 'usuarios', key: 'id' } },
     sector_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'sectores', key: 'id' } },
@@ -22,10 +22,10 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Administrativo.associate = function(models) {
-    Administrativo.belongsTo(models.Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
-    Administrativo.belongsTo(models.Sector, { foreignKey: 'sector_id', as: 'sector' });
-    Administrativo.belongsTo(models.TurnoPersonal, { foreignKey: 'turno_id', as: 'turno' });
-    Administrativo.hasMany(models.Paciente, { foreignKey: 'administrativo_id',as: 'pacientes_cargados'});
+    Administrativo.belongsTo(models.usuario, { foreignKey: 'usuario_id', as: 'usuario' });
+    Administrativo.belongsTo(models.sector, { foreignKey: 'sector_id', as: 'sector' });
+    Administrativo.belongsTo(models.turnopersonal, { foreignKey: 'turno_id', as: 'turno' });
+    Administrativo.hasMany(models.paciente, { foreignKey: 'administrativo_id',as: 'pacientes_cargados'});
   };
 
   return Administrativo;
