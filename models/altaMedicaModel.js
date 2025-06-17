@@ -1,7 +1,7 @@
 const internacionModel = require("./internacionModel");
 
 module.exports = (sequelize, DataTypes) => {
-  const AltaMedica = sequelize.define('altamedica', {
+  const AltaMedica = sequelize.define('AltaMedica', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     paciente_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'pacientes', key: 'id' } },
     medico_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'medicos', key: 'usuario_id' } },
@@ -24,9 +24,9 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   AltaMedica.associate = function(models) {
-    AltaMedica.belongsTo(models.paciente, { foreignKey: 'paciente_id', as: 'paciente' });
-    AltaMedica.belongsTo(models.medico, { foreignKey: 'medico_id', as: 'medico' });
-    AltaMedica.belongsTo(models.internacion, { foreignKey: 'internacion_id', as: 'internacion' });
+    AltaMedica.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
+    AltaMedica.belongsTo(models.Medico, { foreignKey: 'medico_id', as: 'medico' });
+    AltaMedica.belongsTo(models.Internacion, { foreignKey: 'internacion_id', as: 'internacion' });
   };
 
   return AltaMedica;

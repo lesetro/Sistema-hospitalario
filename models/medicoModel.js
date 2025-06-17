@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const Medico = sequelize.define('medico', {
+  const Medico = sequelize.define('Medico', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     usuario_id: { type: DataTypes.INTEGER, allowNull: true,  references: { model: 'usuarios', key: 'id' } },
     matricula: { type: DataTypes.STRING(100), allowNull: false },
@@ -18,13 +18,13 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Medico.associate = function(models) {
-    Medico.belongsTo(models.usuario, { foreignKey: 'usuario_id', as: 'usuario' });
-    Medico.belongsTo(models.especialidad, { foreignKey: 'especialidad_id', as: 'especialidad' });
-    Medico.belongsTo(models.sector, { foreignKey: 'sector_id', as: 'sector' });
-    Medico.hasMany(models.internacion, { foreignKey: 'medico_id', as: 'internaciones' });
-    Medico.hasMany(models.altamedica, { foreignKey: 'medico_id', as: 'altas' });
-    Medico.hasMany(models.evaluacionenfermeria, { foreignKey: 'medico_id', as: 'evaluaciones' }); 
-    Medico.hasMany(models.admision, { foreignKey: 'medico_id', as: 'admisiones' });
+    Medico.belongsTo(models.Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
+    Medico.belongsTo(models.Especialidad, { foreignKey: 'especialidad_id', as: 'especialidad' });
+    Medico.belongsTo(models.Sector, { foreignKey: 'sector_id', as: 'sector' });
+    Medico.hasMany(models.Internacion, { foreignKey: 'medico_id', as: 'internaciones' });
+    Medico.hasMany(models.AltaMedica, { foreignKey: 'medico_id', as: 'altas' });
+    Medico.hasMany(models.EvaluacionEnfermeria, { foreignKey: 'medico_id', as: 'evaluaciones' }); 
+    Medico.hasMany(models.Admision, { foreignKey: 'medico_id', as: 'admisiones' });
 
   };
 

@@ -1,6 +1,6 @@
 // models/Admision.js
 module.exports = (sequelize, DataTypes) => {
-  const Admision = sequelize.define('admision', {
+  const Admision = sequelize.define('Admision', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     paciente_id: {
       type: DataTypes.INTEGER,
@@ -83,17 +83,17 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Admision.associate = function(models) {
-    Admision.belongsTo(models.paciente, { foreignKey: 'paciente_id', as: 'paciente' });
-    Admision.belongsTo(models.administrativo, { foreignKey: 'administrativo_id', as: 'administrativo' });
-    Admision.belongsTo(models.motivoadmision, { foreignKey: 'motivo_id', as: 'motivo' });
-    Admision.belongsTo(models.formaingreso, { foreignKey: 'forma_ingreso_id', as: 'forma_ingreso' });
-    Admision.belongsTo(models.turno, { foreignKey: 'turno_id', as: 'turno' });
-    Admision.hasOne(models.internacion, { foreignKey: 'admision_id', as: 'internacion' });
-    Admision.hasMany(models.factura, { foreignKey: 'admision_id', as: 'facturas' });
-    Admision.belongsTo(models.medico, { foreignKey: 'medico_id', as: 'medico' });
-    Admision.belongsTo(models.sector, { foreignKey: 'sector_id', as: 'sector' });
-    Admision.belongsTo(models.tipoestudio, { foreignKey: 'tipo_estudio_id', as: 'tipo_estudio' });
-    Admision.belongsTo(models.especialidad, { foreignKey: 'especialidad_id', as: 'especialidad' });
+    Admision.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
+    Admision.belongsTo(models.Administrativo, { foreignKey: 'administrativo_id', as: 'administrativo' });
+    Admision.belongsTo(models.MotivoAdmision, { foreignKey: 'motivo_id', as: 'motivo' });
+    Admision.belongsTo(models.FormaIngreso, { foreignKey: 'forma_ingreso_id', as: 'forma_ingreso' });
+    Admision.belongsTo(models.Turno, { foreignKey: 'turno_id', as: 'turno' });
+    Admision.hasOne(models.Internacion, { foreignKey: 'admision_id', as: 'internacion' });
+    Admision.hasMany(models.Factura, { foreignKey: 'admision_id', as: 'facturas' });
+    Admision.belongsTo(models.Medico, { foreignKey: 'medico_id', as: 'medico' });
+    Admision.belongsTo(models.Sector, { foreignKey: 'sector_id', as: 'sector' });
+    Admision.belongsTo(models.TipoEstudio, { foreignKey: 'tipo_estudio_id', as: 'tipo_estudio' });
+    Admision.belongsTo(models.Especialidad, { foreignKey: 'especialidad_id', as: 'especialidad' });
   };
 
   return Admision;

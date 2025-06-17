@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
   const ListasEsperas = sequelize.define(
-    'listasesperas',
+    'ListasEsperas',
     {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       paciente_id: {
@@ -81,23 +81,23 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   ListasEsperas.associate = function (models) {
-    ListasEsperas.belongsTo(models.paciente, { foreignKey: 'paciente_id', as: 'paciente' });
-    ListasEsperas.belongsTo(models.tipoestudio, {
+    ListasEsperas.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
+    ListasEsperas.belongsTo(models.TipoEstudio, {
       foreignKey: 'tipo_estudio_id',
       as: 'tipo_estudio',
       constraints: false
     });
-    ListasEsperas.belongsTo(models.especialidad, {
+    ListasEsperas.belongsTo(models.Especialidad, {
       foreignKey: 'especialidad_id',
       as: 'especialidad',
       constraints: false
     });
-    ListasEsperas.hasOne(models.turno, {
+    ListasEsperas.hasOne(models.Turno, {
       foreignKey: 'lista_espera_id',
       as: 'listaEsperaTurno',
       constraints: false
     });
-    ListasEsperas.belongsTo(models.habitacion, {
+    ListasEsperas.belongsTo(models.Habitacion, {
       foreignKey: 'habitacion_id',
       as: 'habitacion'
     });

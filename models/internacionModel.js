@@ -1,6 +1,6 @@
 
 module.exports = (sequelize, DataTypes) => {
-  const Internacion = sequelize.define('internacion', {
+  const Internacion = sequelize.define('Internacion', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     paciente_id: { type: DataTypes.INTEGER, allowNull: false },
     medico_id: { type: DataTypes.INTEGER, allowNull: false },
@@ -101,16 +101,16 @@ module.exports = (sequelize, DataTypes) => {
   });
  */
   Internacion.associate = function(models) {
-    Internacion.belongsTo(models.paciente, { foreignKey: 'paciente_id', as: 'Paciente' });
-    Internacion.belongsTo(models.medico, { foreignKey: 'medico_id', as: 'medico' });
-    Internacion.belongsTo(models.cama, { foreignKey: 'cama_id', as: 'Cama' });
-    Internacion.belongsTo(models.tipointernacion, { foreignKey: 'tipo_internacion_id', as: 'tipoInternacion' });
-    Internacion.belongsTo(models.administrativo, { foreignKey: 'administrativo_id', as: 'administrativo' });
-    Internacion.belongsTo(models.evaluacionmedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacionMedica' });
-    Internacion.belongsTo(models.intervencionquirurgica, { foreignKey: 'intervencion_quirurgica_id', as: 'intervencionQuirurgica' });
-    Internacion.belongsTo(models.admision, { foreignKey: 'admision_id', as: 'admision' });
-    Internacion.hasMany(models.altamedica, { foreignKey: 'internacion_id', as: 'altasMedicas' });
-    Internacion.belongsTo(models.listasesperas, { foreignKey: 'lista_espera_id', as: 'lista_espera' });
+    Internacion.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'Paciente' });
+    Internacion.belongsTo(models.Medico, { foreignKey: 'medico_id', as: 'medico' });
+    Internacion.belongsTo(models.Cama, { foreignKey: 'cama_id', as: 'Cama' });
+    Internacion.belongsTo(models.TipoInternacion, { foreignKey: 'tipo_internacion_id', as: 'tipoInternacion' });
+    Internacion.belongsTo(models.Administrativo, { foreignKey: 'administrativo_id', as: 'administrativo' });
+    Internacion.belongsTo(models.EvaluacionMedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacionMedica' });
+    Internacion.belongsTo(models.IntervencionQuirurgica, { foreignKey: 'intervencion_quirurgica_id', as: 'intervencionQuirurgica' });
+    Internacion.belongsTo(models.Admision, { foreignKey: 'admision_id', as: 'admision' });
+    Internacion.hasMany(models.AltaMedica, { foreignKey: 'internacion_id', as: 'altasMedicas' });
+    Internacion.belongsTo(models.ListasEsperas, { foreignKey: 'lista_espera_id', as: 'lista_espera' });
   };
 
   return Internacion;

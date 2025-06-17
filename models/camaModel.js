@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
   const Cama = sequelize.define(
-    "cama",
+    "Cama",
     {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       habitacion_id: { type: DataTypes.INTEGER, allowNull: false },
@@ -20,11 +20,11 @@ module.exports = (sequelize, DataTypes) => {
 
 
   Cama.associate = function (models) {
-    Cama.belongsTo(models.habitacion, {
+    Cama.belongsTo(models.Habitacion, {
       foreignKey: "habitacion_id",
       as: "habitacion",
     });
-    Cama.hasMany(models.internacion, {
+    Cama.hasMany(models.Internacion, {
       foreignKey: "cama_id",
       as: "internaciones",
     });
