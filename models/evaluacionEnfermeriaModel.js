@@ -3,19 +3,19 @@ const controlEnfermeria = require("./controlEnfermeria");
 module.exports = (sequelize, DataTypes) => {
   const EvaluacionEnfermeria = sequelize.define('EvaluacionEnfermeria', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Pacientes', key: 'id' } },
-    enfermero_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Enfermeros', key: 'usuario_id' } },
-    medico_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Medicos', key: 'usuario_id' } },
+    paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
+    enfermero_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'enfermeros', key: 'usuario_id' } },
+    medico_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'medicos', key: 'usuario_id' } },
     fecha: { type: DataTypes.DATE, allowNull: false },
     signos_vitales: { type: DataTypes.STRING(300), allowNull: true },
-    procedimiento_pre_quirurgico_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'ProcedimientosPreQuirurgicos', key: 'id' } },
+    procedimiento_pre_quirurgico_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'procedimientosprequirurgicos', key: 'id' } },
     nivel_triaje: { type: DataTypes.ENUM('Rojo', 'Amarillo', 'Verde', 'Negro'), allowNull: true }, // Sistema de triaje
     observaciones: { type: DataTypes.TEXT, allowNull: true }, // Incluye evolución del tratamiento
-    procedimiento_enfermeria_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'ProcedimientosEnfermeria', key: 'id' } },
+    procedimiento_enfermeria_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'procedimientosenfermeria', key: 'id' } },
     
   }, {
 
-    tableName: 'EvaluacionesEnfermeria',
+    tableName: 'evaluacionesenfermeria',
     timestamps: true,
     underscored: true,
     indexes:[

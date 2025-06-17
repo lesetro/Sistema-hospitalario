@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     hora_fin: { type: DataTypes.TIME, allowNull: false },
     sector_id: { type: DataTypes.INTEGER, allowNull: false }
   }, {
-    tableName: 'TurnosPersonal',
+    tableName: 'turnospersonal',
     timestamps: true,
     underscored: true,
     indexes: [

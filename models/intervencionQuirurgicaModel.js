@@ -1,10 +1,10 @@
 module.exports = (sequelize, DataTypes) => {
   const IntervencionQuirurgica = sequelize.define('IntervencionQuirurgica', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Pacientes', key: 'id' } },
-    medico_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Medicos', key: 'id' } },
-    habitacion_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Habitaciones', key: 'id' } },
-    evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'EvaluacionesMedicas', key: 'id' } },
+    paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
+    medico_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'medicos', key: 'id' } },
+    habitacion_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'habitaciones', key: 'id' } },
+    evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'evaluacionesmedicas', key: 'id' } },
     tipo_procedimiento: { type: DataTypes.STRING(100), allowNull: false }, // Ejemplo: "Apendicectomía"
     fecha_inicio: { type: DataTypes.DATE, allowNull: false },
     fecha_fin: { type: DataTypes.DATE, allowNull: true },
@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
     }, // Nuevo campo
     observaciones: { type: DataTypes.TEXT, allowNull: true }
   }, {
-    tableName: 'IntervencionesQuirurgicas',
+    tableName: 'intervencionesquirurgicas',
     timestamps: true,
     underscored: true,
     indexes: [

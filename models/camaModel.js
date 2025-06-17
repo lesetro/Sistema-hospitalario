@@ -10,7 +10,7 @@ module.exports = (sequelize, DataTypes) => {
       fecha_fin_limpieza: { type: DataTypes.DATE, allowNull: true },
     },
     {
-      tableName: "Camas",
+      tableName: "camas",
       timestamps: true,
       underscored: true,
       indexes: [

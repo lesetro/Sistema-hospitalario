@@ -35,12 +35,12 @@ module.exports = (sequelize, DataTypes) => {
       habitacion_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'Habitaciones', key: 'id' }
+        references: { model: 'habitaciones', key: 'id' }
       },
       fecha_registro: { type: DataTypes.DATE, allowNull: false }
     },
     {
-      tableName: 'ListasEsperas',
+      tableName: 'listasesperas',
       schema: 'integrador_db',
       timestamps: true,
       underscored: true,

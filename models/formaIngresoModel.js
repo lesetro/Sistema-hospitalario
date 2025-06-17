@@ -4,7 +4,7 @@ module.exports = (sequelize, DataTypes) => {
     nombre: { type: DataTypes.STRING(100), allowNull: false, unique: true },
     descripcion: { type: DataTypes.STRING(255), allowNull: true }
   }, {
-    tableName: 'FormasIngreso',
+    tableName: 'formasingreso',
     timestamps: false,
     underscored: true,
     indexes: [

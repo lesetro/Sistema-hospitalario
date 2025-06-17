@@ -15,7 +15,7 @@ module.exports = (sequelize, DataTypes) => {
     obra_social_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: { model: 'ObrasSociales', key: 'id' }
+      references: { model: 'obrassociales', key: 'id' }
     },
     fecha_ingreso: { type: DataTypes.DATE, allowNull: false },
     fecha_egreso: { type: DataTypes.DATE, allowNull: true },
@@ -25,7 +25,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     observaciones: { type: DataTypes.TEXT, allowNull: true }
   }, {
-    tableName: 'Pacientes',
+    tableName: 'pacientes',
     timestamps: true,
     underscored: true
   });

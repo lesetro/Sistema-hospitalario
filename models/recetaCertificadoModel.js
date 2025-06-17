@@ -6,9 +6,9 @@ module.exports = (sequelize, DataTypes) => {
     contenido: { type: DataTypes.TEXT, allowNull: false },
     fecha: { type: DataTypes.DATE, allowNull: false },
     medico_id: { type: DataTypes.INTEGER, allowNull: false },
-    evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'EvaluacionesMedicas', key: 'id' } },
+    evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'evaluacionesmedicas', key: 'id' } },
   }, {
-    tableName: 'RecetasCertificados',
+    tableName: 'recetascertificados',
     timestamps: true,
     underscored: true
   });

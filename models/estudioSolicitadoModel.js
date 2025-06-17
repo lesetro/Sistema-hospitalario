@@ -1,14 +1,14 @@
 module.exports = (sequelize, DataTypes) => {
   const EstudioSolicitado = sequelize.define('EstudioSolicitado', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'EvaluacionesMedicas', key: 'id' } },
-    paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Pacientes', key: 'id' } },
-    tipo_estudio_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'TiposEstudio', key: 'id' }},
+    evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'evaluacionesmedicas', key: 'id' } },
+    paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
+    tipo_estudio_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'tiposestudio', key: 'id' }},
     urgencia: { type: DataTypes.ENUM('Normal', 'Alta'), allowNull: false, defaultValue: 'Normal' },
     estado: { type: DataTypes.ENUM('Pendiente', 'Realizado', 'Cancelado'), defaultValue: 'Pendiente' },
     observaciones: { type: DataTypes.TEXT, allowNull: true }
   }, {
-    tableName: 'EstudiosSolicitados',
+    tableName: 'estudiossolicitados',
     timestamps: true,
     underscored: true,
     indexes: [

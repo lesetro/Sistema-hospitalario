@@ -5,9 +5,9 @@ module.exports = (sequelize, DataTypes) => {
     titulo: { type: DataTypes.STRING(255), allowNull: false },
     texto: { type: DataTypes.TEXT, allowNull: false },
     fecha: { type: DataTypes.DATE, allowNull: false },
-    autor_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Usuarios', key: 'id' } }
+    autor_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'usuarios', key: 'id' } }
   }, {
-    tableName: 'Noticias',
+    tableName: 'noticias',
     timestamps: true,
     underscored: true
   });

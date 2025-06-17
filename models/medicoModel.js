@@ -1,12 +1,12 @@
 module.exports = (sequelize, DataTypes) => {
   const Medico = sequelize.define('Medico', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    usuario_id: { type: DataTypes.INTEGER, allowNull: true,  references: { model: 'Usuarios', key: 'id' } },
+    usuario_id: { type: DataTypes.INTEGER, allowNull: true,  references: { model: 'usuarios', key: 'id' } },
     matricula: { type: DataTypes.STRING(100), allowNull: false },
     especialidad_id: { type: DataTypes.INTEGER, allowNull: false },
     sector_id: { type: DataTypes.INTEGER, allowNull: false }
   }, {
-    tableName: 'Medicos',
+    tableName: 'medicos',
     timestamps: true,
     underscored: true,
     indexes: [

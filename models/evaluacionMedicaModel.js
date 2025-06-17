@@ -12,14 +12,14 @@ module.exports = (sequelize, DataTypes) => {
       diagnostico_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: "Diagnosticos", key: "id" },
+        references: { model: "diagnosticos", key: "id" },
       },
       estudio_solicitado_id: { type: DataTypes.INTEGER, allowNull: true },
       observaciones_diagnostico: { type: DataTypes.TEXT, allowNull: true },
-      tratamiento_id: { type: DataTypes.INTEGER,allowNull: true,references: { model: "Tratamientos", key: "id" },},
+      tratamiento_id: { type: DataTypes.INTEGER,allowNull: true,references: { model: "tratamientos", key: "id" },},
     },
     {
-      tableName: "EvaluacionesMedicas",
+      tableName: "evaluacionesmedicas",
       timestamps: true,
       underscored: true,
     }

@@ -1,9 +1,9 @@
 module.exports = (sequelize, DataTypes) => {
   const Administrativo = sequelize.define('Administrativo', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    usuario_id: { type: DataTypes.INTEGER, allowNull: true , references: { model: 'Usuarios', key: 'id' } },
-    sector_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Sectores', key: 'id' } },
-    turno_id: { type: DataTypes.INTEGER, allowNull: true ,  references: { model: 'TurnosPersonal', key: 'id' } },
+    usuario_id: { type: DataTypes.INTEGER, allowNull: true , references: { model: 'usuarios', key: 'id' } },
+    sector_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'sectores', key: 'id' } },
+    turno_id: { type: DataTypes.INTEGER, allowNull: true ,  references: { model: 'turnospersonal', key: 'id' } },
     responsabilidad: {
       type: DataTypes.ENUM('Expediente', 'Turnos', 'Legajos', 'Derivaciones', 'General', 'Otros'),
       defaultValue: 'General'
@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
     descripcion: { type: DataTypes.STRING(255), allowNull: true },
     estado: { type: DataTypes.ENUM('Activo', 'Inactivo'), defaultValue: 'Activo' },
   }, {
-    tableName: 'Administrativos',
+    tableName: 'administrativos',
     timestamps: true,
     underscored: true,
     indexes: [

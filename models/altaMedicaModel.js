@@ -3,16 +3,16 @@ const internacionModel = require("./internacionModel");
 module.exports = (sequelize, DataTypes) => {
   const AltaMedica = sequelize.define('AltaMedica', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    paciente_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'Pacientes', key: 'id' } },
-    medico_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Medicos', key: 'usuario_id' } },
+    paciente_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'pacientes', key: 'id' } },
+    medico_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'medicos', key: 'usuario_id' } },
     fecha_alta: { type: DataTypes.DATE, allowNull: false },
     tipo_alta: { type: DataTypes.ENUM('Voluntaria', 'Medica', 'Contraindicada'), allowNull: false },
     instrucciones_post_alta: { type: DataTypes.TEXT, allowNull: true },
-    internacion_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'Internaciones', key: 'id' } },
+    internacion_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'internaciones', key: 'id' } },
     estado_paciente: { type: DataTypes.ENUM('Estable', 'Crítico', 'Fallecido'), allowNull: false }
     
   }, {
-    tableName: 'AltasMedicas',
+    tableName: 'altasMedicas',
     timestamps: true,
     underscored: true,
     indexes: [
