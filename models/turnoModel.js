@@ -100,8 +100,8 @@ module.exports = (sequelize, DataTypes) => {
     Turno.belongsTo(models.Medico, { foreignKey: 'medico_id', as: 'medico', targetKey: 'id'  });
     Turno.belongsTo(models.Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
     Turno.belongsTo(models.Sector, { foreignKey: 'sector_id', as: 'sector' });
-    Turno.belongsTo(models.ListasEsperas, {foreignKey: 'lista_espera_id',as: 'listaesperaturno', constraints: false});
-    Turno.hasOne(models.EvaluacionMedica, { foreignKey: 'turno_id', as: 'evaluacionmedica'});
+    Turno.belongsTo(models.ListasEsperas, {foreignKey: 'lista_espera_id',as: 'listaEsperaTurno', constraints: false});
+    Turno.hasOne(models.EvaluacionMedica, { foreignKey: 'turno_id', as: 'evaluacionMedica'});
     Turno.belongsTo(models.TipoTurno, { foreignKey: 'tipo_turno_id', as: 'tipoTurno' });
   };
 

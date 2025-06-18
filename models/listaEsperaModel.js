@@ -94,7 +94,7 @@ module.exports = (sequelize, DataTypes) => {
     });
     ListasEsperas.hasOne(models.Turno, {
       foreignKey: 'lista_espera_id',
-      as: 'listaesperaturno',
+      as: 'listaEsperaTurno',
       constraints: false
     });
     ListasEsperas.belongsTo(models.Habitacion, {
