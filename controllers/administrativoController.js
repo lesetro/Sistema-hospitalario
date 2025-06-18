@@ -79,7 +79,7 @@ const obtenerHorariosDisponibles = async (req, res) => {
 const generarPacienteTemporal = async (req, res) => {
   let transaction;
   try {
-    transaction = await db.sequelize.transaction();
+    transaction = await sequelize.transaction();
     const timestamp = Date.now();
     const dni = `TEMP${timestamp}`;
 
@@ -133,7 +133,7 @@ const crearPaciente = async (req, res) => {
     if (!sequelize) {
       throw new Error('Sequelize no está inicializado');
     }
-    transaction = await db.sequelize.transaction();
+    transaction = await sequelize.transaction();
 
     const {
       nombre,
@@ -217,7 +217,7 @@ const crearPaciente = async (req, res) => {
 
 // Crear admisión de urgencia
 const crearAdmisionUrgencia = async (req, res) => {
-  const transaction = await db.sequelize.transaction();
+  const transaction = await sequelize.transaction();
   try {
     const { dni } = req.body;
     console.log('Creando admisión de urgencia para DNI:', dni);
@@ -694,7 +694,7 @@ const searchPacientes = async (req, res) => {
 
 // Actualizar una admisión
 const updateAdmision = async (req, res) => {
-  const transaction = await db.sequelize.transaction();
+  const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
     const {
@@ -905,7 +905,7 @@ const crearAdmision3 = async (req, res) => {
 
 // Eliminar una admisión
 const deleteAdmision = async (req, res) => {
-  const transaction = await db.sequelize.transaction();
+  const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
     const admision = await Admision.findByPk(id, { transaction });
