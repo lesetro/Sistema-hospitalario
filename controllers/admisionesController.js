@@ -408,12 +408,12 @@ const crearAdmision = async (req, res) => {
       especialidad
     ] = await Promise.all([
       Paciente.findByPk(paciente_id, { 
-        include: [{ model: usuario, as: 'usuario' }], 
+        include: [{ model: Usuario, as: 'usuario' }], 
         transaction 
       }),
       TipoTurno.findByPk(tipo_turno_id, { transaction }),
       medico_id ? Medico.findByPk(medico_id, { 
-        include: [{ model: usuario, as: 'usuario' }],
+        include: [{ model: Usuario, as: 'usuario' }],
         transaction 
       }) : Promise.resolve(null),
       sector_id ? Sector.findByPk(sector_id, { transaction }) : Promise.resolve(null),
@@ -637,29 +637,29 @@ const getAdmisiones = async (req, res) => {
     const admisiones = await Admision.findAll({
       include: [
         { 
-          model: paciente, 
+          model: Paciente, 
           as: 'paciente', 
           attributes: ['id'], 
           include: [
-            { model: usuario, as: 'usuario', attributes: ['nombre', 'apellido', 'dni'] }
+            { model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido', 'dni'] }
           ]
         },
-        { model: administrativo, as: 'administrativo', attributes: ['id', 'responsabilidad'] },
-        { model: motivoadmision, as: 'motivo', attributes: ['id', 'nombre'] },
-        { model: formaingreso, as: 'forma_ingreso', attributes: ['id', 'nombre'] },
+        { model: Administrativo, as: 'administrativo', attributes: ['id', 'responsabilidad'] },
+        { model: MotivoAdmision, as: 'motivo', attributes: ['id', 'nombre'] },
+        { model: FormaIngreso, as: 'forma_ingreso', attributes: ['id', 'nombre'] },
         { 
-          model: turno, 
+          model: Turno, 
           as: 'turno', 
           attributes: ['id', 'fecha', 'hora_inicio', 'hora_fin', 'estado', 'lista_espera_id'], 
           include: [
-            { model: tipoturno, as: 'tipoTurno', attributes: ['id', 'nombre'] }
+            { model: TipoTurno, as: 'tipoTurno', attributes: ['id', 'nombre'] }
           ]
         },
-        { model: medico, as: 'medico', attributes: ['id'], include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] },
+        { model: Medico, as: 'medico', attributes: ['id'], include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] },
         
-        { model: sector, as: 'sector', attributes: ['id', 'nombre'] },
-        { model: tipoestudio, as: 'tipo_estudio', attributes: ['id', 'nombre'] },
-        { model: especialidad, as: 'especialidad', attributes: ['id', 'nombre'] }
+        { model: Sector, as: 'sector', attributes: ['id', 'nombre'] },
+        { model: TipoEstudio, as: 'tipo_estudio', attributes: ['id', 'nombre'] },
+        { model: Especialidad, as: 'especialidad', attributes: ['id', 'nombre'] }
       ]
       
     });
@@ -687,7 +687,7 @@ const getAdmisiones = async (req, res) => {
     const pacientes = await Paciente.findAll({ 
       attributes: ['id'],
       include: [
-        { model: usuario, as: 'usuario', attributes: ['nombre', 'apellido', 'dni'] }
+        { model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido', 'dni'] }
       ]
     });
 
@@ -697,7 +697,7 @@ const getAdmisiones = async (req, res) => {
     const formas = await FormaIngreso.findAll({ attributes: ['id', 'nombre', 'descripcion'] });
     const obrasSociales = await ObraSocial.findAll({ attributes: ['id', 'nombre'] });
     const tiposTurno = await TipoTurno.findAll({ attributes: ['id', 'nombre'] });
-    const medicos = await Medico.findAll({ attributes: ['id'], include: [{ model: usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] });
+    const medicos = await Medico.findAll({ attributes: ['id'], include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] });
     console.log('Médico encontrado:', medicos);
     const sectores = await Sector.findAll({ attributes: ['id', 'nombre'] });
     const tiposDeServicio = await TipoEstudio.findAll({ attributes: ['id', 'nombre'] });
@@ -736,7 +736,7 @@ const searchPacientes = async (req, res) => {
 
     const pacientes = await Paciente.findAll({
       where: { '$usuario.dni$': { [Op.like]: `%${dni}%` } },
-      include: [{ model: usuario, as: 'usuario', attributes: ['dni', 'nombre', 'apellido'] }],
+      include: [{ model: Usuario, as: 'usuario', attributes: ['dni', 'nombre', 'apellido'] }],
       limit: 5
     });
 
@@ -895,9 +895,9 @@ const getMedicos = async (req, res) => {
   try {
     const medicos = await Medico.findAll({
       include: [
-        { model: usuario, attributes: ['id', 'nombre', 'apellido'] },
-        { model: especialidad, attributes: ['id', 'nombre'] },
-        { model: sector, attributes: ['id', 'nombre'] }
+        { model: Usuario, attributes: ['id', 'nombre', 'apellido'] },
+        { model: Especialidad, attributes: ['id', 'nombre'] },
+        { model: Sector, attributes: ['id', 'nombre'] }
       ]
     });
     res.status(200).json(medicos);
@@ -925,10 +925,10 @@ const asignarCamaInternacion = async ({
     console.log("sexo paciente ",  sexoPaciente );
     const sector = await Sector.findByPk(sector_id, {
       include: [{
-        model: habitacion,
+        model: Habitacion,
         as: 'habitaciones', 
         include: [{
-          model: cama,
+          model: Cama,
           as: 'camas', 
           where: { estado: 'Libre' }
         }]
@@ -958,10 +958,10 @@ console.log('Cama encontrada en sector solicitado:', sector.id);
       console.log('Alert: No hay camas disponibles en el sector', sector_id);
       const camaDisponible = await Cama.findOne({
         include: [{
-          model: habitacion,
+          model: Habitacion,
           as: 'habitaciones',
           include: [{
-            model: sector,
+            model: Sector,
             where: { id: { [Op.ne]: sector_id } }
           }]
         }],
