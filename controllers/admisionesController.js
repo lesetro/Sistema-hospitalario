@@ -147,7 +147,6 @@ const generarPacienteTemporal = async (req, res) => {
   try {
     const timestamp = Date.now();
     const dni = `TEMP${timestamp}`;
-    
     console.log('Generando paciente temporal con DNI:', dni);
 
     // Crear usuario temporal
@@ -157,19 +156,19 @@ const generarPacienteTemporal = async (req, res) => {
       apellido: 'Paciente',
       email: `temp+${timestamp}@generico.com`,
       password: `temp${timestamp}`,
-      rol_id: 4,
+      rol_id: 1,
       fecha_nacimiento: new Date('1990-01-01'),
       sexo: 'Otro',
       created_at: new Date(),
       updated_at: new Date(),
     }, { transaction });
     console.log('Usuario creado:', usuario.id);
-   
+    alert('Usuario creado:', usuario.id);
 
     // Crear paciente
     const paciente = await Paciente.create({
       usuario_id: usuario.id,
-      administrativo_id: 1,
+      administrativo_id: 1, // Asegúrate de que este ID exista
       fecha_ingreso: new Date(),
       estado: 'Activo',
       observaciones: 'Paciente temporal generado automáticamente',
@@ -177,7 +176,7 @@ const generarPacienteTemporal = async (req, res) => {
       updated_at: new Date(),
     }, { transaction });
     console.log('Paciente creado:', paciente.id);
- 
+    alert('Usuario creado:', paciente.id);
     await transaction.commit();
     res.status(201).json({
       success: true,
