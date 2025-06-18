@@ -5,12 +5,12 @@ module.exports = (sequelize, DataTypes) => {
     usuario_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { model: 'usuarios', key: 'id' }
+      references: { model: 'Usuarios', key: 'id' }
     },
     administrativo_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: { model: 'administrativos', key: 'id' }
+      references: { model: 'Administrativos', key: 'id' }
     },
     obra_social_id: {
       type: DataTypes.INTEGER,
