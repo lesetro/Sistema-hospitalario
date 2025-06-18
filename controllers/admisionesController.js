@@ -169,7 +169,7 @@ const generarPacienteTemporal = async (req, res) => {
     // Crear paciente
     const paciente = await Paciente.create({
       usuario_id: usuario.id,
-      //administrativo_id: 1,
+      administrativo_id: 1,
       fecha_ingreso: new Date(),
       estado: 'Activo',
       observaciones: 'Paciente temporal generado automáticamente',
