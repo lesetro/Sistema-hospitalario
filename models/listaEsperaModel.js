@@ -41,6 +41,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     {
       tableName: 'listasesperas',
+      schema: 'integrador_db',
       timestamps: true,
       underscored: true,
       indexes: [
