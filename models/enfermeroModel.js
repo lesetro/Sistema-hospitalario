@@ -4,7 +4,7 @@ module.exports = (sequelize, DataTypes) => {
     usuario_id: { type: DataTypes.INTEGER, allowNull: true },
     sector_id: { type: DataTypes.INTEGER, allowNull: false }
   }, {
-    tableName: 'enfermeros',
+    tableName: 'Enfermeros',
     timestamps: true,
     underscored: true,
     indexes: [

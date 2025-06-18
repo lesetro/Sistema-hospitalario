@@ -10,13 +10,13 @@ module.exports = (sequelize, DataTypes) => {
     rol_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { model: 'roles', key: 'id' }
+      references: { model: 'Roles', key: 'id' }
     },
     telefono: { type: DataTypes.STRING, allowNull: true },
     fecha_nacimiento: { type: DataTypes.DATE, allowNull: false },
     sexo: { type: DataTypes.ENUM('Masculino', 'Femenino', 'Otro'), allowNull: false }
   }, {
-    tableName: 'usuarios',
+    tableName: 'Usuarios',
     timestamps: true,
     underscored: true,
     indexes: [

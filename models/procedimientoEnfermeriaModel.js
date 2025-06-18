@@ -6,8 +6,8 @@ module.exports = (sequelize, DataTypes) => {
     duracion_estimada: { type: DataTypes.INTEGER, allowNull: true }, // en minutos
     requiere_preparacion: { type: DataTypes.BOOLEAN, defaultValue: false },
     // Relaciones
-    tratamiento_id: {type: DataTypes.INTEGER,allowNull: true, references: {model: 'tratamientos',key: 'id'}},
-    evaluacion_medica_id: {type: DataTypes.INTEGER,allowNull: false,references: {model: 'evaluacionesmedicas',key: 'id'}}
+    tratamiento_id: {type: DataTypes.INTEGER,allowNull: true, references: {model: 'Tratamientos',key: 'id'}},
+    evaluacion_medica_id: {type: DataTypes.INTEGER,allowNull: false,references: {model: 'EvaluacionesMedicas',key: 'id'}}
   }, {
     tableName: 'procedimientos_enfermeria',
     timestamps: true,

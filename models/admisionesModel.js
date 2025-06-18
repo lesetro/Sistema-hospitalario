@@ -5,12 +5,12 @@ module.exports = (sequelize, DataTypes) => {
     paciente_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { model: 'pacientes', key: 'id' }
+      references: { model: 'Pacientes', key: 'id' }
     },
     administrativo_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { model: 'administrativos', key: 'id' }
+      references: { model: 'Administrativos', key: 'id' }
     },
     estado: {
       type: DataTypes.ENUM('Pendiente', 'Cancelada', 'Completada'),
@@ -20,40 +20,40 @@ module.exports = (sequelize, DataTypes) => {
     medico_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: { model: 'medicos', key: 'id' }
+      references: { model: 'Medicos', key: 'id' }
     },
     sector_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: { model: 'sectores', key: 'id' }
+      references: { model: 'Sectores', key: 'id' }
     },
     motivo_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { model: 'motivosadmision', key: 'id' }
+      references: { model: 'MotivosAdmision', key: 'id' }
     },
     forma_ingreso_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: { model: 'formasingreso', key: 'id' }
+      references: { model: 'FormasIngreso', key: 'id' }
     },
     turno_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: { model: 'turnos', key: 'id' }
+      references: { model: 'Turnos', key: 'id' }
     },
     especialidad_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: { model: 'especialidades', key: 'id' }
+      references: { model: 'Especialidades', key: 'id' }
     },
     tipo_estudio_id: {
       type: DataTypes.INTEGER,
       allowNull: true,
-      references: { model: 'tiposestudio', key: 'id' }
+      references: { model: 'TiposEstudio', key: 'id' }
     }
   }, {
-    tableName: 'admisiones',
+    tableName: 'Admisiones',
     timestamps: true,
     underscored: true,
     indexes: [

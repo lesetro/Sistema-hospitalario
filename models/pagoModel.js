@@ -1,21 +1,17 @@
 module.exports = (sequelize, DataTypes) => {
   const Pago = sequelize.define('Pago', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
-    factura_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'facturas', key: 'id' } },
-    obra_social_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'obrassociales', key: 'id' } },
+    paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Pacientes', key: 'id' } },
+    factura_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Facturas', key: 'id' } },
+    obra_social_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'ObrasSociales', key: 'id' } },
     monto: { type: DataTypes.DECIMAL(10, 2), allowNull: false },
     fecha: { type: DataTypes.DATE, allowNull: false },
     metodo: { type: DataTypes.ENUM('Efectivo', 'Tarjeta', 'Transferencia', 'Obra Social'), allowNull: false },
     estado: { type: DataTypes.ENUM('Pendiente', 'Completado', 'Rechazado'), defaultValue: 'Pendiente' },
-    motivo_rechazo: { type: DataTypes.TEXT, allowNull: true },
-    tipo_pago: {
-  type: DataTypes.STRING,
-  allowNull: true // o false según tus requisitos
-}
+    motivo_rechazo: { type: DataTypes.TEXT, allowNull: true }
 
   }, {
-    tableName: 'pagos',
+    tableName: 'Pagos',
     timestamps: true,
     underscored: true,
     indexes: [

@@ -6,41 +6,6 @@ const cors = require('cors');
 
 const app = express();
 app.use(cors());
-(async () => {
-  const success = await db.connectWithRetry();
-  if (!success) process.exit(1);
-  try {
-    await db.sequelize.sync({ alter: false });
-    console.log('✔️ Todos los modelos están sincronizados con la DB');
-  } catch (err) {
-    console.error('❌ Error de sincronización:', err);
-  }
-})();
-for (const modelName in db.sequelize.models) {
-  const model = db.sequelize.models[modelName];
-  console.log(`Model: ${modelName}`);
-  if (model.associations) {
-    for (const assocName in model.associations) {
-      const assoc = model.associations[assocName];
-      console.log(`  ↳ ${assoc.associationType} → ${assoc.target.name} as "${assoc.options.as}"`);
-    }
-  }
-}
-app.get('/test-relaciones', async (req, res) => {
-  try {
-    const admision = await Admision.findOne({
-      include: [
-        { model: Paciente, as: 'paciente' },
-        { model: Turno, as: 'turno' }
-      ]
-    });
-
-    res.json(admision);
-  } catch (error) {
-    console.error('❌ Error en /test-relaciones:', error);
-    res.status(500).json({ error: error.message });
-  }
-});
 
 // Configurar Pug como motor de vistas
 app.set('view engine', 'pug');

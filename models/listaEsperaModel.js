@@ -35,12 +35,13 @@ module.exports = (sequelize, DataTypes) => {
       habitacion_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'habitaciones', key: 'id' }
+        references: { model: 'Habitaciones', key: 'id' }
       },
       fecha_registro: { type: DataTypes.DATE, allowNull: false }
     },
     {
-      tableName: 'listasesperas',
+      tableName: 'ListasEsperas',
+      schema: 'integrador_db',
       timestamps: true,
       underscored: true,
       indexes: [
@@ -94,7 +95,7 @@ module.exports = (sequelize, DataTypes) => {
     });
     ListasEsperas.hasOne(models.Turno, {
       foreignKey: 'lista_espera_id',
-      as: 'listaesperaturno',
+      as: 'listaEsperaTurno',
       constraints: false
     });
     ListasEsperas.belongsTo(models.Habitacion, {

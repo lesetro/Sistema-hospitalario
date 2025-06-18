@@ -18,32 +18,32 @@ module.exports = (sequelize, DataTypes) => {
       paciente_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'paciente', key: 'id' } 
+        references: { model: 'Paciente', key: 'id' } 
       },
       medico_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'medicos', key: 'id' }
+        references: { model: 'Medicos', key: 'id' }
       },
       lista_espera_id: { 
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'listasesperas', key: 'id' } 
+        references: { model: 'ListasEsperas', key: 'id' } 
       },
       usuario_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'usuarios', key: 'id' }
+        references: { model: 'Usuarios', key: 'id' }
       },
       sector_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'sectores', key: 'id' }
+        references: { model: 'Sectores', key: 'id' }
       },
       evaluacion_medica_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
-        references: { model: 'evaluacionesmedicas', key: 'id' } 
+        references: { model: 'Evaluacionesmedicas', key: 'id' } 
       },
       tipo_estudio_id: {
         type: DataTypes.INTEGER,
@@ -53,6 +53,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     { 
       tableName: 'turnos',
+      schema: 'integrador_db',
       timestamps: true,
       underscored: true,
       indexes: [
@@ -100,8 +101,8 @@ module.exports = (sequelize, DataTypes) => {
     Turno.belongsTo(models.Medico, { foreignKey: 'medico_id', as: 'medico', targetKey: 'id'  });
     Turno.belongsTo(models.Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
     Turno.belongsTo(models.Sector, { foreignKey: 'sector_id', as: 'sector' });
-    Turno.belongsTo(models.ListasEsperas, {foreignKey: 'lista_espera_id',as: 'listaesperaturno', constraints: false});
-    Turno.hasOne(models.EvaluacionMedica, { foreignKey: 'turno_id', as: 'evaluacionmedica'});
+    Turno.belongsTo(models.ListasEsperas, {foreignKey: 'lista_espera_id',as: 'listaEsperaTurno', constraints: false});
+    Turno.hasOne(models.EvaluacionMedica, { foreignKey: 'turno_id', as: 'evaluacionMedica'});
     Turno.belongsTo(models.TipoTurno, { foreignKey: 'tipo_turno_id', as: 'tipoTurno' });
   };
 

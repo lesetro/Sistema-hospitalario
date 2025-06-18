@@ -4,11 +4,11 @@ module.exports = (sequelize, DataTypes) => {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     paciente_id: { type: DataTypes.INTEGER, allowNull: false },
     medico_id: { type: DataTypes.INTEGER, allowNull: false },
-    cama_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'camas', key: 'id' } }, 
+    cama_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'Camas', key: 'id' } }, 
     tipo_internacion_id: { type: DataTypes.INTEGER, allowNull: true },
     administrativo_id: { type: DataTypes.INTEGER, allowNull: false },
     evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: true },
-    intervencion_quirurgica_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'intervencionesquirurgicas', key: 'id' } },
+    intervencion_quirurgica_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'IntervencionesQuirurgicas', key: 'id' } },
     es_prequirurgica: { type: DataTypes.BOOLEAN, allowNull: true, defaultValue: true }, 
     estado_operacion: { type: DataTypes.ENUM('Prequirurgico', 'Postquirurgico', 'No aplica'), defaultValue: 'No aplica' },
     estado_estudios: { type: DataTypes.ENUM('Completos', 'Pendientes'), defaultValue: 'Pendientes' },
@@ -17,9 +17,9 @@ module.exports = (sequelize, DataTypes) => {
     fecha_cirugia: { type: DataTypes.DATE, allowNull: true },
     fecha_alta: { type: DataTypes.DATE, allowNull: true },
     lista_espera_id: {type: DataTypes.INTEGER,allowNull: true, references: { model: 'listasesperas', key: 'id' }},
-    admision_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'admisiones', key: 'id' } },
+    admision_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'Admisiones', key: 'id' } },
   }, {
-    tableName: 'internaciones',
+    tableName: 'Internaciones',
     timestamps: true,
     underscored: true      
 

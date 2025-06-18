@@ -6,7 +6,7 @@ module.exports = (sequelize, DataTypes) => {
     fecha: { type: DataTypes.DATE, allowNull: false },
     estado: { type: DataTypes.ENUM('Pendiente', 'Resuelto'), allowNull: false }
   }, {
-    tableName: 'reclamos',
+    tableName: 'Reclamos',
     timestamps: true,
     underscored: true
   });

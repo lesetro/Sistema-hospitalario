@@ -5,11 +5,7 @@
   "main": "app.js",
   "scripts": {
     "start": "node app.js",
-    "dev": "nodemon app.js",
-    "migrate": "node migrationMaster.js",
-    "seed": "node seedMaster.js",
-    "migrate:reset": "node migrationMaster.js down && node migrationMaster.js up",
-    "db:refresh": "npm run migrate:reset && npm run seed"
+    "dev": "nodemon app.js"
   },
   "keywords": [],
   "author": "",
@@ -24,8 +20,7 @@
     "mariadb": "^3.4.2",
     "mysql2": "^3.14.1",
     "pug": "^3.0.3",
-    "sequelize": "^6.37.7",
-    "umzug": "^3.8.2"
+    "sequelize": "^6.37.7"
   },
   "devDependencies": {
     "nodemon": "^3.1.9"

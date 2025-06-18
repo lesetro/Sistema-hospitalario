@@ -43,7 +43,7 @@ const buscarPacientePorDNI = async (req, res) => {
 
     const pacientes = await Paciente.findAll({
       where: { '$usuario.dni$': { [Op.like]: `%${dni}%` } },
-      include: [{ model: usuario, as: 'usuario', attributes: ['dni', 'nombre', 'apellido'], required: true }],
+      include: [{ model: Usuario, as: 'usuario', attributes: ['dni', 'nombre', 'apellido'], required: true }],
       limit: 5
     });
 
@@ -79,7 +79,7 @@ const obtenerHorariosDisponibles = async (req, res) => {
 const generarPacienteTemporal = async (req, res) => {
   let transaction;
   try {
-    transaction = await db.sequelize.transaction();
+    transaction = await sequelize.transaction();
     const timestamp = Date.now();
     const dni = `TEMP${timestamp}`;
 
@@ -133,7 +133,7 @@ const crearPaciente = async (req, res) => {
     if (!sequelize) {
       throw new Error('Sequelize no está inicializado');
     }
-    transaction = await db.sequelize.transaction();
+    transaction = await sequelize.transaction();
 
     const {
       nombre,
@@ -217,7 +217,7 @@ const crearPaciente = async (req, res) => {
 
 // Crear admisión de urgencia
 const crearAdmisionUrgencia = async (req, res) => {
-  const transaction = await db.sequelize.transaction();
+  const transaction = await sequelize.transaction();
   try {
     const { dni } = req.body;
     console.log('Creando admisión de urgencia para DNI:', dni);
@@ -347,12 +347,12 @@ const crearAdmision1 = async (req, res) => {
       especialidad
     ] = await Promise.all([
       Paciente.findByPk(paciente_id, { 
-        include: [{ model: usuario, as: 'usuario' }], 
+        include: [{ model: Usuario, as: 'usuario' }], 
         transaction 
       }),
       TipoTurno.findByPk(tipo_turno_id, { transaction }),
       Medico.findByPk(medico_id, { 
-        include: [{ model: usuario, as: 'usuario' }],
+        include: [{ model: Usuario, as: 'usuario' }],
         transaction 
       }),
       Sector.findByPk(sector_id, { transaction }),
@@ -508,7 +508,7 @@ const crearAdmision2 = async (req, res) => {
     }
 
     // Verificar que el paciente exista
-    const paciente = await Paciente.findByPk(paciente_id, { include: [{ model: usuario, as: 'usuario' }], transaction });
+    const paciente = await Paciente.findByPk(paciente_id, { include: [{ model: Usuario, as: 'usuario' }], transaction });
     if (!paciente) {
       await transaction.rollback();
       return res.status(404).json({ message: 'Paciente no encontrado' });
@@ -588,28 +588,28 @@ const getAdmisiones = async (req, res) => {
     const admisiones = await Admision.findAll({
       include: [
         { 
-          model: paciente, 
+          model: Paciente, 
           as: 'paciente', 
           attributes: ['id'], 
           include: [
-            { model: usuario, as: 'usuario', attributes: ['nombre', 'apellido', 'dni'] }
+            { model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido', 'dni'] }
           ]
         },
-        { model: administrativo, as: 'administrativo', attributes: ['id', 'responsabilidad'] },
-        { model: motivoadmision, as: 'motivo', attributes: ['id', 'nombre'] },
-        { model: formaingreso, as: 'forma_ingreso', attributes: ['id', 'nombre'] },
+        { model: Administrativo, as: 'administrativo', attributes: ['id', 'responsabilidad'] },
+        { model: MotivoAdmision, as: 'motivo', attributes: ['id', 'nombre'] },
+        { model: FormaIngreso, as: 'forma_ingreso', attributes: ['id', 'nombre'] },
         { 
-          model: turno, 
+          model: Turno, 
           as: 'turno', 
           attributes: ['id', 'fecha', 'hora_inicio', 'hora_fin', 'estado', 'lista_espera_id'], 
           include: [
-            { model: tipoturno, as: 'tipoTurno', attributes: ['id', 'nombre'] }
+            { model: TipoTurno, as: 'tipoTurno', attributes: ['id', 'nombre'] }
           ]
         },
-        { model: medico, as: 'medico', attributes: ['id'], include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] },
-        { model: sector, as: 'sector', attributes: ['id', 'nombre'] },
-        { model: tipoestudio, as: 'tipo_estudio', attributes: ['id', 'nombre'] },
-        { model: especialidad, as: 'especialidad', attributes: ['id', 'nombre'] }
+        { model: Medico, as: 'medico', attributes: ['id'], include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] },
+        { model: Sector, as: 'sector', attributes: ['id', 'nombre'] },
+        { model: TipoEstudio, as: 'tipo_estudio', attributes: ['id', 'nombre'] },
+        { model: Especialidad, as: 'especialidad', attributes: ['id', 'nombre'] }
       ]
     });
 
@@ -636,7 +636,7 @@ const getAdmisiones = async (req, res) => {
     const pacientes = await Paciente.findAll({ 
       attributes: ['id'],
       include: [
-        { model: usuario, as: 'usuario', attributes: ['nombre', 'apellido', 'dni'] }
+        { model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido', 'dni'] }
       ]
     });
     const administrativos = await Administrativo.findAll({ attributes: ['id', 'responsabilidad'] });
@@ -644,7 +644,7 @@ const getAdmisiones = async (req, res) => {
     const formas = await FormaIngreso.findAll({ attributes: ['id', 'nombre', 'descripcion'] });
     const obrasSociales = await ObraSocial.findAll({ attributes: ['id', 'nombre'] });
     const tiposTurno = await TipoTurno.findAll({ attributes: ['id', 'nombre'] });
-    const medicos = await Medico.findAll({ attributes: ['id'], include: [{ model: usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] });
+    const medicos = await Medico.findAll({ attributes: ['id'], include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] });
     const sectores = await Sector.findAll({ attributes: ['id', 'nombre'] });
     const tiposDeServicio = await TipoEstudio.findAll({ attributes: ['id', 'nombre'] });
     const especialidades = await Especialidad.findAll({ attributes: ['id', 'nombre'] });
@@ -681,7 +681,7 @@ const searchPacientes = async (req, res) => {
 
     const pacientes = await Paciente.findAll({
       where: { '$usuario.dni$': { [Op.like]: `%${dni}%` } },
-      include: [{ model: usuario, as: 'usuario', attributes: ['dni', 'nombre', 'apellido'] }],
+      include: [{ model: Usuario, as: 'usuario', attributes: ['dni', 'nombre', 'apellido'] }],
       limit: 5
     });
 
@@ -694,7 +694,7 @@ const searchPacientes = async (req, res) => {
 
 // Actualizar una admisión
 const updateAdmision = async (req, res) => {
-  const transaction = await db.sequelize.transaction();
+  const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
     const {
@@ -834,7 +834,7 @@ const crearAdmision3 = async (req, res) => {
 
     console.log('🔍 Paso 1: Buscando paciente...');
     const paciente = await Paciente.findByPk(paciente_id, {
-      include: [{ model: usuario, as: 'usuario' }]
+      include: [{ model: Usuario, as: 'usuario' }]
     });
     if (!paciente) return res.status(404).json({ message: 'Paciente no encontrado' });
 
@@ -848,7 +848,7 @@ const crearAdmision3 = async (req, res) => {
 
     console.log('🔍 Paso 3: Buscando médico...');
     const medico = await Medico.findByPk(medico_id, {
-      include: [{ model: usuario, as: 'usuario' }]
+      include: [{ model: Usuario, as: 'usuario' }]
     });
     if (!medico) return res.status(404).json({ message: 'Médico no encontrado' });
 
@@ -905,7 +905,7 @@ const crearAdmision3 = async (req, res) => {
 
 // Eliminar una admisión
 const deleteAdmision = async (req, res) => {
-  const transaction = await db.sequelize.transaction();
+  const transaction = await sequelize.transaction();
   try {
     const { id } = req.params;
     const admision = await Admision.findByPk(id, { transaction });
