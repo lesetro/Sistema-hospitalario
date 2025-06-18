@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const Diagnostico = sequelize.define('diagnostico', {
+  const Diagnostico = sequelize.define('Diagnostico', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     codigo: { type: DataTypes.STRING(20), allowNull: false, unique: true },
     tipoDiagnostico_id:{type: DataTypes.INTEGER, allowNull: false, references: { model: 'tipodiagnostico', key: 'id' }}, 
@@ -21,8 +21,8 @@ module.exports = (sequelize, DataTypes) => {
  
 
   Diagnostico.associate = function(models) {
-    Diagnostico.belongsTo(models.tipodiagnostico, { foreignKey: 'tipodiagnostico_id', as: 'tipodiagnostico' });
-    Diagnostico.hasMany(models.evaluacionmedica, { foreignKey: 'diagnostico_id', as: 'evaluacionesmedicas' });
+    Diagnostico.belongsTo(models.TipoDiagnostico, { foreignKey: 'tipodiagnostico_id', as: 'tipodiagnostico' });
+    Diagnostico.hasMany(models.EvaluacionMedica, { foreignKey: 'diagnostico_id', as: 'evaluacionesmedicas' });
     
 };
  return Diagnostico;

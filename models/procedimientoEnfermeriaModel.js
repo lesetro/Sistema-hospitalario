@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const ProcedimientoEnfermeria = sequelize.define('procedimientoenfermeria', {
+  const ProcedimientoEnfermeria = sequelize.define('ProcedimientoEnfermeria', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     nombre: { type: DataTypes.STRING(100), allowNull: false },
     descripcion: { type: DataTypes.TEXT, allowNull: true },
@@ -21,8 +21,8 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   ProcedimientoEnfermeria.associate = function(models) {
-    ProcedimientoEnfermeria.belongsTo(models.tratamiento, { foreignKey: 'tratamiento_id', as: 'tratamiento' });
-    ProcedimientoEnfermeria.belongsTo(models.evaluacionmedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacion_medica' });
+    ProcedimientoEnfermeria.belongsTo(models.Tratamiento, { foreignKey: 'tratamiento_id', as: 'tratamiento' });
+    ProcedimientoEnfermeria.belongsTo(models.EvaluacionMedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacion_medica' });
   };
 
   return ProcedimientoEnfermeria;

@@ -1,6 +1,6 @@
 // models/HistorialMedico.js
 module.exports = (sequelize, DataTypes) => {
-  const HistorialMedico = sequelize.define('historialmedico', {
+  const HistorialMedico = sequelize.define('HistorialMedico', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
     motivo_consulta_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'motivosconsulta', key: 'id' } },
@@ -19,8 +19,8 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   HistorialMedico.associate = function(models) {
-    HistorialMedico.belongsTo(models.paciente, { foreignKey: 'paciente_id', as: 'paciente' });
-    HistorialMedico.belongsTo(models.motivoconsulta, { foreignKey: 'motivo_consulta_id', as: 'motivo_consulta' });
+    HistorialMedico.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
+    HistorialMedico.belongsTo(models.MotivoConsulta, { foreignKey: 'motivo_consulta_id', as: 'motivo_consulta' });
   };
 
   return HistorialMedico;

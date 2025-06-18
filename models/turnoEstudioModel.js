@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const TurnoEstudio = sequelize.define('turnoestudio', {
+  const TurnoEstudio = sequelize.define('TurnoEstudio', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     estudio_solicitado_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'estudiossolicitados', key: 'id' } },
     fecha: { type: DataTypes.DATEONLY, allowNull: false },
@@ -34,7 +34,7 @@ module.exports = (sequelize, DataTypes) => {
 });
 
   TurnoEstudio.associate = function(models) {
-    TurnoEstudio.belongsTo(models.estudiosolicitado, { foreignKey: 'estudio_solicitado_id', as: 'estudio_solicitado' });
+    TurnoEstudio.belongsTo(models.EstudioSolicitado, { foreignKey: 'estudio_solicitado_id', as: 'estudio_solicitado' });
   };
 
   return TurnoEstudio;

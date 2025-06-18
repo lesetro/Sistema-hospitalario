@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const TipoDiagnostico = sequelize.define('tipodiagnostico', {
+  const TipoDiagnostico = sequelize.define('TipoDiagnostico', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     nombre: { type: DataTypes.STRING(50), allowNull: false,unique: true },
     descripcion: { type: DataTypes.TEXT, allowNull: true },
@@ -11,7 +11,7 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   TipoDiagnostico.associate = function(models) {
-    TipoDiagnostico.hasMany(models.diagnostico, {foreignKey: 'tipoDiagnostico_id',as: 'diagnosticos' });
+    TipoDiagnostico.hasMany(models.Diagnostico, {foreignKey: 'tipoDiagnostico_id',as: 'diagnosticos' });
   };
 
   return TipoDiagnostico;

@@ -3,7 +3,7 @@ module.exports = (sequelize, DataTypes) => {
   // y que se le pueda hacer una evaluacion medica
   // de aqui podemos solicitarle EstudiosSolicitados, RecetasCertificados, ProcedimientosPreQuirurgicos, ProcedimientosEnfermeria
   const EvaluacionMedica = sequelize.define(
-    "evaluacionmedica",
+    "EvaluacionMedica",
     {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       paciente_id: { type: DataTypes.INTEGER, allowNull: false },
@@ -47,43 +47,43 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   EvaluacionMedica.associate = function (models) {
-    EvaluacionMedica.belongsTo(models.paciente, {
+    EvaluacionMedica.belongsTo(models.Paciente, {
       foreignKey: "paciente_id",
       as: "paciente",
     });
-    EvaluacionMedica.belongsTo(models.medico, {
+    EvaluacionMedica.belongsTo(models.Medico, {
       foreignKey: "medico_id",
       as: "medico",
     });
-    EvaluacionMedica.belongsTo(models.tratamiento, {
+    EvaluacionMedica.belongsTo(models.Tratamiento, {
       foreignKey: "tratamiento_id",
       as: "tratamiento",
     });
-    EvaluacionMedica.belongsTo(models.estudiosolicitado, {
+    EvaluacionMedica.belongsTo(models.EstudioSolicitado, {
       foreignKey: "estudio_solicitado_id",
       as: "estudio_solicitado",
     });
-    EvaluacionMedica.hasMany(models.recetacertificado, {
+    EvaluacionMedica.hasMany(models.RecetaCertificado, {
       foreignKey: "evaluacion_medica_id",
       as: "recetas_certificados",
     });
-    EvaluacionMedica.hasMany(models.procedimientoprequirurgico, {
+    EvaluacionMedica.hasMany(models.ProcedimientoPreQuirurgico, {
       foreignKey: "evaluacion_medica_id",
       as: "procedimientos_pre_quirurgicos",
     });
-    EvaluacionMedica.hasMany(models.procedimientoenfermeria, {
+    EvaluacionMedica.hasMany(models.ProcedimientoEnfermeria, {
       foreignKey: "evaluacion_medica_id",
       as: "procedimientos_enfermeria",
     });
-    EvaluacionMedica.hasMany(models.evaluacionenfermeria, {
+    EvaluacionMedica.hasMany(models.EvaluacionEnfermeria, {
       foreignKey: "evaluacion_medica_id",
       as: "evaluaciones_enfermeria",
     });
-    EvaluacionMedica.belongsTo(models.diagnostico, {
+    EvaluacionMedica.belongsTo(models.Diagnostico, {
       foreignKey: "diagnostico_id",
       as: "diagnostico",
     });
-    EvaluacionMedica.hasMany(models.turno, {
+    EvaluacionMedica.hasMany(models.Turno, {
       foreignKey: "evaluacion_medica_id",
       as: "turnos",
     });
