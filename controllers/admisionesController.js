@@ -163,7 +163,6 @@ const generarPacienteTemporal = async (req, res) => {
       updated_at: new Date(),
     }, { transaction });
     console.log('Usuario creado:', usuario.id);
-    alert('Usuario creado:', usuario.id);
 
     // Crear paciente
     const paciente = await Paciente.create({
@@ -176,7 +175,7 @@ const generarPacienteTemporal = async (req, res) => {
       updated_at: new Date(),
     }, { transaction });
     console.log('Paciente creado:', paciente.id);
-    alert('Usuario creado:', paciente.id);
+
     await transaction.commit();
     res.status(201).json({
       success: true,
