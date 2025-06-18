@@ -6,7 +6,7 @@ module.exports = (sequelize, DataTypes) => {
     categoria: { type: DataTypes.ENUM('Imagenología', 'Laboratorio', 'Fisiológico'), allowNull: false },
     requiere_ayuno: { type: DataTypes.BOOLEAN, defaultValue: false }
   }, {
-    tableName: 'tiposestudio',
+    tableName: 'TiposEstudio',
     timestamps: false
   });
 

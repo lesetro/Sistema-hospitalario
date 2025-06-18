@@ -4,11 +4,11 @@ module.exports = (sequelize, DataTypes) => {
     tipo_de_servicio_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'tiposdeservicio', key: 'id' }},
     tipo: { type: DataTypes.ENUM('Doble', 'Colectiva', 'Individual'),defaultValue: `Colectiva`,},
     numero: { type: DataTypes.STRING(10), allowNull: false },
-    sector_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'sectores', key: 'id' }},
+    sector_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Sectores', key: 'id' }},
     sexo_permitido: { type: DataTypes.ENUM('Masculino', 'Femenino', 'Mixto'), defaultValue: 'Mixto' },
     tipo_internacion_id: { type: DataTypes.INTEGER, allowNull: false }
   }, {
-    tableName: 'habitaciones',
+    tableName: 'Habitaciones',
     timestamps: true,
     underscored: true
   });

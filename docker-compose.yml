@@ -4,11 +4,24 @@ services:
     ports:
       - "3030:3030"
     environment:
-      - DB_HOST=nozomi.proxy.rlwy.net
-      - DB_PORT=47316
+      - DB_HOST=db
       - DB_USER=root
-      - DB_PASSWORD=ZpmmmwauhGlHxYjaBxywHMPVbfolylBz
-      - DB_NAME=railway
+      - DB_PASSWORD=
+      - DB_NAME=integrador_db
+    depends_on:
+      - db
     restart: always
 
-  
+  db:
+    image: mysql:8.0
+    environment:
+      - MYSQL_DATABASE=integrador_db
+      - MYSQL_ALLOW_EMPTY_PASSWORD=true
+    ports:
+      - "3306:3306"
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+
+volumes:
+  db_data:

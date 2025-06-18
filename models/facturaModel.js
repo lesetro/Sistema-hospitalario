@@ -1,15 +1,15 @@
 module.exports = (sequelize, DataTypes) => {
   const Factura = sequelize.define('Factura', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
+    paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'Pacientes', key: 'id' } },
     monto: { type: DataTypes.DECIMAL(10,2), allowNull: false },
     descripcion: { type: DataTypes.TEXT, allowNull: true },
     fecha_emision: { type: DataTypes.DATE, allowNull: false },
     estado: { type: DataTypes.ENUM('Pendiente', 'Pagada', 'Cancelada'), defaultValue: 'Pendiente' },
-    admision_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'admisiones', key: 'id' } },
+    admision_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'Admisiones', key: 'id' } },
     tipo_pago: { type: DataTypes.ENUM('Efectivo','Cheque', 'Tarjeta', 'Transferencia', 'Obra Social'), allowNull: false },
   }, {
-    tableName: 'facturas',
+    tableName: 'Facturas',
     timestamps: true,
     underscored: true,
     indexes: [

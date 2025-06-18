@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     cantidad_enfermeros: { type: DataTypes.INTEGER, allowNull: true },
     estado_paciente_default: { type: DataTypes.ENUM('Estable', 'Grave', 'Crítico'), allowNull: false,defaultValue: 'Sin Evaluar'},
   }, {
-    tableName: 'tiposinternacion',
+    tableName: 'TiposInternacion',
     timestamps: false,
     underscored: true
   });

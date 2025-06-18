@@ -1,13 +1,13 @@
 module.exports = (sequelize, DataTypes) => {
   const TurnoEstudio = sequelize.define('TurnoEstudio', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    estudio_solicitado_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'estudiossolicitados', key: 'id' } },
+    estudio_solicitado_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'EstudiosSolicitados', key: 'id' } },
     fecha: { type: DataTypes.DATEONLY, allowNull: false },
     hora: { type: DataTypes.TIME, allowNull: false },
     estado: { type: DataTypes.ENUM('Pendiente', 'Realizado', 'Cancelado'), defaultValue: 'Pendiente' },
     resultado: { type: DataTypes.TEXT, allowNull: true }
   }, {
-    tableName: 'turnosestudios',
+    tableName: 'TurnosEstudios',
     timestamps: true,
     underscored: true,
     indexes: [
