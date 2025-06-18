@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const Habitacion = sequelize.define('Habitacion', {
+  const Habitacion = sequelize.define('habitacion', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     tipo_de_servicio_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'tiposdeservicio', key: 'id' }},
     tipo: { type: DataTypes.ENUM('Doble', 'Colectiva', 'Individual'),defaultValue: `Colectiva`,},
@@ -30,11 +30,11 @@ module.exports = (sequelize, DataTypes) => {
     }
   });
   Habitacion.associate = function(models) {
-    Habitacion.belongsTo(models.TipoInternacion, { foreignKey: 'tipo_internacion_id', as: 'TipoDeServicio' });
-    Habitacion.hasMany(models.Cama, { foreignKey: 'habitacion_id', as: 'camas' });
-    Habitacion.belongsTo(models.TipoDeServicio, { foreignKey: 'tipo_de_servicio_id', as: 'habitacion' });
-    Habitacion.hasMany(models.IntervencionQuirurgica, { foreignKey: 'habitacion_id', as: 'intervencionQuirurgica' });
-    Habitacion.belongsTo(models.Sector, {foreignKey: 'sector_id', as: 'sector' })
+    Habitacion.belongsTo(models.tipointernacion, { foreignKey: 'tipo_internacion_id', as: 'TipoDeServicio' });
+    Habitacion.hasMany(models.cama, { foreignKey: 'habitacion_id', as: 'camas' });
+    Habitacion.belongsTo(models.tipodeservicio, { foreignKey: 'tipo_de_servicio_id', as: 'habitacion' });
+    Habitacion.hasMany(models.intervencionquirurgica, { foreignKey: 'habitacion_id', as: 'intervencionQuirurgica' });
+    Habitacion.belongsTo(models.sector, {foreignKey: 'sector_id', as: 'sector' })
   };
 
 

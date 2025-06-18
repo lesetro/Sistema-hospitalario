@@ -1,7 +1,7 @@
 const controlEnfermeria = require("./controlEnfermeria");
 
 module.exports = (sequelize, DataTypes) => {
-  const EvaluacionEnfermeria = sequelize.define('EvaluacionEnfermeria', {
+  const EvaluacionEnfermeria = sequelize.define('evaluacionenfermeria', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
     enfermero_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'enfermeros', key: 'usuario_id' } },
@@ -29,13 +29,13 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   EvaluacionEnfermeria.associate = function(models) {
-    EvaluacionEnfermeria.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
-    EvaluacionEnfermeria.belongsTo(models.Enfermero, { foreignKey: 'enfermero_id', as: 'enfermero' });
-    EvaluacionEnfermeria.belongsTo(models.Medico, { foreignKey: 'medico_id', as: 'medico' });
-    EvaluacionEnfermeria.belongsTo(models.ControlEnfermeria, { foreignKey: 'control_enfermeria_id', as: 'control_enfermeria' });
-    EvaluacionEnfermeria.belongsTo(models.ProcedimientoEnfermeria, { foreignKey: 'procedimiento_enfermeria_id', as: 'procedimiento_enfermeria' });
-    EvaluacionEnfermeria.belongsTo(models.ProcedimientoPreQuirurgico, { foreignKey: 'procedimiento_pre_quirurgico_id', as: 'procedimiento_pre_quirurgico' });
-    EvaluacionEnfermeria.hasOne(models.ControlEnfermeria, { foreignKey: 'evaluacion_enfermeria_id', as: 'control' });
+    EvaluacionEnfermeria.belongsTo(models.paciente, { foreignKey: 'paciente_id', as: 'paciente' });
+    EvaluacionEnfermeria.belongsTo(models.enfermero, { foreignKey: 'enfermero_id', as: 'enfermero' });
+    EvaluacionEnfermeria.belongsTo(models.medico, { foreignKey: 'medico_id', as: 'medico' });
+    EvaluacionEnfermeria.belongsTo(models.controlenfermeria, { foreignKey: 'control_enfermeria_id', as: 'control_enfermeria' });
+    EvaluacionEnfermeria.belongsTo(models.procedimientoenfermeria, { foreignKey: 'procedimiento_enfermeria_id', as: 'procedimiento_enfermeria' });
+    EvaluacionEnfermeria.belongsTo(models.procedimientoprequirurgico, { foreignKey: 'procedimiento_pre_quirurgico_id', as: 'procedimiento_pre_quirurgico' });
+    EvaluacionEnfermeria.hasOne(models.controlenfermeria, { foreignKey: 'evaluacion_enfermeria_id', as: 'control' });
   };
 
   return EvaluacionEnfermeria;

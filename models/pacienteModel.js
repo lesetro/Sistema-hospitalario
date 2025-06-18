@@ -1,6 +1,6 @@
 // models/Paciente.js
 module.exports = (sequelize, DataTypes) => {
-  const Paciente = sequelize.define('Paciente', {
+  const Paciente = sequelize.define('paciente', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     usuario_id: {
       type: DataTypes.INTEGER,
@@ -31,15 +31,15 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   Paciente.associate = function(models) {
-    Paciente.belongsTo(models.Usuario, { foreignKey: 'usuario_id', as: 'usuario' });
-    Paciente.belongsTo(models.Administrativo, { foreignKey: 'administrativo_id', as: 'administrativo' });
-    Paciente.belongsTo(models.ObraSocial, { foreignKey: 'obra_social_id', as: 'obraSocial' });
-    Paciente.hasMany(models.EstudioSolicitado, { foreignKey: 'paciente_id', as: 'estudio_solicitado' });
-    Paciente.hasMany(models.EvaluacionMedica, { foreignKey: 'paciente_id', as: 'evaluaciones' });
-    Paciente.hasMany(models.AltaMedica, { foreignKey: 'paciente_id', as: 'altas_med' });
-    Paciente.hasMany(models.HistorialMedico, { foreignKey: 'paciente_id', as: 'historial' });
-    Paciente.hasMany(models.Factura, { foreignKey: 'paciente_id', as: 'facturas' });
-    Paciente.hasMany(models.Admision, { foreignKey: 'paciente_id', as: 'admisiones' });
+    Paciente.belongsTo(models.usuario, { foreignKey: 'usuario_id', as: 'usuario' });
+    Paciente.belongsTo(models.administrativo, { foreignKey: 'administrativo_id', as: 'administrativo' });
+    Paciente.belongsTo(models.obrasocial, { foreignKey: 'obra_social_id', as: 'obraSocial' });
+    Paciente.hasMany(models.estudiosolicitado, { foreignKey: 'paciente_id', as: 'estudio_solicitado' });
+    Paciente.hasMany(models.evaluacionmedica, { foreignKey: 'paciente_id', as: 'evaluaciones' });
+    Paciente.hasMany(models.altamedica, { foreignKey: 'paciente_id', as: 'altas_med' });
+    Paciente.hasMany(models.historialmedico, { foreignKey: 'paciente_id', as: 'historial' });
+    Paciente.hasMany(models.factura, { foreignKey: 'paciente_id', as: 'facturas' });
+    Paciente.hasMany(models.admision, { foreignKey: 'paciente_id', as: 'admisiones' });
   };
 
   return Paciente;

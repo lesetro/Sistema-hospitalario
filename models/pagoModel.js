@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const Pago = sequelize.define('Pago', {
+  const Pago = sequelize.define('pago', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
     factura_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'facturas', key: 'id' } },
@@ -46,9 +46,9 @@ module.exports = (sequelize, DataTypes) => {
 });
 
   Pago.associate = function(models) {
-    Pago.belongsTo(models.Factura, { foreignKey: 'factura_id', as: 'factura' });
-    Pago.belongsTo(models.ObraSocial, { foreignKey: 'obra_social_id', as: 'obra_social' });
-    Pago.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
+    Pago.belongsTo(models.factura, { foreignKey: 'factura_id', as: 'factura' });
+    Pago.belongsTo(models.obrasocial, { foreignKey: 'obra_social_id', as: 'obra_social' });
+    Pago.belongsTo(models.paciente, { foreignKey: 'paciente_id', as: 'paciente' });
   };
 
   return Pago;

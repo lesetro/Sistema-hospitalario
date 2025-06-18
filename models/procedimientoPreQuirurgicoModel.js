@@ -1,5 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  const ProcedimientoPreQuirurgico = sequelize.define('ProcedimientoPreQuirurgico', {
+  const ProcedimientoPreQuirurgico = sequelize.define('procedimientoprequirurgico', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'evaluacionesmedicas', key: 'id' } },
     nombre: { type: DataTypes.STRING(100), allowNull: false }, // Ejemplo: "Ayuno", "Administración de antibióticos"
@@ -13,8 +13,8 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   ProcedimientoPreQuirurgico.associate = function(models) {
-    ProcedimientoPreQuirurgico.belongsTo(models.EvaluacionMedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacion_medica' });
-    ProcedimientoPreQuirurgico.hasOne(models.EvaluacionEnfermeria, { foreignKey: 'procedimiento_pre_quirurgico_id', as: 'evaluacion_enfermeria' });
+    ProcedimientoPreQuirurgico.belongsTo(models.evaluacionmedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacion_medica' });
+    ProcedimientoPreQuirurgico.hasOne(models.evaluacionenfermeria, { foreignKey: 'procedimiento_pre_quirurgico_id', as: 'evaluacion_enfermeria' });
   };
 
   return ProcedimientoPreQuirurgico;
