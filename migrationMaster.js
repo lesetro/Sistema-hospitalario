@@ -1,47 +1,52 @@
-const path = require("path");
-const fs = require("fs");
-const db = require('./database/db');
-const Sequelize = require("sequelize");
+const path = require('path');
+const { sequelize } = require('./database/db');
+const Umzug = require('umzug');
 
-const migrationFiles = fs
-  .readdirSync(path.join(__dirname, "database/migrations"))
-  .filter(file => file.endsWith(".js"))
-  .sort();
+const umzug = new Umzug({
+  storage: 'sequelize',
+  storageOptions: { 
+    sequelize,
+    tableName: 'sequelize_meta' 
+  },
+  migrations: {
+    path: path.join(__dirname, 'database/migrations'),
+    pattern: /\.js$/,
+    params: [
+      sequelize.getQueryInterface(),
+      sequelize.constructor 
+    ]
+  },
+  logging: console.log
+});
 
-async function runMigrations(direction = "up") {
-  const queryInterface = db.sequelize.getQueryInterface(); // Corrige aquí
-  const sequelize = db.sequelize; // Usa db.sequelize
-  const files = direction === "up" ? migrationFiles : [...migrationFiles].reverse();
-
-  // Deshabilitar FKs al inicio
-  if (direction === "up") {
-    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
-  } else {
-    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
-  }
-
+async function runMigrations() {
   try {
-    for (const file of files) {
-      const migration = require(`./database/migrations/${file}`);
-      console.log(`→ Running ${direction} on migration: ${file}`);
-      await migration[direction](queryInterface, Sequelize);
-    }
-
-    // Reactivar FKs al finalizar con éxito
+    // Deshabilitar FK checks (solo para MySQL/MariaDB)
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 0');
+    
+    // Ejecutar migraciones pendientes
+    const migrations = await umzug.up();
+    
+    // Reactivar FK checks
     await sequelize.query('SET FOREIGN_KEY_CHECKS = 1');
-    console.log(`✅ Migrations ${direction} complete.`);
+    
+    console.log('✅ Migraciones completadas:', migrations.map(m => m.file));
+    return migrations;
   } catch (error) {
-    console.error(`❌ Migration failed: ${error.message}`);
-    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1').catch(e => {
-      console.error("Failed to re-enable foreign key checks:", e);
-    });
+    console.error('❌ Error en migraciones:', error);
+    await sequelize.query('SET FOREIGN_KEY_CHECKS = 1').catch(console.error);
     throw error;
   }
 }
 
-module.exports = runMigrations;
-
+// Ejecutar solo si se llama directamente (no cuando se requiere)
 if (require.main === module) {
-  const direction = process.argv[2] || "up";
-  runMigrations(direction).catch(console.error);
+  runMigrations()
+    .then(() => process.exit(0))
+    .catch(() => process.exit(1));
 }
+
+module.exports = {
+  runMigrations,
+  umzug // Para poder usarlo en tests u otros scripts
+};
