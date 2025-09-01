@@ -1,7 +1,7 @@
 module.exports = (sequelize, DataTypes) => {
   const ControlEnfermeria = sequelize.define('ControlEnfermeria', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    evaluacion_enfermeria_id: { type: DataTypes.INTEGER, allowNull: false,references: { model: 'EvaluacionesEnfermeria', key: 'id' }},
+    evaluacion_enfermeria_id: { type: DataTypes.INTEGER, allowNull: false,references: { model: 'evaluacionesenfermeria', key: 'id' }},
     alergias: { type: DataTypes.TEXT, allowNull: true },
     antecedentes_familiares: { type: DataTypes.TEXT, allowNull: true },
     antecedentes_personales: { type: DataTypes.TEXT, allowNull: true },

@@ -5,7 +5,7 @@ module.exports = (sequelize, DataTypes) => {
     descripcion: { type: DataTypes.TEXT, allowNull: true },
     sistema_clasificacion: { type: DataTypes.STRING(20),allowNull: false}
   }, {
-    tableName: 'tipos_diagnostico', 
+    tableName: 'tiposdiagnostico', 
     timestamps: false,
     underscored: true
   });

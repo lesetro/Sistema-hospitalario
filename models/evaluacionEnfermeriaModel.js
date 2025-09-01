@@ -17,7 +17,7 @@ module.exports = (sequelize, DataTypes) => {
 
     tableName: 'evaluacionesenfermeria',
     timestamps: true,
-    underscored: true,
+    underscored: false,
     indexes:[
       { fields: ['paciente_id'] },
       { fields: ['enfermero_id'] },

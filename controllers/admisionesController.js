@@ -869,6 +869,35 @@ const updateAdmision = async (req, res) => {
     res.status(500).json({ message: 'Error al actualizar admisión', error: error.message });
   }
 };
+// Obtener una admisión por ID para el Editar
+
+const getAdmisionById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log('Buscando admisión ID:', id);
+
+    // SOLO DATOS BÁSICOS - sin includes complejos
+    const admision = await Admision.findByPk(id, {
+      attributes: [
+        'id', 'paciente_id', 'administrativo_id', 'motivo_id', 
+        'forma_ingreso_id', 'turno_id', 'fecha', 'estado',
+        'medico_id', 'sector_id', 'tipo_estudio_id', 'especialidad_id'
+      ]
+    });
+    console.log(admisione, "datos para trabajarlos en el frontend");
+
+    if (!admision) {
+      return res.status(404).json({ error: 'Admisión no encontrada' });
+    }
+
+    console.log('Admisión encontrada:', admision.id);
+    res.json(admision);
+    
+  } catch (error) {
+    console.error('Error en getAdmisionById:', error);
+    res.status(500).json({ error: error.message });
+  }
+};
 
 // Eliminar una admisión
 const deleteAdmision = async (req, res) => {
@@ -1050,5 +1079,7 @@ module.exports = {
   searchPacientes,
   updateAdmision,
   deleteAdmision,
+  getAdmisionById,
+
  
 };

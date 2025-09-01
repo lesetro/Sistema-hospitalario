@@ -80,11 +80,8 @@ html(lang='es')
         .d-flex.align-items-center
           button.btn.btn-link.mobile-menu-toggle.me-3(onclick='toggleSidebar()')
             i.fas.fa-bars
-          .search-bar
-            i.fas.fa-search
-            input.form-control(type='text', placeholder='Buscar pacientes, turnos...', id='global-search')
         .user-info
-          span.me-2 #{user ? user.nombre : 'Dr. Admin'}
+          span.me-2 #{user ? user.nombre : 'Administrador'}
           .user-avatar
             i.fas.fa-user
       // Content Area

@@ -8,7 +8,7 @@ module.exports = (sequelize, DataTypes) => {
     fecha_alta: { type: DataTypes.DATE, allowNull: false },
     tipo_alta: { type: DataTypes.ENUM('Voluntaria', 'Medica', 'Contraindicada'), allowNull: false },
     instrucciones_post_alta: { type: DataTypes.TEXT, allowNull: true },
-    internacion_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'internaciones', key: 'id' } },
+    internacion_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'internaciones', key: 'id' } },
     estado_paciente: { type: DataTypes.ENUM('Estable', 'Crítico', 'Fallecido'), allowNull: false }
     
   }, {

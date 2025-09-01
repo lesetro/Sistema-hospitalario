@@ -9,11 +9,11 @@ module.exports = (sequelize, DataTypes) => {
     tratamiento_id: {type: DataTypes.INTEGER,allowNull: true, references: {model: 'tratamientos',key: 'id'}},
     evaluacion_medica_id: {type: DataTypes.INTEGER,allowNull: false,references: {model: 'evaluacionesmedicas',key: 'id'}}
   }, {
-    tableName: 'procedimientos_enfermeria',
+    tableName: 'procedimientosenfermeria',
     timestamps: true,
     underscored: true,
     indexes: [
-      { fields: ['evaluacion_id'] },
+      { fields: ['evaluacion_medica_id'] },
       { fields: ['tratamiento_id'] }
     ]
 

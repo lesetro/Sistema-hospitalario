@@ -9,7 +9,7 @@ module.exports = (sequelize, DataTypes) => {
     tableName: 'procedimientosprequirurgicos',
     timestamps: true,
     underscored: true,
-     indexes: [{ fields: ['evaluacion_id'] }] 
+     indexes: [{ fields: ['evaluacion_medica_id'] }] 
   });
 
   ProcedimientoPreQuirurgico.associate = function(models) {

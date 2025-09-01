@@ -63,6 +63,7 @@ app.use((req, res, next) => {
 
 // Rutas
 const admisionesRoute = require('./routes/admisionesRoute');
+const pacienteRoute = require('./routes/pacienteRoute');
 const configuracionRoute= require(`./routes/configuracionRoute`);
 
 app.get('/', (req, res) => {
@@ -70,12 +71,13 @@ app.get('/', (req, res) => {
   res.render('dashboard/admin/dashboard-admin', { title: 'Dashboard' });
 });
 app.use('/admisiones', admisionesRoute);
+app.use('/pacientes', pacienteRoute);
 app.use(`/configuracion`, configuracionRoute);
 //app.use('/pacientes', pacienteRoute);
 
 // Rutas para secciones en construcción
 const seccionesEnConstruccion = [
-  'internaciones', 'turnos', 'pacientes', 'facturacion', 'procedimientos',
+  'internaciones', 'turnos', 'facturacion', 'procedimientos',
   'derivaciones', 'comunicacion', 'personal', 'usuarios',
   'reportes', 'recetas', 'diagnosticos'
 ];
