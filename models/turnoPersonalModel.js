@@ -1,12 +1,12 @@
 module.exports = (sequelize, DataTypes) => {
   const TurnoPersonal = sequelize.define('TurnoPersonal', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    usuario_id: { type: DataTypes.INTEGER, allowNull: false },
+    usuario_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'usuarios', key: 'id' } },
     tipo: { type: DataTypes.ENUM('Guardia Activa', 'Guardia Pasiva', 'Atencion'), allowNull: false },
     dias: { type: DataTypes.STRING(100), allowNull: false },
     hora_inicio: { type: DataTypes.TIME, allowNull: false },
     hora_fin: { type: DataTypes.TIME, allowNull: false },
-    sector_id: { type: DataTypes.INTEGER, allowNull: false }
+    sector_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'sectores', key: 'id' } }
   }, {
     tableName: 'turnospersonal',
     timestamps: true,

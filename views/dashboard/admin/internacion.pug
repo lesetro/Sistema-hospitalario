@@ -1,0 +1,272 @@
+
+extends dashboard-admin.pug
+
+block content
+  .container-fluid.mt-4
+    // Header con estadísticas generales
+    .row.mb-4
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-primary.text-white
+            .d-flex.justify-content-between.align-items-center
+              h3.mb-0
+                i.bi.bi-hospital.me-2
+                | Gestión de Internación
+              .d-flex.gap-2
+                button.btn.btn-outline-light.btn-sm#btnRefresh
+                  i.bi.bi-arrow-clockwise.me-1
+                  | Actualizar
+                button.btn.btn-light.btn-sm#btnNuevaHabitacion
+                  i.bi.bi-plus-circle.me-1
+                  | Nueva Habitación
+          .card-body
+            .row.text-center
+              .col-md-2
+                .stat-item
+                  h4.text-primary.mb-1#totalCamas 0
+                  small.text-muted Total Camas
+              .col-md-2
+                .stat-item
+                  h4.text-success.mb-1#camasLibres 0
+                  small.text-muted Libres
+              .col-md-2
+                .stat-item
+                  h4.text-danger.mb-1#camasOcupadas 0
+                  small.text-muted Ocupadas
+              .col-md-2
+                .stat-item
+                  h4.text-warning.mb-1#camasEnLimpieza 0
+                  small.text-muted En Limpieza
+              .col-md-2
+                .stat-item
+                  h4.text-info.mb-1#porcentajeOcupacion 0%
+                  small.text-muted Ocupación
+              .col-md-2
+                .stat-item
+                  h4.text-secondary.mb-1#totalSectores 0
+                  small.text-muted Sectores
+
+    // Filtros y controles
+    .row.mb-3
+      .col-md-6
+        .input-group
+          span.input-group-text
+            i.bi.bi-search
+          input.form-control#filtroSector(placeholder="Filtrar por sector...")
+      .col-md-6
+        .d-flex.gap-2
+          select.form-select#filtroEstado
+            option(value="") Todos los estados
+            option(value="Libre") Solo libres
+            option(value="Ocupada") Solo ocupadas
+            option(value="EnLimpieza") En limpieza
+          select.form-select#filtroTipo
+            option(value="") Todos los tipos
+            option(value="Individual") Individual
+            option(value="Doble") Doble
+            option(value="Colectiva") Colectiva
+
+    // Loading spinner
+    .row#loadingSpinner.d-none
+      .col-12.text-center.py-5
+        .spinner-border.text-primary(role="status")
+        p.mt-2.text-muted Cargando datos...
+
+    // Contenedor principal de sectores
+    .row#sectoresContainer
+
+    // Lista de espera flotante
+    .position-fixed.bottom-0.end-0.p-3(style="z-index: 1000;")
+      .card.shadow#listaEsperaCard(style="width: 350px; max-height: 500px;")
+        .card-header.bg-warning.text-dark.d-flex.justify-content-between.align-items-center.cursor-pointer#headerListaEspera
+          h6.mb-0
+            i.bi.bi-clock.me-1
+            | Lista de Espera
+          .d-flex.align-items-center.gap-2
+            span.badge.bg-dark#contadorEspera 0
+            button.btn.btn-sm.btn-outline-dark#btnExpandirLista
+              i.bi.bi-chevron-up#iconoExpandir
+        .card-body.p-0#cuerpoListaEspera(style="overflow-y: auto; max-height: 350px; display: none;")
+          .list-group.list-group-flush#listaEsperaContent
+        .card-footer.p-2#footerListaEspera(style="display: none;")
+          .d-flex.gap-1
+            button.btn.btn-sm.btn-primary.flex-fill#btnGestionarLista
+              i.bi.bi-list-ul.me-1
+              | Gestionar
+            button.btn.btn-sm.btn-success#btnNuevoPacienteLista
+              i.bi.bi-plus
+
+  // Modal para gestión completa de Lista de Espera
+  .modal.fade#modalGestionLista(tabindex="-1")
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header
+          h5.modal-title Gestión de Lista de Espera
+          button.btn-close(data-bs-dismiss="modal")
+        .modal-body
+          // Filtros y controles
+          .row.mb-3
+            .col-md-3
+              select.form-select#filtroTipoEspera
+                option(value="") Todos los tipos
+                option(value="INTERNACION") Internación
+                option(value="EVALUACION") Evaluación
+                option(value="ESTUDIO") Estudio
+                option(value="CIRUGIA") Cirugía
+            .col-md-3
+              select.form-select#filtroPrioridadEspera
+                option(value="") Todas las prioridades
+                option(value="1") Alta (1)
+                option(value="2") Media (2)
+                option(value="3") Baja (3)
+            .col-md-3
+              select.form-select#filtroEstadoEspera
+                option(value="") Todos los estados
+                option(value="PENDIENTE") Pendiente
+                option(value="ASIGNADO") Asignado
+                option(value="NOTIFICADO") Notificado
+            .col-md-3
+              button.btn.btn-success#btnAgregarPacienteLista
+                i.bi.bi-plus.me-1
+                | Agregar Paciente
+
+          // Tabla de gestión
+          .table-responsive
+            table.table.table-hover#tablaGestionLista
+              thead.table-dark
+                tr
+                  th #
+                  th Paciente
+                  th DNI
+                  th Tipo
+                  th Prioridad
+                  th Estado
+                  th Tiempo Espera
+                  th Sector
+                  th Acciones
+              tbody#cuerpoTablaLista
+
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss="modal") Cerrar
+
+  // Modal para agregar/editar paciente en lista
+  .modal.fade#modalPacienteLista(tabindex="-1")
+    .modal-dialog
+      .modal-content
+        .modal-header
+          h5.modal-title#tituloPacienteLista Agregar Paciente a Lista
+          button.btn-close(data-bs-dismiss="modal")
+        .modal-body
+          form#formPacienteLista
+            .row
+              .col-md-6
+                .mb-3
+                  label.form-label Buscar Paciente por DNI
+                  .input-group
+                    input.form-control#dniPacienteLista(type="text" placeholder="Ingrese DNI")
+                    button.btn.btn-outline-secondary#btnBuscarPacienteLista(type="button") Buscar
+                .mb-3#infoPacienteEncontrado(style="display: none;")
+                  .alert.alert-info
+                    strong#nombrePacienteEncontrado
+              .col-md-6
+                .mb-3
+                  label.form-label Tipo de Lista
+                  select.form-select#tipoListaPaciente(required)
+                    option(value="") Seleccionar...
+                    option(value="INTERNACION") Internación
+                    option(value="EVALUACION") Evaluación
+                    option(value="ESTUDIO") Estudio
+                    option(value="CIRUGIA") Cirugía
+                .mb-3
+                  label.form-label Prioridad
+                  select.form-select#prioridadPaciente(required)
+                    option(value="") Seleccionar...
+                    option(value="1") Alta (1) - Emergencia
+                    option(value="2") Media (2) - Urgente
+                    option(value="3") Baja (3) - Programada
+            .row
+              .col-md-6#sectorContainer(style="display: none;")
+                .mb-3
+                  label.form-label Sector (para Internación)
+                  select.form-select#sectorPacienteLista
+                    option(value="") Seleccionar sector...
+              .col-md-6#estudiosContainer(style="display: none;")
+                .mb-3
+                  label.form-label Tipo de Estudio
+                  select.form-select#tipoEstudioPaciente
+                    option(value="") Seleccionar estudio...
+            .mb-3
+              label.form-label Observaciones
+              textarea.form-control#observacionesPaciente(rows="3" placeholder="Observaciones adicionales...")
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss="modal") Cancelar
+          button.btn.btn-primary(type="submit" form="formPacienteLista") Agregar a Lista
+
+  // Modal para nueva habitación
+  .modal.fade#modalNuevaHabitacion(tabindex="-1")
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title Nueva Habitación
+          button.btn-close(data-bs-dismiss="modal")
+        .modal-body
+          form#formNuevaHabitacion
+            .row
+              .col-md-6
+                .mb-3
+                  label.form-label Sector
+                  select.form-select#sector_id(required)
+                    option(value="") Seleccionar sector...
+                .mb-3
+                  label.form-label Número de Habitación
+                  input.form-control#numero(type="text" required placeholder="Ej: 301")
+                .mb-3
+                  label.form-label Tipo
+                  select.form-select#tipo(required)
+                    option(value="") Seleccionar tipo...
+                    option(value="Individual") Individual (1 cama)
+                    option(value="Doble") Doble (2 camas)
+                    option(value="Colectiva") Colectiva (múltiples camas)
+              .col-md-6
+                .mb-3
+                  label.form-label Sexo Permitido
+                  select.form-select#sexo_permitido
+                    option(value="Mixto") Mixto
+                    option(value="Masculino") Solo Masculino
+                    option(value="Femenino") Solo Femenino
+                .mb-3
+                  label.form-label Cantidad de Camas
+                  input.form-control#cantidad_camas(type="number" min="1" max="50" placeholder="Automático según tipo")
+                .mb-3
+                  label.form-label Tipo de Servicio
+                  select.form-select#tipo_de_servicio_id(required)
+                    option(value="1") Clínica Médica
+                    option(value="2") UTI
+                    option(value="3") Ambulatorio
+                    option(value="4") Materno
+                    option(value="5") Pediatría
+                    option(value="6") Cardiología
+                    option(value="7") Neurología
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss="modal") Cancelar
+          button.btn.btn-primary(type="submit" form="formNuevaHabitacion") Crear Habitación
+
+  // Modal para confirmar finalizar limpieza
+  .modal.fade#modalFinalizarLimpieza(tabindex="-1")
+    .modal-dialog
+      .modal-content
+        .modal-header
+          h5.modal-title Finalizar Limpieza
+          button.btn-close(data-bs-dismiss="modal")
+        .modal-body
+          p ¿Está seguro de que desea finalizar la limpieza de esta cama?
+          .alert.alert-info
+            strong#infoModalCama
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss="modal") Cancelar
+          button.btn.btn-success#btnConfirmarFinalizarLimpieza Finalizar Limpieza
+
+
+
+append scripts
+  script(src="/js/internacion.js")

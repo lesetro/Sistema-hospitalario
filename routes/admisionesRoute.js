@@ -15,9 +15,14 @@ router.post('/', admisionesController.crearAdmision);
 router.get('/horarios-disponibles', admisionesController.getHorariosDisponibles);
 router.post('/nuevo-paciente', admisionesController.crearPaciente);
 router.post('/urgencias', admisionesController.crearAdmisionUrgencia);
-router.get('/:id', admisionesController.getAdmisionById);
-router.put('/editar/:id', admisionesController.updateAdmision);
-router.delete('/eliminar/:id', admisionesController.deleteAdmision);
 router.post('/generar-temporal', admisionesController.generarPacienteTemporal);
+
+// Rutas para Admisiones
+router.get('/editar/:id', admisionesController.getAdmisiones);        
+router.post('/editar/:id', admisionesController.updateAdmision);       
+router.delete('/eliminar/:id', admisionesController.deleteAdmision);
+
+// RUTA GENÉRICA AL FINAL
+router.get('/:id', admisionesController.getAdmisionById); 
 
 module.exports = router;

@@ -1,11 +1,11 @@
 module.exports = (sequelize, DataTypes) => {
   const RecetaCertificado = sequelize.define('RecetaCertificado', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    paciente_id: { type: DataTypes.INTEGER, allowNull: false },
+    paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
     tipo: { type: DataTypes.ENUM('Receta Medica', 'Certificado'), allowNull: false },
     contenido: { type: DataTypes.TEXT, allowNull: false },
     fecha: { type: DataTypes.DATE, allowNull: false },
-    medico_id: { type: DataTypes.INTEGER, allowNull: false },
+    medico_id: { type: DataTypes.INTEGER, allowNull: false,   references: { model: 'medicos', key: 'id' } },
     evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'evaluacionesmedicas', key: 'id' } },
   }, {
     tableName: 'recetascertificados',

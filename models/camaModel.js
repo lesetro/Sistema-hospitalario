@@ -3,7 +3,7 @@ module.exports = (sequelize, DataTypes) => {
     "Cama",
     {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-      habitacion_id: { type: DataTypes.INTEGER, allowNull: false },
+      habitacion_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: "habitaciones", key: "id" } },
       numero: { type: DataTypes.STRING(10), allowNull: false },
       sexo_ocupante: { type: DataTypes.ENUM('Masculino', 'Femenino', 'Otro'), allowNull: true },
       estado: { type: DataTypes.ENUM("Libre", "Ocupada", "EnLimpieza"),defaultValue: "Libre",},
@@ -17,6 +17,7 @@ module.exports = (sequelize, DataTypes) => {
         { fields: ['habitacion_id'] }]
       
       });
+      
 
 
   Cama.associate = function (models) {

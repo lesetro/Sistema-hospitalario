@@ -1,0 +1,18 @@
+
+.row.mb-3
+  .col-md-8
+    .input-group
+      input.form-control(
+        type="text" 
+        name="search" 
+        id="searchInput"
+        placeholder=`Buscar por ${searchPlaceholder || 'DNI, nombre o apellido'}...`
+        value=searchTerm || ''
+      )
+      button.btn.btn-outline-secondary#searchBtn(type="button")
+        i.fas.fa-search
+  .col-md-4
+    select.form-select#limitSelect(name="limit")
+      option(value="10" selected=(limit == 10 ? true : false)) 10 por página
+      option(value="25" selected=(limit == 25 ? true : false)) 25 por página
+      option(value="50" selected=(limit == 50 ? true : false)) 50 por página

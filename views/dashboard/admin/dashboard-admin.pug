@@ -2,75 +2,140 @@ extends layout
 
 block content
   #dashboard-content
+    // Header
     .welcome-card
       h1
         i.fas.fa-hospital-alt
         |  Sistema de Gestión Hospitalaria
       p.lead Bienvenido al panel administrativo del hospital. Desde aquí puedes gestionar todos los aspectos operativos.
-    .stats-grid
+
+    // Cards de estadísticas rápidas
+    .stats-grid.mb-4
       .stat-card
-        h3 245
+        h3= estadisticas.pacientesActivos || 0
         p
           i.fas.fa-users.text-primary
           |  Pacientes Activos
       .stat-card
-        h3 38
+        h3= estadisticas.camasOcupadas || 0
         p
           i.fas.fa-bed.text-success
           |  Camas Ocupadas
       .stat-card
-        h3 127
+        h3= estadisticas.turnosHoy || 0
         p
           i.fas.fa-calendar.text-warning
           |  Turnos Hoy
       .stat-card
-        h3 $47,230
+        h3= estadisticas.admisionesHoy || 0
         p
-          i.fas.fa-dollar-sign.text-info
-          |  Facturación Mes
+          i.fas.fa-user-plus.text-info
+          |  Admisiones Hoy
       .stat-card
-        h3.text-primary 2
+        h3= estadisticas.emergenciasActivas || 0
         p
-          i.fas.fa-user-md.text-primary
-          |  Médicos en Guardia
-    
-        h3.text-success 4
-        p
-          i.fas.fa-user-nurse.text-success
-          |  Enfermeros en Guardia
-    
-        h3.text-info 2
-        p
-          i.fas.fa-user.text-info
-          |  Camilleros en Guardia
-      .stat-card
-        h3.text-warning 12 días
-        p
-          i.fas.fa-exclamation-triangle.text-warning
-          |  Próximo Vencimiento de Servicios
-    .quick-actions
-      h4.mb-4
-        i.fas.fa-bolt
-        |  Acciones Rápidas
-      button.btn.btn-primary.btn-quick-action(onclick="showSection('admisiones')")
-        i.fas.fa-user-plus
-        |  Nueva Admisión
-      button.btn.btn-success.btn-quick-action(onclick="showSection('turnos')")
-        i.fas.fa-calendar-plus
-        |  Nuevo Turno
-      button.btn.btn-info.btn-quick-action(onclick="showSection('pacientes')")
-        i.fas.fa-user-plus
-        |  Nuevo Paciente
-      button.btn.btn-warning.btn-quick-action(onclick="showSection('facturacion')")
-        i.fas.fa-file-invoice
-        |  Nueva Factura
-      button.btn.btn-secondary.btn-quick-action(onclick="showSection('reportes')")
-        i.fas.fa-chart-line
-        |  Ver Reportes
-  #section-content(style='display: none;')
-    .alert.alert-info
-      h4
-        i.fas.fa-info-circle
-        |  Sección en Desarrollo
-      p Esta sección será desarrollada paso a paso. Por favor selecciona una opción del menú lateral para comenzar.
-  
+          i.fas.fa-exclamation-triangle.text-danger
+          |  Emergencias Activas
+
+   
+
+    // Tabla completa de admisiones
+    .admissions-section
+        .card
+          .card-header.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-clipboard-list.me-2
+              | Listado de Admisiones 
+            .d-flex
+            
+
+        
+          // Tabla de admisiones
+          .table-responsive
+            table.table.table-striped.table-hover
+              thead.table-dark
+                tr
+                  th DNI
+                  th Paciente
+                  th Fecha/Hora
+                  th Médico
+                  th Sector
+                  th Estado
+                  th Tipo
+                  th Acciones
+              tbody#admissionsTableBody
+                if admisiones && admisiones.length > 0
+                  each admision in admisiones
+                    tr
+                      td
+                        if admision.paciente && admision.paciente.usuario
+                          = admision.paciente.usuario.dni
+                        else
+                          | N/A
+                      td
+                        if admision.paciente && admision.paciente.usuario
+                          strong= `${admision.paciente.usuario.nombre} ${admision.paciente.usuario.apellido}`
+                        else
+                          | N/A
+                      td
+                        div= new Date(admision.fecha).toLocaleDateString()
+                        if admision.turno && admision.turno.hora_inicio
+                          small.text-muted= admision.turno.hora_inicio.substring(0, 5)
+                      td
+                        if admision.medico && admision.medico.usuario
+                          = `Dr. ${admision.medico.usuario.nombre} ${admision.medico.usuario.apellido}`
+                        else
+                          span.text-muted Sin asignar
+                      td
+                        if admision.sector
+                          = admision.sector.nombre
+                        else
+                          span.text-muted Sin asignar
+                      td
+                        span.badge(class=`bg-${admision.estado === 'Pendiente' ? 'warning' : admision.estado === 'Completada' ? 'success' : 'secondary'}`)
+                          = admision.estado
+                      td
+                        if admision.turno && admision.turno.tipoTurno
+                          = admision.turno.tipoTurno.nombre
+                        else
+                          span.text-muted N/A
+                      td
+                        .btn-group-sm
+                          button.btn.btn-sm.btn-outline-primary.me-1(onclick=`viewAdmission(${admision.id})`)
+                            i.fas.fa-eye
+                          button.btn.btn-sm.btn-outline-secondary.me-1(onclick=`editAdmission(${admision.id})`)
+                            i.fas.fa-edit
+                          if admision.estado === 'Pendiente'
+                            button.btn.btn-sm.btn-outline-success(onclick=`completeAdmission(${admision.id})`)
+                              i.fas.fa-check
+                else
+                  tr
+                    td.text-center.text-muted(colspan="8") No hay admisiones registradas
+
+          // Paginación
+          if pagination
+            include ../../partials/pagination
+            
+
+  // Modal para detalles de admisión
+  #admissionModal.modal.fade(tabindex="-1")
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title Detalles de Admisión
+          button.btn-close(type="button" data-bs-dismiss="modal")
+        .modal-body
+          #admissionDetails
+            // Contenido dinámico
+        .modal-footer
+          button.btn.btn-secondary(type="button" data-bs-dismiss="modal") Cerrar
+
+  block scripts
+    script.
+      // Configuración para búsqueda
+      window.searchConfig = {
+        baseUrl: '/',
+        globalSearchUrl: '/api/search/global',
+        admissionsUrl: '/admisiones/api'
+      };
+    script(src="/js/dashboard-admin.js")

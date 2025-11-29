@@ -6,11 +6,14 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     tableName: 'tiposdeservicio',
     timestamps: true,
-    underscored: true
+    underscored: true,
+    indexes: [
+      { fields: ['nombre'] }
+    ]
   });
 
   TipoDeServicio.associate = function(models) {
-    TipoDeServicio.hasMany(models.Habitacion, { foreignKey: 'tipoDeServicio_id', as: 'habitaciones' });
+    TipoDeServicio.hasMany(models.Habitacion, { foreignKey: 'tipo_de_servicio_id', as: 'habitaciones' });
   };
 
   return TipoDeServicio;

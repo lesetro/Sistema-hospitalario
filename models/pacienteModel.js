@@ -1,10 +1,11 @@
-// models/Paciente.js
+
 module.exports = (sequelize, DataTypes) => {
   const Paciente = sequelize.define('Paciente', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     usuario_id: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      unique: true,
       references: { model: 'usuarios', key: 'id' }
     },
     administrativo_id: {
@@ -27,7 +28,15 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     tableName: 'pacientes',
     timestamps: true,
-    underscored: true
+    underscored: true,
+    indexes: [
+      { fields: ['usuario_id'], unique: true },
+      { fields: ['administrativo_id'] },
+      { fields: ['obra_social_id'] },
+      { fields: ['estado'] },
+      { fields: ['fecha_ingreso'] },
+      { fields: ['fecha_ingreso', 'fecha_egreso'] } 
+    ]
   });
 
   Paciente.associate = function(models) {

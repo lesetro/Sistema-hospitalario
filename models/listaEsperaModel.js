@@ -1,6 +1,6 @@
 module.exports = (sequelize, DataTypes) => {
-  const ListasEsperas = sequelize.define(
-    'ListasEsperas',
+  const ListaEspera = sequelize.define(
+    'ListaEspera',
     {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
       paciente_id: {
@@ -8,9 +8,10 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         references: { model: 'pacientes', key: 'id' }
       },
-      tipo: {
-        type: DataTypes.ENUM('ESTUDIO', 'EVALUACION', 'INTERNACION', 'CIRUGIA'),
-        allowNull: false
+       tipo_turno_id: {
+        type: DataTypes.INTEGER,
+        allowNull: false,
+        references: { model: 'tipos_turno', key: 'id' } 
       },
       tipo_estudio_id: {
         type: DataTypes.INTEGER,
@@ -23,9 +24,9 @@ module.exports = (sequelize, DataTypes) => {
         references: { model: 'especialidades', key: 'id' }
       },
       prioridad: {
-        type: DataTypes.INTEGER,
+        type: DataTypes.ENUM('ALTA', 'MEDIA', 'BAJA'), 
         allowNull: false,
-        defaultValue: 2 // 1=Alta, 2=Media, 3=Baja
+        defaultValue: 'MEDIA'
       },
       estado: {
         type: DataTypes.ENUM('PENDIENTE', 'ASIGNADO', 'CANCELADO', 'COMPLETADO'),
@@ -37,31 +38,34 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         references: { model: 'habitaciones', key: 'id' }
       },
-      fecha_registro: { type: DataTypes.DATE, allowNull: false }
+      creador_tipo: {type: DataTypes.ENUM('ADMINISTRATIVO', 'ENFERMERO', 'MEDICO'), allowNull: false, defaultValue: 'ADMINISTRATIVO'},
+      creador_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'usuarios', key: 'id' } },
+      fecha_registro: { type: DataTypes.DATE, allowNull: false },
+      turno_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { model: 'turnos', key: 'id' }
+      }
     },
+
     {
       tableName: 'listasesperas',
       timestamps: true,
       underscored: true,
       indexes: [
-        { fields: ['tipo', 'prioridad', 'estado'] }
+        { fields: ['tipo_turno_id', 'prioridad', 'estado'] },
+        { fields: ['paciente_id'] },
+        { fields: ['tipo_estudio_id'] },
+        { fields: ['especialidad_id'] },
+        { fields: ['habitacion_id'] },
+        { fields: ['creador_id'] },
+        { fields: ['turno_id']}
       ]
     }
   );
+  
 
-  ListasEsperas.beforeCreate(async (lista, options) => {
-    if (lista.tipo === 'ESTUDIO' && !lista.tipo_estudio_id) {
-      throw new Error('tipo_estudio_id es requerido para listas de espera de tipo ESTUDIO');
-    }
-    if (lista.tipo === 'EVALUACION' && !lista.especialidad_id) {
-      throw new Error('especialidad_id es requerido para listas de espera de tipo EVALUACION');
-    }
-    if (lista.prioridad < 1 || lista.prioridad > 3) {
-      throw new Error('La prioridad debe estar entre 1 (Alta) y 3 (Baja)');
-    }
-  });
-
-  ListasEsperas.beforeUpdate(async (lista, options) => {
+  ListaEspera.beforeUpdate(async (lista, options) => {
     if (lista.estado === 'ASIGNADO') {
       const turno = await sequelize.models.Turno.findOne({
         where: { lista_espera_id: lista.id }
@@ -80,30 +84,63 @@ module.exports = (sequelize, DataTypes) => {
     }
   });
 
-  ListasEsperas.associate = function (models) {
-    ListasEsperas.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
-    ListasEsperas.belongsTo(models.TipoEstudio, {
+  ListaEspera.associate = function (models) {
+    ListaEspera.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
+    ListaEspera.belongsTo(models.TipoEstudio, {
       foreignKey: 'tipo_estudio_id',
       as: 'tipo_estudio',
       constraints: false
     });
-    ListasEsperas.belongsTo(models.Especialidad, {
+    ListaEspera.belongsTo(models.Especialidad, {
       foreignKey: 'especialidad_id',
       as: 'especialidad',
       constraints: false
     });
-    ListasEsperas.hasOne(models.Turno, {
-      foreignKey: 'lista_espera_id',
-      as: 'listaesperaturno',
+    ListaEspera.belongsTo(models.Turno, {
+      foreignKey: 'turno_id',
+      as: 'turno',
       constraints: false
     });
-    ListasEsperas.belongsTo(models.Habitacion, {
+     ListaEspera.belongsTo(models.TipoTurno, { 
+    foreignKey: 'tipo_turno_id', 
+    as: 'tipo_turno' 
+    });
+    ListaEspera.belongsTo(models.Habitacion, {
       foreignKey: 'habitacion_id',
       as: 'habitacion'
     });
+     ListaEspera.belongsTo(models.Administrativo, {
+      foreignKey: 'creador_id',
+      as: 'administrativo_creador',
+      constraints: false,
+      scope: {
+        creador_tipo: 'ADMINISTRATIVO'
+    }
+    });
+  
+    ListaEspera.belongsTo(models.Enfermero, {
+      foreignKey: 'creador_id', 
+      as: 'enfermero_creador',
+      constraints: false,
+      scope: {
+        creador_tipo: 'ENFERMERO'
+      }
+    });
+  
+    ListaEspera.belongsTo(models.Medico, {
+      foreignKey: 'creador_id',
+      as: 'medico_creador', 
+      constraints: false,
+      scope: {
+        creador_tipo: 'MEDICO'
+      }
+    });
+     ListaEspera.hasOne(models.TurnoEstudio, {
+        foreignKey: 'lista_espera_id',
+        as: 'turno_estudio'
+    });
+     
+    };
 
-    
-  };
-
-  return ListasEsperas;
+  return ListaEspera;
 };

@@ -6,15 +6,14 @@ module.exports = (sequelize, DataTypes) => {
     tipo_habitacion: { type: DataTypes.STRING(50), allowNull: true },
     cantidad_camas: { type: DataTypes.INTEGER, allowNull: true },
     cantidad_enfermeros: { type: DataTypes.INTEGER, allowNull: true },
-    estado_paciente_default: { type: DataTypes.ENUM('Estable', 'Grave', 'Crítico'), allowNull: false,defaultValue: 'Sin Evaluar'},
+    estado_paciente: { type: DataTypes.ENUM('Estable', 'Grave', 'Critico', 'Fallecido', 'Sin_Evaluar'), allowNull: false,defaultValue: 'Sin_Evaluar'}
   }, {
     tableName: 'tiposinternacion',
-    timestamps: false,
+    timestamps: true,
     underscored: true
   });
 
   TipoInternacion.associate = function(models) {
-    TipoInternacion.hasMany(models.Habitacion, { foreignKey: 'tipo_internacion_id', as: 'habitaciones' });
     TipoInternacion.hasMany(models.Internacion, { foreignKey: 'tipo_internacion_id', as: 'internaciones' });
   };
 

@@ -19,15 +19,30 @@ module.exports = (sequelize, DataTypes) => {
     ]
 
   });
-  EstudioSolicitado.afterCreate(async (estudio, options) => {
-  await sequelize.models.ListaEspera.create({
-    paciente_id: estudio.paciente_id,
-    tipo: 'ESTUDIO',
-    tipo_estudio_id: estudio.tipo_estudio_id,
-    prioridad: estudio.urgencia === 'Alta' ? 1 : 2,
-    estado: 'PENDIENTE',
-    fecha_registro: new Date()
-  });
+ EstudioSolicitado.afterCreate(async (estudio, options) => {
+  const transaction = options.transaction || await sequelize.transaction();
+  
+  try {
+    await sequelize.models.ListaEspera.create({
+      paciente_id: estudio.paciente_id,
+      tipo: 'ESTUDIO',
+      tipo_estudio_id: estudio.tipo_estudio_id,
+      prioridad: estudio.urgencia === 'Alta' ? 1 : 2,
+      estado: 'PENDIENTE',
+      fecha_registro: new Date()
+    }, { transaction });
+
+    // Si no venía con transacción, hacemos commit
+    if (!options.transaction) {
+      await transaction.commit();
+    }
+  } catch (error) {
+    // Si no venía con transacción, hacemos rollback
+    if (!options.transaction) {
+      await transaction.rollback();
+    }
+    throw error; // Relanzar el error
+  }
 });
 EstudioSolicitado.beforeUpdate(async (estudio, options) => {
   if (estudio.estado === 'Realizado') {

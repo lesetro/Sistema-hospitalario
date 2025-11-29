@@ -7,11 +7,15 @@ module.exports = (sequelize, DataTypes) => {
   }, {
     tableName: 'tiposdiagnostico', 
     timestamps: false,
-    underscored: true
+    underscored: true,
+    indexes: [
+      { fields: ['sistema_clasificacion'] },
+      { fields: ['nombre'] }
+    ]
   });
 
   TipoDiagnostico.associate = function(models) {
-    TipoDiagnostico.hasMany(models.Diagnostico, {foreignKey: 'tipoDiagnostico_id',as: 'diagnosticos' });
+    TipoDiagnostico.hasMany(models.Diagnostico, {foreignKey: "tipo_diagnostico_id",as: 'diagnosticos' });
   };
 
   return TipoDiagnostico;

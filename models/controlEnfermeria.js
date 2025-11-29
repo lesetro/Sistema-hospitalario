@@ -3,13 +3,14 @@ module.exports = (sequelize, DataTypes) => {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     evaluacion_enfermeria_id: { type: DataTypes.INTEGER, allowNull: false,references: { model: 'evaluacionesenfermeria', key: 'id' }},
     alergias: { type: DataTypes.TEXT, allowNull: true },
+    evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'evaluacionesmedicas', key: 'id' }},
     antecedentes_familiares: { type: DataTypes.TEXT, allowNull: true },
     antecedentes_personales: { type: DataTypes.TEXT, allowNull: true },
     grupo_sanguineo: { type: DataTypes.STRING, allowNull: true },
     factor_rh: { type: DataTypes.ENUM('Positivo', 'Negativo'), allowNull: true },
     peso: { type: DataTypes.FLOAT, allowNull: true },
     altura: { type: DataTypes.FLOAT, allowNull: true },
-    presion_arterial: { type: DataTypes.FLOAT, allowNull: true },
+    presion_arterial: { type: DataTypes.STRING, allowNull: true },
     frecuencia_cardiaca: { type: DataTypes.STRING, allowNull: true },
     frecuencia_respiratoria: { type: DataTypes.INTEGER, allowNull: true },
     temperatura: { type: DataTypes.FLOAT, allowNull: true },
@@ -36,11 +37,13 @@ module.exports = (sequelize, DataTypes) => {
     underscored: true,
     indexes: [
        { fields: ['evaluacion_enfermeria_id'] },
+       { fields: ['evaluacion_medica_id'] }
     ]
   });
 
   ControlEnfermeria.associate = function(models) {
     ControlEnfermeria.belongsTo(models.EvaluacionEnfermeria, { foreignKey: 'evaluacion_enfermeria_id', as: 'evaluacion' });
+    ControlEnfermeria.belongsTo(models.EvaluacionMedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacion_medica' });
     
     
   };

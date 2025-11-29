@@ -7,6 +7,7 @@ html(lang='es')
     link(href='https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css', rel='stylesheet')
     link(href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css', rel='stylesheet')
     link(rel='stylesheet', href='/css/style.css')
+    link(rel="stylesheet", href="/css/internacion.css")
   body
     // Sidebar
     nav#sidebar.sidebar
@@ -25,7 +26,7 @@ html(lang='es')
             i.fas.fa-user-plus
             span Admisiones
         .menu-item
-          a.menu-link(href='/internaciones', class=(title === 'Internaciones' ? 'active' : ''))
+          a.menu-link(href='/internacion', class=(title === 'Internaciones' ? 'active' : ''))
             i.fas.fa-bed
             span Internaciones
         .menu-item
@@ -77,13 +78,60 @@ html(lang='es')
     .main-content
       // Header
       header.header
-        .d-flex.align-items-center
+        .d-flex.align-items-center.justify-content-between.w-100
           button.btn.btn-link.mobile-menu-toggle.me-3(onclick='toggleSidebar()')
             i.fas.fa-bars
-        .user-info
-          span.me-2 #{user ? user.nombre : 'Administrador'}
-          .user-avatar
-            i.fas.fa-user
+          .user-info.d-flex.align-items-center
+            span.me-2 #{user ? user.nombre : 'Administrador'}
+            .user-avatar
+              i.fas.fa-user
+
+      // Búsqueda global
+      .search-section.mb-4
+        .card
+          .card-header
+            h5.mb-0
+              i.fas.fa-search.me-2
+              | Búsqueda Global
+          .card-body
+            .row.align-items-center
+              .col-md-8
+                .input-group
+                  input#globalSearch.form-control(type="text" placeholder="Buscar pacientes, admisiones, turnos..." aria-label="Búsqueda global")
+                  button.btn.btn-outline-secondary#globalSearchBtn(type="button")
+                    i.fas.fa-search
+              .col-md-4
+                select#searchFilter.form-select
+                  option(value="all") Buscar en todo
+                  option(value="pacientes") Solo pacientes
+                  option(value="admisiones") Solo admisiones
+                  option(value="turnos") Solo turnos
+            #searchResults.mt-3(style="display: none;")
+              // Resultados de búsqueda aparecerán aquí
+
+      // Alertas y notificaciones
+      if alertas && alertas.length > 0
+        .notifications-section.mb-4
+          .card.border-warning
+            .card-header.bg-warning.text-dark
+              h5.mb-0
+                i.fas.fa-bell.me-2
+                | Alertas y Notificaciones
+                span.badge.bg-danger.ms-2= alertas.filter(a => !a.read).length
+            .card-body
+              each alerta in alertas.slice(0, 5)
+                .alert.alert-dismissible.fade.show(class=`alert-${alerta.type === 'emergency' ? 'danger' : alerta.type === 'warning' ? 'warning' : 'info'}`)
+                  .d-flex.justify-content-between.align-items-start
+                    div
+                      strong= alerta.title
+                      p.mb-1= alerta.message
+                      small.text-muted= new Date(alerta.timestamp).toLocaleString()
+                    if alerta.actions && alerta.actions.length > 0
+                      .btn-group-sm
+                        each action in alerta.actions
+                          a.btn.btn-sm.btn-outline-primary.me-1(href=action.url)= action.label
+                  button.btn-close(type="button" data-bs-dismiss="alert" onclick=`markNotificationAsRead('${alerta.id}')`)
+
       // Content Area
       .content-area
         block content

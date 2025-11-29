@@ -1,8 +1,8 @@
 module.exports = (sequelize, DataTypes) => {
   const Administrativo = sequelize.define('Administrativo', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    usuario_id: { type: DataTypes.INTEGER, allowNull: true , references: { model: 'usuarios', key: 'id' } },
-    sector_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'sectores', key: 'id' } },
+    usuario_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'usuarios', key: 'id' } },
+    sector_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'sectores', key: 'id' } }, 
     turno_id: { type: DataTypes.INTEGER, allowNull: true ,  references: { model: 'turnospersonal', key: 'id' } },
     responsabilidad: {
       type: DataTypes.ENUM('Expediente', 'Turnos', 'Legajos', 'Derivaciones', 'General', 'Otros'),

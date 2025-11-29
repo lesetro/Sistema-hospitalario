@@ -1,27 +1,32 @@
 module.exports = (sequelize, DataTypes) => {
   //suponemos que el medico que lo reciba necesita ver que se registro por eso el turno
   // y que se le pueda hacer una evaluacion medica
-  // de aqui podemos solicitarle EstudiosSolicitados, RecetasCertificados, ProcedimientosPreQuirurgicos, ProcedimientosEnfermeria
+  // de aqui podemos solicitarle EstudiosSolicitados, ProcedimientosPreQuirurgicos, ProcedimientosEnfermeria
   const EvaluacionMedica = sequelize.define(
     "EvaluacionMedica",
     {
       id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-      paciente_id: { type: DataTypes.INTEGER, allowNull: false },
-      medico_id: { type: DataTypes.INTEGER, allowNull: false },
+      paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: "pacientes", key: "id" } },
+      medico_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: "medicos", key: "id" } },
       fecha: { type: DataTypes.DATE, allowNull: false },
-      diagnostico_id: {
-        type: DataTypes.INTEGER,
-        allowNull: true,
-        references: { model: "diagnosticos", key: "id" },
-      },
-      estudio_solicitado_id: { type: DataTypes.INTEGER, allowNull: true },
+      diagnostico_id: { type: DataTypes.INTEGER, allowNull: true,references: { model: "diagnosticos", key: "id" }},
+      turno_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'turnos', key: 'id' } },
+      estudio_solicitado_id: { type: DataTypes.INTEGER, allowNull: true , references: { model: "estudiossolicitados", key: "id" }},
       observaciones_diagnostico: { type: DataTypes.TEXT, allowNull: true },
-      tratamiento_id: { type: DataTypes.INTEGER,allowNull: true,references: { model: "tratamientos", key: "id" },},
+      tratamiento_id: { type: DataTypes.INTEGER,allowNull: true,references: { model: "tratamientos", key: "id" }},
     },
     {
       tableName: "evaluacionesmedicas",
       timestamps: true,
       underscored: true,
+      indexes: [
+        { fields: ["paciente_id"] },
+        { fields: ["medico_id"] },
+        { fields: ["diagnostico_id"] },
+        { fields: ["turno_id"] },
+        { fields: ["estudio_solicitado_id"] },
+        { fields: ["tratamiento_id"] },
+      ],
     }
   );
   EvaluacionMedica.beforeCreate(async (evaluacion, options) => {
@@ -33,14 +38,6 @@ module.exports = (sequelize, DataTypes) => {
       if (turno.estado !== "COMPLETADO") {
         throw new Error(
           "El turno debe estar COMPLETADO para crear una evaluación médica"
-        );
-      }
-      if (
-        turno.paciente_id !== evaluacion.paciente_id ||
-        turno.medico_id !== evaluacion.medico_id
-      ) {
-        throw new Error(
-          "El paciente y médico del turno deben coincidir con la evaluación"
         );
       }
     }

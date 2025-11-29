@@ -5,7 +5,7 @@ module.exports = (sequelize, DataTypes) => {
     descripcion: { type: DataTypes.STRING(255), allowNull: true }
   }, {
     tableName: 'formasingreso',
-    timestamps: false,
+    timestamps: true,
     underscored: true,
     indexes: [
         { unique: true, fields: ['nombre'] }

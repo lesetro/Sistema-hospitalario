@@ -1,4 +1,4 @@
-// models/Noticia.js
+
 module.exports = (sequelize, DataTypes) => {
   const Noticia = sequelize.define('Noticia', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },

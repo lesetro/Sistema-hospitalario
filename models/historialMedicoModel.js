@@ -1,4 +1,4 @@
-// models/HistorialMedico.js
+
 module.exports = (sequelize, DataTypes) => {
   const HistorialMedico = sequelize.define('HistorialMedico', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },

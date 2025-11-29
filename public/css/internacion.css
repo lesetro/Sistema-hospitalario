@@ -1,0 +1,460 @@
+/* public/css/internacion.css */
+
+/* Estadísticas generales */
+.stat-item {
+  padding: 10px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.1);
+  margin-bottom: 10px;
+}
+
+/* Cards de sectores */
+.sector-card {
+  border: none;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  margin-bottom: 20px;
+  transition: all 0.3s ease;
+}
+
+.sector-card:hover {
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+  transform: translateY(-1px);
+}
+
+.sector-header {
+  background: linear-gradient(135deg, #6c757d 0%, #495057 100%);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 10px 10px 0 0;
+}
+
+.sector-stats {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.sector-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 60px;
+}
+
+.sector-stat-number {
+  font-size: 1.2em;
+  font-weight: bold;
+  line-height: 1;
+}
+
+.sector-stat-label {
+  font-size: 0.8em;
+  opacity: 0.9;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Habitaciones */
+.habitacion-row {
+  border-bottom: 1px solid #eee;
+  padding: 15px 0;
+  transition: background-color 0.2s ease;
+}
+
+.habitacion-row:hover {
+  background-color: rgba(0, 123, 255, 0.05);
+}
+
+.habitacion-row:last-child {
+  border-bottom: none;
+}
+
+.habitacion-info {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.habitacion-numero {
+  font-weight: bold;
+  color: #495057;
+  font-size: 1.1em;
+}
+
+.habitacion-tipo {
+  background: #e9ecef;
+  color: #495057;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+  font-weight: 500;
+}
+
+.habitacion-sexo {
+  background: #d1ecf1;
+  color: #0c5460;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.8em;
+}
+
+.habitacion-stats {
+  display: flex;
+  gap: 10px;
+  font-size: 0.9em;
+  color: #6c757d;
+}
+
+/* Camas */
+.camas-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 10px;
+  margin-top: 10px;
+}
+
+.cama-card {
+  border: 2px solid;
+  border-radius: 8px;
+  padding: 8px;
+  text-align: center;
+  font-size: 0.85em;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  position: relative;
+}
+
+.cama-card:hover {
+  transform: scale(1.05);
+}
+
+/* Estados de camas */
+.cama-libre {
+  border-color: #28a745;
+  background: rgba(40, 167, 69, 0.1);
+  color: #155724;
+}
+
+.cama-libre:hover {
+  background: rgba(40, 167, 69, 0.2);
+}
+
+.cama-ocupada {
+  border-color: #dc3545;
+  background: rgba(220, 53, 69, 0.1);
+  color: #721c24;
+}
+
+.cama-ocupada:hover {
+  background: rgba(220, 53, 69, 0.2);
+}
+
+.cama-limpieza {
+  border-color: #ffc107;
+  background: rgba(255, 193, 7, 0.1);
+  color: #856404;
+  position: relative;
+}
+
+.cama-limpieza:hover {
+  background: rgba(255, 193, 7, 0.2);
+}
+
+.cama-limpieza .btn-finalizar {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  padding: 0;
+  font-size: 10px;
+  background: #28a745;
+  border: none;
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.cama-numero {
+  font-weight: bold;
+  margin-bottom: 4px;
+}
+
+.cama-estado {
+  font-size: 0.7em;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 2px;
+}
+
+.cama-paciente {
+  font-size: 0.7em;
+  color: #6c757d;
+  margin-top: 4px;
+  line-height: 1.2;
+}
+
+.cama-tiempo {
+  font-size: 0.7em;
+  font-weight: bold;
+  color: #856404;
+  margin-top: 2px;
+}
+
+/* Lista de espera */
+#listaEsperaCard {
+  transition: all 0.3s ease;
+}
+
+#listaEsperaCard.collapsed {
+  transform: translateX(250px);
+}
+
+.lista-espera-item {
+  padding: 10px 15px;
+  border-bottom: 1px solid #eee;
+}
+
+.lista-espera-item:last-child {
+  border-bottom: none;
+}
+
+.paciente-info {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 2px;
+}
+
+.paciente-dni {
+  font-size: 0.8em;
+  color: #6c757d;
+}
+
+.espera-tiempo {
+  font-size: 0.7em;
+  color: #856404;
+  margin-top: 4px;
+}
+
+.prioridad-alta {
+  border-left: 4px solid #dc3545;
+}
+
+.prioridad-media {
+  border-left: 4px solid #ffc107;
+}
+
+.prioridad-baja {
+  border-left: 4px solid #28a745;
+}
+
+/* Filtros */
+.filtros-container {
+  background: #f8f9fa;
+  padding: 15px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+/* Animaciones */
+@keyframes pulse {
+  0% { opacity: 1; }
+  50% { opacity: 0.5; }
+  100% { opacity: 1; }
+}
+
+.actualizando {
+  animation: pulse 1s infinite;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .sector-stats {
+    justify-content: center;
+  }
+  
+  .camas-grid {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  }
+  
+  .habitacion-info {
+    flex-direction: column;
+    gap: 8px;
+    align-items: flex-start;
+  }
+  
+  .habitacion-stats {
+    flex-wrap: wrap;
+  }
+  
+  #listaEsperaCard {
+    width: 280px !important;
+  }
+}
+
+@media (max-width: 576px) {
+  .stat-item h4 {
+    font-size: 1.2em;
+  }
+  
+  .camas-grid {
+    grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+    gap: 8px;
+  }
+  
+  .cama-card {
+    font-size: 0.75em;
+    padding: 6px;
+  }
+  
+  .sector-header {
+    padding: 10px 15px;
+  }
+  
+  .habitacion-row {
+    padding: 10px 0;
+  }
+}
+
+/* Tooltips personalizados */
+.tooltip-cama {
+  position: absolute;
+  background: rgba(0, 0, 0, 0.9);
+  color: white;
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 0.8em;
+  white-space: nowrap;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.tooltip-cama.show {
+  opacity: 1;
+}
+
+/* Efectos de carga */
+.skeleton {
+  background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s infinite;
+}
+
+@keyframes loading {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton-sector {
+  height: 200px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.skeleton-habitacion {
+  height: 80px;
+  border-radius: 8px;
+  margin-bottom: 10px;
+}
+
+/* Estados especiales */
+.sector-completo {
+  opacity: 0.7;
+}
+
+.sector-disponible {
+  border-left: 4px solid #28a745;
+}
+
+.sector-critico {
+  border-left: 4px solid #dc3545;
+}
+
+.habitacion-sin-camas {
+  background-color: rgba(220, 53, 69, 0.1);
+  border: 1px dashed #dc3545;
+  border-radius: 8px;
+  padding: 15px;
+  text-align: center;
+  color: #721c24;
+}
+
+/* Lista de espera expandible */
+.cursor-pointer {
+  cursor: pointer;
+}
+
+#listaEsperaCard .card-header:hover {
+  background-color: #e0a800 !important;
+}
+
+.lista-espera-expandida {
+  width: 400px !important;
+  max-height: 600px !important;
+}
+
+/* Tabla de gestión */
+#tablaGestionLista {
+  font-size: 0.9em;
+}
+
+#tablaGestionLista th {
+  font-size: 0.8em;
+  font-weight: 600;
+}
+
+#tablaGestionLista .btn-group-sm .btn {
+  padding: 2px 6px;
+}
+
+/* Estados y prioridades */
+.prioridad-alta {
+  border-left: 4px solid #dc3545;
+}
+
+.prioridad-media {
+  border-left: 4px solid #ffc107;
+}
+
+.prioridad-baja {
+  border-left: 4px solid #28a745;
+}
+
+/* Formularios mejorados */
+.modal-body .alert {
+  margin-bottom: 10px;
+}
+
+.input-group .btn {
+  border: 1px solid #ced4da;
+}
+
+#sectorContainer, #estudiosContainer {
+  transition: all 0.3s ease;
+}
+
+/* Badges mejorados */
+.badge {
+  font-size: 0.75em;
+  padding: 4px 8px;
+}
+
+/* Animaciones suaves */
+.list-group-item {
+  transition: all 0.2s ease;
+}
+
+.list-group-item:hover {
+  background-color: rgba(0, 123, 255, 0.1);
+}
+
+/* Botones de acción */
+.btn-group-sm .btn i {
+  font-size: 0.8em;
+}

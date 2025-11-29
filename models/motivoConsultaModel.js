@@ -1,4 +1,4 @@
-// models/MotivoConsulta.js
+
 module.exports = (sequelize, DataTypes) => {
   const MotivoConsulta = sequelize.define('MotivoConsulta', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -12,6 +12,7 @@ module.exports = (sequelize, DataTypes) => {
 
   MotivoConsulta.associate = function(models) {
     MotivoConsulta.hasMany(models.HistorialMedico, { foreignKey: 'motivo_consulta_id', as: 'historiales' });
+    MotivoConsulta.hasMany(models.Admision, { foreignKey: 'motivo_consulta_id', as: 'admisiones' });
     
   };
 

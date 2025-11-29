@@ -1,4 +1,44 @@
 
+Para Relaciones 1:1
+// En el modelo que TIENE la FK:
+ModeloA.belongsTo(ModeloB, { foreignKey: 'modelo_b_id', as: 'modeloB' });
+
+// En el otro modelo:
+ModeloB.hasOne(ModeloA, { foreignKey: 'modelo_b_id', as: 'modeloA' });
+
+Para relaciones 1: N
+// En el modelo que NO TIENE la FK:
+ModeloA.hasMany(ModeloB, { foreignKey: 'modelo_a_id', as: 'modelosB' });
+
+// En el modelo que TIENE la FK:
+ModeloB.belongsTo(ModeloA, { foreignKey: 'modelo_a_id', as: 'modeloA' });
+
+## Setup del proyecto
+
+\`\`\`bash
+# 1. Clonar repositorio
+git clone [tu-repo]
+cd sistema-hospitalario
+
+# 2. Instalar dependencias
+npm install
+
+# 3. Configurar .env
+cp .env.example .env
+# Editar .env con tus credenciales
+
+# 4. Crear BD
+mysql -u root -p
+CREATE DATABASE sistema_hospitalario;
+
+# 5. Ejecutar migraciones
+node migrationMaster.js up
+
+# 6. Cargar datos iniciales
+node seedMaster.js up
+
+# 7. Iniciar servidor
+npm run dev
 
 # instalar dependencias 
 
