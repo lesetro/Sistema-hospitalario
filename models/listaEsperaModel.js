@@ -66,18 +66,24 @@ module.exports = (sequelize, DataTypes) => {
   
 
   ListaEspera.beforeUpdate(async (lista, options) => {
-    if (lista.estado === 'ASIGNADO') {
-      const turno = await sequelize.models.Turno.findOne({
-        where: { lista_espera_id: lista.id }
+    // ✅ Solo validar turno si la lista de espera tiene turno_id
+    // Las internaciones NO usan turnos, solo lista de espera
+    if (lista.estado === 'ASIGNADO' && lista.turno_id) {
+      const turno = await sequelize.models.Turno.findByPk(lista.turno_id, {
+        transaction: options.transaction
       });
+      
       if (!turno) {
-        throw new Error('No se puede marcar como ASIGNADO sin un turno asociado');
+        throw new Error('No se puede marcar como ASIGNADO sin un turno válido');
       }
     }
-    if (lista.estado === 'COMPLETADO') {
-      const turno = await sequelize.models.Turno.findOne({
-        where: { lista_espera_id: lista.id }
+    
+    // ✅ Validación de COMPLETADO también solo si hay turno
+    if (lista.estado === 'COMPLETADO' && lista.turno_id) {
+      const turno = await sequelize.models.Turno.findByPk(lista.turno_id, {
+        transaction: options.transaction
       });
+      
       if (!turno || turno.estado !== 'COMPLETADO') {
         throw new Error('El turno asociado debe estar COMPLETADO para marcar la lista como COMPLETADA');
       }
@@ -113,27 +119,21 @@ module.exports = (sequelize, DataTypes) => {
       foreignKey: 'creador_id',
       as: 'administrativo_creador',
       constraints: false,
-      scope: {
-        creador_tipo: 'ADMINISTRATIVO'
-    }
+    
     });
   
     ListaEspera.belongsTo(models.Enfermero, {
       foreignKey: 'creador_id', 
       as: 'enfermero_creador',
       constraints: false,
-      scope: {
-        creador_tipo: 'ENFERMERO'
-      }
+     
     });
   
     ListaEspera.belongsTo(models.Medico, {
       foreignKey: 'creador_id',
       as: 'medico_creador', 
       constraints: false,
-      scope: {
-        creador_tipo: 'MEDICO'
-      }
+     
     });
      ListaEspera.hasOne(models.TurnoEstudio, {
         foreignKey: 'lista_espera_id',

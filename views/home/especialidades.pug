@@ -1,0 +1,106 @@
+extends ../layouts/base
+
+block content
+  .container.mt-4
+    //- Hero Section
+    .row.mb-5
+      .col-12
+        .bg-success.text-white.p-5.rounded
+          h1.display-4 🩺 Especialidades Médicas
+          p.lead Contamos con un equipo multidisciplinario de especialistas
+
+    //- Lista de Especialidades
+    .row.mb-5
+      .col-12
+        h2.h3.mb-4 📋 Todas nuestras especialidades
+        if especialidades && especialidades.length > 0
+          .row
+            each especialidad in especialidades
+              .col-md-6.col-lg-4.mb-4
+                .card.h-100
+                  .card-body
+                    .d-flex.align-items-start
+                      .flex-shrink-0
+                        .bg-primary.text-white.rounded-circle.d-flex.align-items-center.justify-content-center(style="width: 50px; height: 50px;")
+                          i.bi.bi-heart-pulse
+                      .flex-grow-1.ms-3
+                        h5.card-title= especialidad.nombre
+                        p.card-text.text-muted.small= especialidad.descripcion || 'Especialidad médica completa'
+                  .card-footer.bg-transparent
+                    small.text-muted
+                      i.bi.bi-clock.me-1
+                      | Turnos disponibles
+        else
+          .col-12
+            .alert.alert-warning.text-center
+              i.bi.bi-exclamation-triangle.me-2
+              | No hay especialidades disponibles en este momento.
+
+    //- Proceso de Atención
+    .row.mb-5
+      .col-12
+        .card.bg-light
+          .card-body
+            h3.h4.mb-4 📞 ¿Cómo solicitar un turno?
+            .row.text-center
+              .col-md-3.mb-3
+                .bg-white.p-3.rounded
+                  .text-primary.mb-2
+                    i.bi.bi-telephone.fs-2
+                  h5 Paso 1
+                  p.small Llame al 351-1234567 de lunes a viernes de 7:00 a 22:00
+              .col-md-3.mb-3
+                .bg-white.p-3.rounded
+                  .text-success.mb-2
+                    i.bi.bi-calendar-check.fs-2
+                  h5 Paso 2
+                  p.small Elija la especialidad y horario que prefiera
+              .col-md-3.mb-3
+                .bg-white.p-3.rounded
+                  .text-info.mb-2
+                    i.bi.bi-clipboard-check.fs-2
+                  h5 Paso 3
+                  p.small Confirme su turno y prepare su documentación
+              .col-md-3.mb-3
+                .bg-white.p-3.rounded
+                  .text-warning.mb-2
+                    i.bi.bi-building.fs-2
+                  h5 Paso 4
+                  p.small Preséntese 15 minutos antes en recepción
+
+    //- Información Adicional
+    .row
+      .col-md-8.mx-auto
+        .card
+          .card-header.bg-primary.text-white
+            h4.mb-0 ℹ️ Información importante
+          .card-body
+            ul.list-unstyled
+              li.mb-3
+                i.bi.bi-check-circle.text-success.me-2
+                strong Documentación requerida: 
+                | DNI, credencial de obra social o orden médica
+              li.mb-3
+                i.bi.bi-check-circle.text-success.me-2
+                strong Cancelaciones: 
+                | Notificar con 24 horas de anticipación
+              li.mb-3
+                i.bi.bi-check-circle.text-success.me-2
+                strong Puntualidad: 
+                | Llegar 15 minutos antes del turno asignado
+              li.mb-3
+                i.bi.bi-check-circle.text-success.me-2
+                | Atención con y sin obra social
+              li.mb-3
+                i.bi.bi-check-circle.text-success.me-2
+                | Estudiantes universitarios con descuentos especiales
+
+    //- CTA
+    .row.mt-5
+      .col-12.text-center
+        .bg-primary.text-white.p-4.rounded
+          h3 ¿Tienes dudas sobre qué especialidad necesitas?
+          p.mb-3 Nuestro equipo de recepción puede orientarte para elegir la especialidad adecuada
+          a.btn.btn-light.btn-lg(href="/reclamos")
+            i.bi.bi-question-circle.me-2
+            | Consultar ahora

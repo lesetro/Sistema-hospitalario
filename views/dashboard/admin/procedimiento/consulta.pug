@@ -1,0 +1,118 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  style.
+    .timeline { position: relative; padding: 20px 0; margin-left: 20px; }
+    .timeline::before { content: ''; position: absolute; left: 20px; top: 0; bottom: 0; width: 2px; background: #dee2e6; }
+    .timeline-item { position: relative; margin-bottom: 30px; padding-left: 60px; }
+    .timeline-marker { position: absolute; left: 0; top: 0; width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; }
+    .timeline-content { background: #f8f9fa; padding: 15px; border-radius: 8px; }
+
+  .container-fluid
+    #alerta-container
+    #loading.text-center.d-none.my-4
+      .spinner-border
+      p.mt-2 Cargando...
+
+    //- BÚSQUEDA
+    .row.mb-4
+      .col-md-12
+        .card
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-search.me-2
+              | Consulta de Procedimientos y Estudios
+          .card-body
+            .row.align-items-end
+              .col-md-8
+                label.form-label DNI del Paciente
+                input#dni-busqueda.form-control(type='text' placeholder='Ingrese DNI...')
+              .col-md-4
+                button#btnBuscarPaciente.btn.btn-primary.w-100
+                  i.fas.fa-search.me-2
+                  | Buscar Paciente
+
+    //- DATOS DEL PACIENTE
+    #seccion-datos.d-none
+      .row.mb-4
+        .col-md-8
+          .card
+            .card-header.bg-info.text-white
+              h6.mb-0
+                i.fas.fa-user.me-2
+                | Datos del Paciente
+            .card-body
+              .row
+                .col-md-6
+                  p.mb-1
+                    strong Nombre: 
+                    span#paciente-nombre
+                  p.mb-1
+                    strong DNI: 
+                    span#paciente-dni
+                  p.mb-1
+                    strong Estado: 
+                    span#paciente-estado
+                .col-md-6
+                  p.mb-1
+                    strong Email: 
+                    span#paciente-email
+                  p.mb-1
+                    strong Teléfono: 
+                    span#paciente-telefono
+
+        .col-md-4
+          .row
+            .col-6.mb-3
+              .card.text-center.bg-primary.text-white
+                .card-body
+                  h4#total-estudios 0
+                  small Estudios
+            .col-6.mb-3
+              .card.text-center.bg-success.text-white
+                .card-body
+                  h4#total-evaluaciones 0
+                  small Evaluaciones
+            .col-6
+              .card.text-center.bg-warning.text-white
+                .card-body
+                  h4#total-procedimientos 0
+                  small Procedimientos
+            .col-6
+              .card.text-center.bg-danger.text-white
+                .card-body
+                  h4#total-intervenciones 0
+                  small Cirugías
+
+      //- NAVEGACIÓN
+      .row.mb-3
+        .col-12
+          .btn-group.w-100(role='group')
+            button.btn.btn-outline-primary.btn-seccion.active(data-seccion='estudios')
+              i.fas.fa-microscope.me-2
+              | Estudios
+            button.btn.btn-outline-primary.btn-seccion(data-seccion='evaluaciones')
+              i.fas.fa-user-md.me-2
+              | Evaluaciones
+            button.btn.btn-outline-primary.btn-seccion(data-seccion='procedimientos-pre')
+              i.fas.fa-notes-medical.me-2
+              | Pre-Quirúrgicos
+            button.btn.btn-outline-primary.btn-seccion(data-seccion='procedimientos-enf')
+              i.fas.fa-procedures.me-2
+              | Enfermería
+            button.btn.btn-outline-primary.btn-seccion(data-seccion='intervenciones')
+              i.fas.fa-hospital.me-2
+              | Cirugías
+            button.btn.btn-outline-primary.btn-seccion(data-seccion='timeline')
+              i.fas.fa-history.me-2
+              | Timeline
+
+      //- CONTENIDO
+      .row
+        .col-12
+          .card
+            .card-body#contenido-seccion
+              p.text-muted.text-center Seleccione una sección para ver los datos
+
+block scripts
+  script(src='/js/procedimientoEstudio.js')

@@ -1,0 +1,275 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    .row
+      .col-md-12
+        h2.mb-4
+          i.fas.fa-hospital-user.me-2
+          | Gestión de Admisiones
+
+    //- TARJETA: URGENCIAS
+    .row
+      .col-md-12
+        .card.mb-4.border-danger
+          .card-header.bg-danger.text-white
+            h5.mb-0
+              i.fas.fa-ambulance.me-2
+              | Admisión de Urgencia
+          .card-body
+            p.text-muted Generar admisión rápida para pacientes de urgencia
+            button#urgenciasBtn.btn.btn-danger.btn-lg(type='button')
+              i.fas.fa-plus-circle.me-2
+              | Generar Paciente de Urgencia
+
+    //- TARJETA: BUSCAR PACIENTE / CREAR ADMISIÓN
+    .row
+      .col-md-12
+        .card.mb-4.border-success
+          .card-header.bg-success.text-white
+            h5.mb-0
+              i.fas.fa-file-medical.me-2
+              | Nueva Admisión
+          .card-body
+            .row
+              .col-md-6
+                label.form-label(for='paciente_search') DNI del Paciente *
+                .input-group
+                  input#paciente_search.form-control(type='text' placeholder='Ingrese DNI (7-8 dígitos)' pattern='[0-9]{7,8}' maxlength='8')
+                  button.btn.btn-primary#buscar_paciente(type='button')
+                    i.fas.fa-search.me-2
+                    | Buscar
+              .col-md-6
+                #paciente_info_quick.alert.alert-info(style='display: none;')
+                  strong#paciente_nombre_quick
+                  p.mb-0.mt-2.small#paciente_detalles_quick
+
+    //- Botón para ver lista de admisiones
+    .row
+      .col-md-12
+        a.btn.btn-outline-primary.mb-4(href='/admisiones/lista')
+          i.fas.fa-list.me-2
+          | Ver Lista de Admisiones
+
+  //- MODAL: CREAR PACIENTE
+  #modalCrearPaciente.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-user-plus.me-2
+            | Registrar Nuevo Paciente
+          button.btn-close(type='button' data-bs-dismiss='modal')
+        .modal-body
+          form#formCrearPaciente(novalidate)
+            .row
+              .col-md-6.mb-3
+                label.form-label(for='modal_nombre') Nombre *
+                input#modal_nombre.form-control(type='text' name='nombre' required)
+                .invalid-feedback Campo requerido
+              
+              .col-md-6.mb-3
+                label.form-label(for='modal_apellido') Apellido *
+                input#modal_apellido.form-control(type='text' name='apellido' required)
+                .invalid-feedback Campo requerido
+              
+              .col-md-6.mb-3
+                label.form-label(for='modal_dni') DNI *
+                input#modal_dni.form-control(type='text' name='dni' required pattern='[0-9]{7,8}' maxlength='8')
+                .invalid-feedback DNI de 7-8 dígitos
+              
+              .col-md-6.mb-3
+                label.form-label(for='modal_sexo') Sexo *
+                select#modal_sexo.form-select(name='sexo' required)
+                  option(value='') Seleccione...
+                  option(value='Masculino') Masculino
+                  option(value='Femenino') Femenino
+                  option(value='Otro') Otro
+                .invalid-feedback Campo requerido
+              
+              .col-md-6.mb-3
+                label.form-label(for='modal_fecha_nacimiento') Fecha de Nacimiento *
+                input#modal_fecha_nacimiento.form-control(type='date' name='fecha_nacimiento' required)
+                .invalid-feedback Campo requerido
+              
+              .col-md-6.mb-3
+                label.form-label(for='modal_email') Email *
+                input#modal_email.form-control(type='email' name='email' required)
+                .invalid-feedback Email válido requerido
+              
+              .col-md-6.mb-3
+                label.form-label(for='modal_password') Contraseña *
+                input#modal_password.form-control(type='password' name='password' required minlength='6')
+                .invalid-feedback Mínimo 6 caracteres
+              
+              .col-md-6.mb-3
+                label.form-label(for='modal_telefono') Teléfono
+                input#modal_telefono.form-control(type='tel' name='telefono' pattern='[0-9]{10,15}')
+              
+              .col-md-12.mb-3
+                label.form-label(for='modal_obra_social_id') Obra Social
+                select#modal_obra_social_id.form-select(name='obra_social_id')
+                  option(value='') Sin obra social
+                  if obrasSociales && obrasSociales.length
+                    each obraSocial in obrasSociales
+                      option(value=obraSocial.id)= obraSocial.nombre
+              
+              .col-md-12.mb-3
+                label.form-label(for='modal_observaciones') Observaciones
+                textarea#modal_observaciones.form-control(name='observaciones' rows='2')
+        
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnGuardarPaciente.btn.btn-primary(type='button')
+            i.fas.fa-save.me-2
+            | Guardar Paciente
+
+  //- MODAL: CREAR ADMISIÓN
+  #modalCrearAdmision.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-file-medical.me-2
+            | Nueva Admisión
+          button.btn-close(type='button' data-bs-dismiss='modal')
+        .modal-body
+          #alert_paciente_admision.alert.alert-info.mb-3
+            strong Paciente: 
+            span#nombre_paciente_admision
+          
+          form#formCrearAdmision(novalidate)
+            input#admision_paciente_id(type='hidden' name='paciente_id')
+            input#admision_usuario_id(type='hidden' name='usuario_id')
+            
+            //- Datos básicos
+            .row.mb-3
+              .col-md-4
+                label.form-label(for='admision_fecha') Fecha de Admisión *
+                input#admision_fecha.form-control(type='date' name='fecha' required)
+                .invalid-feedback Campo requerido
+              
+              .col-md-4
+                label.form-label(for='admision_motivo_id') Motivo *
+                select#admision_motivo_id.form-select(name='motivo_id' required)
+                  option(value='') Seleccione...
+                  if motivos && motivos.length
+                    each motivo in motivos
+                      option(value=motivo.id)= motivo.nombre
+                .invalid-feedback Campo requerido
+              
+              .col-md-4
+                label.form-label(for='admision_forma_ingreso_id') Forma de Ingreso *
+                select#admision_forma_ingreso_id.form-select(name='forma_ingreso_id' required)
+                  option(value='') Seleccione...
+                  if formas && formas.length
+                    each forma in formas
+                      option(value=forma.id)= forma.nombre
+                .invalid-feedback Campo requerido
+            
+            //- Tipo de turno y prioridad
+            .row.mb-3
+              .col-md-4
+                label.form-label(for='admision_tipo_turno_id') Tipo de Turno *
+                select#admision_tipo_turno_id.form-select(name='tipo_turno_id' required)
+                  option(value='') Seleccione...
+                  if tiposTurno && tiposTurno.length
+                    each tipo in tiposTurno
+                      option(value=tipo.id data-requiere-estudio=tipo.requiere_estudio data-requiere-especialidad=tipo.requiere_especialidad)= tipo.nombre
+                .invalid-feedback Campo requerido
+              
+              .col-md-4
+                label.form-label(for='admision_prioridad') Prioridad *
+                select#admision_prioridad.form-select(name='prioridad' required)
+                  option(value='MEDIA' selected) Media
+                  option(value='ALTA') Alta
+                  option(value='BAJA') Baja
+                .invalid-feedback Campo requerido
+              
+              .col-md-4#campo_motivo_consulta(style='display: none;')
+                label.form-label(for='admision_motivo_consulta_id') Motivo Consulta
+                select#admision_motivo_consulta_id.form-select(name='motivo_consulta_id')
+                  option(value='') Seleccione...
+                  if motivosConsulta && motivosConsulta.length
+                    each mc in motivosConsulta
+                      option(value=mc.id)= mc.nombre
+            
+            //- Filtros dinámicos
+            .row.mb-3
+              .col-md-4#campo_especialidad(style='display: none;')
+                label.form-label(for='admision_especialidad_id') Especialidad
+                select#admision_especialidad_id.form-select(name='especialidad_id')
+                  option(value='') Seleccione...
+                  if especialidades && especialidades.length
+                    each esp in especialidades
+                      option(value=esp.id)= esp.nombre
+              
+              .col-md-4#campo_sector(style='display: none;')
+                label.form-label(for='admision_sector_id') Sector
+                select#admision_sector_id.form-select(name='sector_id')
+                  option(value='') Seleccione...
+                  if sectores && sectores.length
+                    each sector in sectores
+                      option(value=sector.id)= sector.nombre
+              
+              .col-md-4#campo_estudio(style='display: none;')
+                label.form-label(for='admision_tipo_estudio_id') Tipo de Estudio
+                select#admision_tipo_estudio_id.form-select(name='tipo_estudio_id')
+                  option(value='') Seleccione...
+                  if tiposEstudio && tiposEstudio.length
+                    each tipo in tiposEstudio
+                      option(value=tipo.id)= tipo.nombre
+            
+            //- Médico y turno
+            .row.mb-3
+              .col-md-4
+                label.form-label(for='admision_medico_id') Médico *
+                select#admision_medico_id.form-select(name='medico_id' required disabled)
+                  option(value='') Seleccione especialidad o sector primero
+                .invalid-feedback Campo requerido
+                .form-text#info_medico_seleccionado
+              
+              .col-md-4
+                label.form-label(for='admision_turno_fecha') Fecha del Turno *
+                input#admision_turno_fecha.form-control(type='date' name='turno_fecha' required)
+                .invalid-feedback Campo requerido
+              
+              .col-md-4
+                label.form-label(for='admision_turno_hora') Hora del Turno *
+                select#admision_turno_hora.form-select(name='turno_hora' required disabled)
+                  option(value='') Seleccione médico y fecha
+                .invalid-feedback Campo requerido
+                button.btn.btn-sm.btn-info.mt-2#btnCargarHorarios(type='button' disabled)
+                  i.fas.fa-sync-alt.me-2
+                  | Cargar Horarios
+            
+            //- Observaciones
+            .row
+              .col-md-12
+                label.form-label(for='admision_observaciones') Observaciones
+                textarea#admision_observaciones.form-control(name='observaciones' rows='2')
+        
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnGuardarAdmision.btn.btn-success(type='button')
+            i.fas.fa-save.me-2
+            | Guardar Admisión
+
+  //- MODAL: HISTORIAL DEL PACIENTE
+  #modalHistorialPaciente.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5.modal-title
+            i.fas.fa-history.me-2
+            | Historial del Paciente
+          button.btn-close(type='button' data-bs-dismiss='modal')
+        .modal-body
+          #contenido_historial
+            .text-center
+              .spinner-border(role='status')
+                span.visually-hidden Cargando...
+
+block scripts
+  script(src='/js/admision.js')
+  script(src='/js/validaciones-formularios.js')

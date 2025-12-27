@@ -1,0 +1,95 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    #alerta-container
+
+    .row.mb-4
+      .col-md-8
+        h2
+          i.fas.fa-newspaper.me-2
+          | Gestión de Noticias
+      .col-md-4.text-end
+        button#btnNuevaNoticia.btn.btn-primary
+          i.fas.fa-plus.me-2
+          | Nueva Noticia
+
+    .row.mb-4
+      .col-md-4
+        .card.border-primary
+          .card-body.text-center
+            h3#stat-total.text-primary 0
+            small Total Noticias
+      .col-md-4
+        .card.border-success
+          .card-body.text-center
+            h3#stat-activas.text-success 0
+            small Activas (Visibles)
+      .col-md-4
+        .card.border-info
+          .card-body.text-center
+            h3#stat-mes.text-info 0
+            small Este Mes
+
+    .card.mb-3
+      .card-body
+        .row
+          .col-md-10
+            input#busqueda.form-control(placeholder='Buscar...')
+          .col-md-2
+            .form-check
+              input#mostrarAntiguas.form-check-input(type='checkbox')
+              label.form-check-label Mostrar ocultas
+
+    .card
+      .card-body
+        .table-responsive
+          table.table.table-hover
+            thead
+              tr
+                th Fecha
+                th Noticia
+                th Autor
+                th Estado
+                th Acciones
+            tbody#tabla-noticias
+              tr
+                td.text-center(colspan='5') Cargando...
+      .card-footer
+        #paginacion
+
+  #modalForm.modal.fade
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5#modalTitle.modal-title Nueva Noticia
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body
+          form#form-noticia.needs-validation(novalidate)
+            input#form-id(type='hidden')
+            .mb-3
+              label.form-label Título *
+              input#form-titulo.form-control(name='titulo' required maxlength='255')
+            .mb-3
+              label.form-label Fecha *
+              input#form-fecha.form-control(type='date' name='fecha' required)
+            .mb-3
+              label.form-label Texto *
+              textarea#form-texto.form-control(name='texto' rows='10' required)
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button#btnGuardar.btn.btn-primary Guardar
+
+  #modalDetalle.modal.fade
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5.modal-title Detalle
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          #detalle-contenido
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+block scripts
+  script(src='/js/noticias.js')

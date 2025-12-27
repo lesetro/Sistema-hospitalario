@@ -24,7 +24,7 @@ class ValidationService {
   }
 
   static validatePhone(phone) {
-    if (!phone) return { valid: true }; // Opcional
+    if (!phone) return { valid: true }; 
     
     const phoneStr = phone.toString().replace(/\D/g, '');
     if (phoneStr.length < 10 || phoneStr.length > 15) {

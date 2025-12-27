@@ -1,0 +1,193 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    //- BREADCRUMB
+    nav(aria-label='breadcrumb')
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href='/admin') Dashboard
+        li.breadcrumb-item
+          a(href='/configuracion/infraestructura') Infraestructura
+        li.breadcrumb-item.active(aria-current='page')= sector.nombre
+
+    //- ENCABEZADO
+    .d-flex.justify-content-between.align-items-center.mb-4
+      div
+        h2
+          i.fas.fa-door-open.me-2
+          | Habitaciones - #{sector.nombre}
+        p.text-muted.mb-0
+          if sector.descripcion
+            = sector.descripcion
+      .btn-group
+        a.btn.btn-secondary(href='/configuracion/infraestructura')
+          i.fas.fa-arrow-left.me-2
+          | Volver a Sectores
+        button#btnNuevaHabitacion.btn.btn-primary
+          i.fas.fa-plus.me-2
+          | Nueva Habitación
+
+    //- ESTADÍSTICAS DEL SECTOR
+    .row.mb-4
+      .col-md-3
+        .card.border-info.h-100
+          .card-body.text-center
+            h3.text-info.mb-0= habitaciones.length
+            small.text-muted Habitaciones
+      .col-md-3
+        .card.border-primary.h-100
+          .card-body.text-center
+            h3.text-primary.mb-0= habitaciones.reduce((acc, h) => acc + h.estadisticas.totalCamas, 0)
+            small.text-muted Total Camas
+      .col-md-3
+        .card.border-success.h-100
+          .card-body.text-center
+            h3.text-success.mb-0= habitaciones.reduce((acc, h) => acc + h.estadisticas.camasLibres, 0)
+            small.text-muted Camas Libres
+      .col-md-3
+        .card.border-danger.h-100
+          .card-body.text-center
+            h3.text-danger.mb-0= habitaciones.reduce((acc, h) => acc + h.estadisticas.camasOcupadas, 0)
+            small.text-muted Camas Ocupadas
+
+    //- LISTA DE HABITACIONES
+    .card
+      .card-header.bg-success.text-white
+        .d-flex.justify-content-between.align-items-center
+          h5.mb-0
+            i.fas.fa-list.me-2
+            | Habitaciones del Sector
+          span.badge.bg-light.text-success= `${habitaciones.length} habitación(es)`
+      .card-body
+        if habitaciones && habitaciones.length > 0
+          .row
+            each hab in habitaciones
+              .col-md-4.mb-3
+                .card.h-100.habitacion-card(
+                  data-id=hab.id
+                  class=hab.estadisticas.camasLibres === 0 && hab.estadisticas.totalCamas > 0 ? 'border-danger' : (hab.estadisticas.camasOcupadas > 0 ? 'border-warning' : 'border-success')
+                )
+                  .card-header.d-flex.justify-content-between.align-items-center(
+                    class=hab.estadisticas.camasLibres === 0 && hab.estadisticas.totalCamas > 0 ? 'bg-danger text-white' : (hab.estadisticas.camasOcupadas > 0 ? 'bg-warning text-dark' : 'bg-success text-white')
+                  )
+                    h6.mb-0
+                      i.fas.fa-door-open.me-2
+                      | Habitación #{hab.numero}
+                    .btn-group.btn-group-sm
+                      button.btn.btn-sm.btn-light.btn-editar-habitacion(data-id=hab.id title='Editar')
+                        i.fas.fa-edit
+                      button.btn.btn-sm.btn-light.text-danger.btn-eliminar-habitacion(data-id=hab.id data-numero=hab.numero title='Eliminar')
+                        i.fas.fa-trash
+                  .card-body
+                    .row.text-center.mb-3
+                      .col-4
+                        .h4.text-primary.mb-0= hab.estadisticas.totalCamas
+                        small.text-muted Total
+                      .col-4
+                        .h4.text-success.mb-0= hab.estadisticas.camasLibres
+                        small.text-muted Libres
+                      .col-4
+                        .h4.text-danger.mb-0= hab.estadisticas.camasOcupadas
+                        small.text-muted Ocupadas
+                    
+                    ul.list-unstyled.small.mb-0
+                      li
+                        i.fas.fa-tag.me-2.text-muted
+                        strong Tipo: 
+                        = hab.tipo
+                      li
+                        i.fas.fa-venus-mars.me-2.text-muted
+                        strong Sexo: 
+                        if hab.sexo_permitido === 'Mixto'
+                          span.badge.bg-secondary= hab.sexo_permitido
+                        else if hab.sexo_permitido === 'Masculino'
+                          span.badge.bg-primary= hab.sexo_permitido
+                        else
+                          span.badge.bg-danger= hab.sexo_permitido
+                      li
+                        i.fas.fa-concierge-bell.me-2.text-muted
+                        strong Servicio: 
+                        = hab.tipoServicio ? hab.tipoServicio.nombre : 'Sin asignar'
+                  .card-footer.text-center
+                    a.btn.btn-sm.btn-info.w-100(href=`/configuracion/infraestructura/habitacion/${hab.id}/camas`)
+                      i.fas.fa-bed.me-2
+                      | Ver Camas (#{hab.estadisticas.totalCamas})
+        else
+          .alert.alert-info.text-center
+            i.fas.fa-info-circle.me-2.fa-2x
+            h5 No hay habitaciones en este sector
+            p Comience creando la primera habitación
+            button.btn.btn-primary(onclick='document.getElementById("btnNuevaHabitacion").click()')
+              i.fas.fa-plus.me-2
+              | Crear Primera Habitación
+
+  //- MODAL: CREAR/EDITAR HABITACIÓN
+  #modalHabitacion.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5#modalHabitacionTitle.modal-title
+            i.fas.fa-door-open.me-2
+            | Nueva Habitación
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          form#formHabitacion
+            input#habitacion_id(type='hidden')
+            input#habitacion_sector_id(type='hidden' value=sector.id)
+            
+            .mb-3
+              label.form-label(for='habitacion_numero') Número de Habitación *
+              input#habitacion_numero.form-control(type='text' required placeholder='Ej: 101, 102, A1...')
+              .invalid-feedback Ingrese el número de habitación
+            
+            .row
+              .col-md-6
+                .mb-3
+                  label.form-label(for='habitacion_tipo') Tipo de Habitación *
+                  select#habitacion_tipo.form-select(required)
+                    option(value='Individual') Individual
+                    option(value='Doble') Doble
+                    option(value='Colectiva' selected) Colectiva
+              .col-md-6
+                .mb-3
+                  label.form-label(for='habitacion_sexo') Sexo Permitido
+                  select#habitacion_sexo.form-select
+                    option(value='Mixto' selected) Mixto
+                    option(value='Masculino') Solo Masculino
+                    option(value='Femenino') Solo Femenino
+            
+            .mb-3
+              label.form-label(for='habitacion_servicio') Tipo de Servicio *
+              select#habitacion_servicio.form-select(required)
+                option(value='') Seleccione...
+                each tipo in tiposServicio
+                  option(value=tipo.id)= tipo.nombre
+              .invalid-feedback Seleccione el tipo de servicio
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnGuardarHabitacion.btn.btn-success(type='button')
+            i.fas.fa-save.me-2
+            | Guardar
+
+  //- MODAL: CONFIRMAR ELIMINACIÓN
+  #modalConfirmarEliminar.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-danger.text-white
+          h5.modal-title
+            i.fas.fa-exclamation-triangle.me-2
+            | Confirmar Eliminación
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          #confirmar-mensaje
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnConfirmarEliminar.btn.btn-danger(type='button')
+            i.fas.fa-trash.me-2
+            | Sí, Eliminar
+
+block scripts
+  script.
+    const SECTOR_ID = #{sector.id};
+  script(src='/js/infraestructura.js')

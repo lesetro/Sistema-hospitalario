@@ -1,258 +1,506 @@
-// Manejo de edición y eliminación de admisiones
-  
 document.addEventListener('DOMContentLoaded', () => {
-  // Delegación de eventos para los botones de edición
-  document.body.addEventListener('click', async (e) => {
-    const button = e.target.closest('[data-bs-target="#edit_editarAdmisionModal"]');
-    if (!button) return;
-    
-    const id = button.getAttribute('data-id');
-    console.log("ID obtenido del botón:", id);
-    
+  
+  let paginaActual = 1;
+  const limit = 10;
+
+  // ============================================================================
+  // CARGAR PACIENTES AL INICIO
+  // ============================================================================
+  cargarPacientes();
+
+  // ============================================================================
+  // FUNCIÓN: CARGAR PACIENTES
+  // ============================================================================
+  async function cargarPacientes(page = 1) {
     try {
-      // 1. Obtener datos de la admisión
-      const response = await fetch(`/paciente/${id}`);
-      
-      if (!response.ok) {
-        throw new Error(`Error HTTP: ${response.status}`);
-      }
-      
-      const admision = await response.json();
-      console.log("Datos de admisión recibidos:", admision);
-      
-      // 2. Usar un setTimeout para esperar a que el modal esté completamente visible
-      $('#edit_editarAdmisionModal').on('shown.bs.modal', function () {
-        // 3. Establecer el ID en el formulario
-        const modal = document.getElementById('edit_editarAdmisionModal');
-        modal.querySelector('input[name="edit_id"]').value = admision.id;
-        
-        // 4. Precargar datos básicos
-        if (admision.estado) {
-          modal.querySelector('#edit_estado').value = 1;
-        }
-        
-        if (admision.motivo_id) {
-          modal.querySelector('#edit_motivo_id').value = 1;
-        }
-        
-        if (admision.forma_ingreso_id) {
-          modal.querySelector('#edit_forma_ingreso_id').value = 1;
-        }
-        
-        if (admision.administrativo_id) {
-          modal.querySelector('#edit_administrativo_id').value =1;
-        }
-        
-        // 5. Precargar otros campos si existen en la respuesta
-        if (admision.medico_id) {
-          modal.querySelector('#edit_medico_id').value = 1;
-        }
-        
-        if (admision.sector_id) {
-          modal.querySelector('#edit_sector_id').value = 1;
-        }
-        
-        if (admision.tipo_estudio_id) {
-          modal.querySelector('#edit_tipo_estudio_id').value = 1;
-        }
-        
-        if (admision.especialidad_id) {
-          modal.querySelector('#edit_especialidad_id').value = 1;
-        }
-        
-        if (admision.turno_id) {
-          modal.querySelector('#edit_tipo_turno_id').value = 1;
-        }
-        
-        // 6. Manejar fechas correctamente
-        if (admision.fecha) {
-          const fecha = admision.fecha.includes('T') ? admision.fecha.split('T')[0] : admision.fecha;
-          modal.querySelector('#edit_fecha_admision').value = fecha;
-          modal.querySelector('#edit_turno_fecha').value = fecha;
-        }else{
-          console.log("La fecha de admisión no está disponible en los datos recibidos.");
-        }
-        
-        // 7. Establecer el ID del paciente
-        modal.querySelector('#edit_span_paciente_id').textContent = "nuemero 1";
-        
-        // 8. Obtener datos del paciente (solo si existe el endpoint)
-        if (admision.paciente_id) {
-          fetch(`/usuarios/${admision.paciente_id}`)
-            .then(userResponse => {
-              if (userResponse.ok) {
-                return userResponse.json();
-              }
-              throw new Error('Error al obtener datos del usuario');
-            })
-            .then(usuario => {
-              modal.querySelector('#edit_nombre_id').value = usuario.nombre || 'juan';
-              modal.querySelector('#edit_apellido_id').value = usuario.apellido || 'lopez';
-              modal.querySelector('#edit_dni_id').value = usuario.dni || '1231231';
-            })
-            .catch(error => {
-              console.error('Error al cargar datos del usuario:', error);
-            });
-        }
-      }, 100); // Pequeño retraso para asegurar que el modal esté renderizado
-      
-    } catch (error) {
-      console.error('Error al cargar datos de la admisión:', error);
-      alert('Error al cargar los datos de la admisión');
-    }
-  });
+      showLoading();
 
-  // Actualizar horarios disponibles cuando cambia la fecha, médico o sector
-  const updateHorarios = async () => {
-    const modal = document.getElementById('edit_editarAdmisionModal');
-    if (!modal) return;
-    
-    const fecha = modal.querySelector('#edit_turno_fecha').value;
-    const medicoId = modal.querySelector('#edit_medico_id').value;
-    const sectorId = modal.querySelector('#edit_sector_id').value;
-    
-    if (fecha && medicoId && sectorId) {
-      try {
-        const response = await fetch(`/admisiones/horarios-disponibles?fecha=${fecha}&medico_id=${medicoId}&sector_id=${sectorId}`);
-        
-        if (response.ok) {
-          const data = await response.json();
-          const turnoHoraSelect = modal.querySelector('#edit_turno_hora');
-          turnoHoraSelect.innerHTML = '<option value="">Seleccione un horario</option>';
-          
-          data.horariosDisponibles.forEach(hora => {
-            const option = document.createElement('option');
-            option.value = hora;
-            option.textContent = hora;
-            turnoHoraSelect.appendChild(option);
-          });
-        }
-      } catch (error) {
-        console.error('Error al cargar horarios:', error);
-      }
-    }
-  };
+      const busqueda = document.getElementById('busqueda').value;
+      const estado = document.getElementById('filtro-estado').value;
+      const obraSocialId = document.getElementById('filtro-obra-social').value;
 
-  // Agregar event listeners para actualizar horarios (solo cuando el modal está visible)
-  document.addEventListener('change', (e) => {
-    const modal = document.getElementById('edit_editarAdmisionModal');
-    if (!modal || !modal.classList.contains('show')) return;
-    
-    if (e.target.matches('#edit_turno_fecha, #edit_medico_id, #edit_sector_id')) {
-      updateHorarios();
-    }
-  });
-
-  // Manejar envío del formulario
-  document.getElementById('edit_editarAdmisionForm')?.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    
-    const modal = document.getElementById('edit_editarAdmisionModal');
-    const id = modal.querySelector('input[name="edit_id"]').value;
-    
-    const formData = {
-      paciente_id: modal.querySelector('#edit_span_paciente_id').textContent,
-      administrativo_id: modal.querySelector('#edit_administrativo_id').value,
-      motivo_id: modal.querySelector('#edit_motivo_id').value,
-      forma_ingreso_id: modal.querySelector('#edit_forma_ingreso_id').value,
-      fecha: modal.querySelector('#edit_fecha_admision').value,
-      tipo_turno_id: modal.querySelector('#edit_tipo_turno_id').value,
-      medico_id: modal.querySelector('#edit_medico_id').value,
-      sector_id: modal.querySelector('#edit_sector_id').value,
-      turno_fecha: modal.querySelector('#edit_turno_fecha').value,
-      turno_hora: modal.querySelector('#edit_turno_hora').value,
-      lista_espera_tipo: modal.querySelector('#edit_lista_espera_tipo').value,
-      tipo_estudio_id: modal.querySelector('#edit_tipo_estudio_id').value,
-      especialidad_id: modal.querySelector('#edit_especialidad_id').value,
-      prioridad: modal.querySelector('#edit_prioridad').value,
-      estado: modal.querySelector('#edit_estado').value
-    };
-    
-    try {
-      const response = await fetch(`/admisiones/${id}`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(formData)
+      const params = new URLSearchParams({
+        page,
+        limit,
+        busqueda,
+        estado,
+        obra_social_id: obraSocialId
       });
-      
-      if (response.ok) {
-        alert('Admisión actualizada correctamente');
-        // Cerrar el modal
-        const modalInstance = bootstrap.Modal.getInstance(modal);
-        modalInstance.hide();
-        // Recargar la página o actualizar la tabla
-        location.reload();
+
+      const response = await fetch(`/pacientes/api/lista?${params}`);
+      const data = await response.json();
+
+      if (data.success) {
+        renderizarTablaPacientes(data.pacientes);
+        renderizarPaginacion(data.pagination);
+        paginaActual = page;
       } else {
-        throw new Error('Error en la respuesta del servidor');
+        mostrarAlerta('error', data.message);
+      }
+
+      hideLoading();
+    } catch (error) {
+      console.error('Error al cargar pacientes:', error);
+      hideLoading();
+      mostrarAlerta('error', 'Error al cargar la lista de pacientes');
+    }
+  }
+
+  // ============================================================================
+  // FUNCIÓN: RENDERIZAR TABLA
+  // ============================================================================
+  function renderizarTablaPacientes(pacientes) {
+    const tbody = document.getElementById('tabla-pacientes-body');
+
+    if (pacientes.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" class="text-center">No se encontraron pacientes</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = pacientes.map(p => `
+      <tr>
+        <td>${p.dni}</td>
+        <td>${p.nombreCompleto}</td>
+        <td>${p.email}</td>
+        <td>${p.telefono}</td>
+        <td>${p.sexo}</td>
+        <td>${p.obra_social}</td>
+        <td>
+          <span class="badge bg-${getEstadoBadge(p.estado)}">
+            ${p.estado}
+          </span>
+        </td>
+        <td>
+          <div class="btn-group btn-group-sm">
+            <button class="btn btn-info btn-ver-detalles" 
+                    data-id="${p.id}"
+                    title="Ver detalles">
+              <i class="fas fa-eye"></i>
+            </button>
+            <button class="btn btn-warning btn-editar" 
+                    data-id="${p.id}"
+                    title="Editar">
+              <i class="fas fa-edit"></i>
+            </button>
+            ${p.estado === 'Activo' ? `
+              <button class="btn btn-danger btn-baja" 
+                      data-id="${p.id}"
+                      title="Dar de baja">
+                <i class="fas fa-user-times"></i>
+              </button>
+            ` : `
+              <button class="btn btn-success btn-reactivar" 
+                      data-id="${p.id}"
+                      title="Reactivar">
+                <i class="fas fa-user-check"></i>
+              </button>
+            `}
+          </div>
+        </td>
+      </tr>
+    `).join('');
+
+    agregarEventosBotones();
+  }
+
+  // ============================================================================
+  // FUNCIÓN: RENDERIZAR PAGINACIÓN
+  // ============================================================================
+  function renderizarPaginacion(pagination) {
+    const container = document.getElementById('paginacion');
+    const { page, totalPages } = pagination;
+
+    let html = '<ul class="pagination justify-content-end mb-0">';
+
+    // Botón anterior
+    html += `
+      <li class="page-item ${page === 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" data-page="${page - 1}">Anterior</a>
+      </li>
+    `;
+
+    // Páginas
+    for (let i = 1; i <= totalPages; i++) {
+      if (i === 1 || i === totalPages || (i >= page - 2 && i <= page + 2)) {
+        html += `
+          <li class="page-item ${i === page ? 'active' : ''}">
+            <a class="page-link" href="#" data-page="${i}">${i}</a>
+          </li>
+        `;
+      } else if (i === page - 3 || i === page + 3) {
+        html += '<li class="page-item disabled"><span class="page-link">...</span></li>';
+      }
+    }
+
+    // Botón siguiente
+    html += `
+      <li class="page-item ${page === totalPages ? 'disabled' : ''}">
+        <a class="page-link" href="#" data-page="${page + 1}">Siguiente</a>
+      </li>
+    `;
+
+    html += '</ul>';
+    container.innerHTML = html;
+
+    // Agregar eventos a los botones de paginación
+    container.querySelectorAll('.page-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const newPage = parseInt(e.target.dataset.page);
+        if (newPage && newPage !== page) {
+          cargarPacientes(newPage);
+        }
+      });
+    });
+  }
+
+  // ============================================================================
+  // FUNCIÓN: AGREGAR EVENTOS A BOTONES
+  // ============================================================================
+  function agregarEventosBotones() {
+    // Ver detalles
+    document.querySelectorAll('.btn-ver-detalles').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        verDetallesPaciente(id);
+      });
+    });
+
+    // Editar
+    document.querySelectorAll('.btn-editar').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        abrirModalEditar(id);
+      });
+    });
+
+    // Dar de baja
+    document.querySelectorAll('.btn-baja').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        abrirModalBaja(id);
+      });
+    });
+
+    // Reactivar
+    document.querySelectorAll('.btn-reactivar').forEach(btn => {
+      btn.addEventListener('click', function() {
+        const id = this.dataset.id;
+        reactivarPaciente(id);
+      });
+    });
+  }
+
+  // ============================================================================
+  // FUNCIÓN: VER DETALLES DE PACIENTE
+  // ============================================================================
+  async function verDetallesPaciente(id) {
+    try {
+      showLoading();
+
+      const response = await fetch(`/pacientes/api/${id}/detalles`);
+      const data = await response.json();
+
+      if (data.success) {
+        mostrarModalDetalles(data);
+      } else {
+        mostrarAlerta('error', data.message);
+      }
+
+      hideLoading();
+    } catch (error) {
+      console.error('Error al cargar detalles:', error);
+      hideLoading();
+      mostrarAlerta('error', 'Error al cargar detalles del paciente');
+    }
+  }
+
+  // ============================================================================
+  // FUNCIÓN: MOSTRAR MODAL DE DETALLES
+  // ============================================================================
+  function mostrarModalDetalles(data) {
+    const { paciente, admisiones, turnos, internaciones, historial, facturas, estadisticas } = data;
+
+    // Datos personales
+    document.getElementById('detalle-nombre').textContent = paciente.nombreCompleto;
+    document.getElementById('detalle-dni').textContent = paciente.dni;
+    document.getElementById('detalle-email').textContent = paciente.email;
+    document.getElementById('detalle-telefono').textContent = paciente.telefono || 'Sin teléfono';
+    document.getElementById('detalle-sexo').textContent = paciente.sexo;
+    document.getElementById('detalle-fecha-nacimiento').textContent = new Date(paciente.fecha_nacimiento).toLocaleDateString('es-AR');
+    document.getElementById('detalle-obra-social').textContent = paciente.obra_social;
+    document.getElementById('detalle-estado').innerHTML = `<span class="badge bg-${getEstadoBadge(paciente.estado)}">${paciente.estado}</span>`;
+    document.getElementById('detalle-fecha-ingreso').textContent = new Date(paciente.fecha_ingreso).toLocaleDateString('es-AR');
+    document.getElementById('detalle-observaciones').textContent = paciente.observaciones || 'Sin observaciones';
+
+    // Estadísticas
+    document.getElementById('stat-admisiones').textContent = estadisticas.totalAdmisiones;
+    document.getElementById('stat-turnos').textContent = estadisticas.totalTurnos;
+    document.getElementById('stat-turnos-pendientes').textContent = estadisticas.turnosPendientes;
+    document.getElementById('stat-internaciones').textContent = estadisticas.totalInternaciones;
+
+    // Historial de admisiones
+    const tbodyAdmisiones = document.getElementById('historial-admisiones');
+    if (admisiones.length === 0) {
+      tbodyAdmisiones.innerHTML = '<tr><td colspan="4" class="text-center">Sin admisiones</td></tr>';
+    } else {
+      tbodyAdmisiones.innerHTML = admisiones.slice(0, 5).map(adm => `
+        <tr>
+          <td>${new Date(adm.fecha).toLocaleDateString('es-AR')}</td>
+          <td>${adm.medico ? `Dr/a. ${adm.medico.usuario.nombre} ${adm.medico.usuario.apellido}` : 'Sin médico'}</td>
+          <td>${adm.sector?.nombre || '-'}</td>
+          <td><span class="badge bg-${getEstadoBadge(adm.estado)}">${adm.estado}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    // Historial de turnos
+    const tbodyTurnos = document.getElementById('historial-turnos');
+    if (turnos.length === 0) {
+      tbodyTurnos.innerHTML = '<tr><td colspan="4" class="text-center">Sin turnos</td></tr>';
+    } else {
+      tbodyTurnos.innerHTML = turnos.slice(0, 5).map(turno => `
+        <tr>
+          <td>${new Date(turno.fecha).toLocaleDateString('es-AR')}</td>
+          <td>${turno.hora_inicio}</td>
+          <td>${turno.medico ? `Dr/a. ${turno.medico.usuario.nombre} ${turno.medico.usuario.apellido}` : '-'}</td>
+          <td><span class="badge bg-${getEstadoBadge(turno.estado)}">${turno.estado}</span></td>
+        </tr>
+      `).join('');
+    }
+
+    // Mostrar modal
+    const modal = new bootstrap.Modal(document.getElementById('modalDetalles'));
+    modal.show();
+  }
+
+  // ============================================================================
+  // FUNCIÓN: ABRIR MODAL EDITAR
+  // ============================================================================
+  async function abrirModalEditar(id) {
+    try {
+      const response = await fetch(`/pacientes/api/${id}/detalles`);
+      const data = await response.json();
+
+      if (data.success) {
+        const { paciente } = data;
+
+        document.getElementById('editar-id').value = paciente.id;
+        document.getElementById('editar-nombre').value = paciente.nombreCompleto;
+        document.getElementById('editar-dni').value = paciente.dni;
+        document.getElementById('editar-email').value = paciente.email;
+        document.getElementById('editar-telefono').value = paciente.telefono || '';
+        document.getElementById('editar-obra-social').value = paciente.obra_social_id || '';
+        document.getElementById('editar-observaciones').value = paciente.observaciones || '';
+
+        const modal = new bootstrap.Modal(document.getElementById('modalEditar'));
+        modal.show();
       }
     } catch (error) {
       console.error('Error:', error);
-      alert('Error al actualizar la admisión');
+      mostrarAlerta('error', 'Error al cargar datos del paciente');
     }
-  });
-});
+  }
 
-//eliminar admision
-  const eliminarAdmisionButtons = document.querySelectorAll(
-    ".btn-outline-danger[data-id]"
-  );
+  // ============================================================================
+  // FUNCIÓN: GUARDAR EDICIÓN
+  // ============================================================================
+  const btnGuardarEdicion = document.getElementById('btnGuardarEdicion');
+  if (btnGuardarEdicion) {
+    btnGuardarEdicion.addEventListener('click', async function() {
+      const id = document.getElementById('editar-id').value;
+      const telefono = document.getElementById('editar-telefono').value;
+      const email = document.getElementById('editar-email').value;
+      const obra_social_id = document.getElementById('editar-obra-social').value;
+      const observaciones = document.getElementById('editar-observaciones').value;
 
-  
-  eliminarAdmisionButtons.forEach((button) => {
-    button.addEventListener("click", async () => {
-      const id = button.getAttribute("data-id");
-      if (confirm("¿Confirmar eliminación?")) {
-        try {
-          const response = await fetch(`/admisiones/eliminar/${id}`, {
-            method: "DELETE",
-          });
-          const result = await response.json();
-          if (response.ok) {
-            alert("Admisión eliminada con éxito");
-            window.location.reload();
-          } else {
-            alert(result.message || "Error al eliminar admisión");
-          }
-        } catch (error) {
-          console.error("Error:", error);
-          alert("Error al eliminar admisión");
+      try {
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+
+        const response = await fetch(`/pacientes/api/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            telefono,
+            email,
+            obra_social_id: obra_social_id || null,
+            observaciones
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          bootstrap.Modal.getInstance(document.getElementById('modalEditar')).hide();
+          mostrarAlerta('success', 'Paciente actualizado correctamente');
+          cargarPacientes(paginaActual);
+        } else {
+          mostrarAlerta('error', data.message);
         }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarAlerta('error', 'Error al actualizar paciente');
+      } finally {
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Cambios';
       }
     });
+  }
+
+  // ============================================================================
+  // FUNCIÓN: ABRIR MODAL BAJA
+  // ============================================================================
+  function abrirModalBaja(id) {
+    document.getElementById('baja-id').value = id;
+    document.getElementById('baja-motivo').value = '';
+    const modal = new bootstrap.Modal(document.getElementById('modalBaja'));
+    modal.show();
+  }
+
+  // ============================================================================
+  // FUNCIÓN: CONFIRMAR BAJA
+  // ============================================================================
+  const btnConfirmarBaja = document.getElementById('btnConfirmarBaja');
+  if (btnConfirmarBaja) {
+    btnConfirmarBaja.addEventListener('click', async function() {
+      const id = document.getElementById('baja-id').value;
+      const motivo = document.getElementById('baja-motivo').value;
+
+      if (!motivo.trim()) {
+        mostrarAlerta('warning', 'Debe especificar un motivo para la baja');
+        return;
+      }
+
+      try {
+        this.disabled = true;
+        this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+
+        const response = await fetch(`/pacientes/api/${id}/baja`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ motivo })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          bootstrap.Modal.getInstance(document.getElementById('modalBaja')).hide();
+          mostrarAlerta('success', 'Paciente dado de baja correctamente');
+          cargarPacientes(paginaActual);
+        } else {
+          mostrarAlerta('error', data.message);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarAlerta('error', 'Error al dar de baja al paciente');
+      } finally {
+        this.disabled = false;
+        this.innerHTML = '<i class="fas fa-check me-2"></i>Confirmar Baja';
+      }
+    });
+  }
+
+  // ============================================================================
+  // FUNCIÓN: REACTIVAR PACIENTE
+  // ============================================================================
+  async function reactivarPaciente(id) {
+    if (!confirm('¿Está seguro de reactivar este paciente?')) return;
+
+    try {
+      const response = await fetch(`/pacientes/api/${id}/reactivar`, {
+        method: 'PUT'
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        mostrarAlerta('success', 'Paciente reactivado correctamente');
+        cargarPacientes(paginaActual);
+      } else {
+        mostrarAlerta('error', data.message);
+      }
+    } catch (error) {
+      console.error('Error:', error);
+      mostrarAlerta('error', 'Error al reactivar paciente');
+    }
+  }
+
+  // ============================================================================
+  // EVENTOS: BÚSQUEDA Y FILTROS
+  // ============================================================================
+  document.getElementById('busqueda').addEventListener('input', debounce(() => {
+    cargarPacientes(1);
+  }, 500));
+
+  document.getElementById('filtro-estado').addEventListener('change', () => {
+    cargarPacientes(1);
   });
 
-  const filtroEstado = document.getElementById('filtro_estado');
-  const filtroPaciente = document.getElementById('filtro_paciente');
-  const filtroFecha = document.getElementById('filtro_fecha');
-  const filtroMotivo = document.getElementById('filtro_motivo');
+  document.getElementById('filtro-obra-social').addEventListener('change', () => {
+    cargarPacientes(1);
+  });
 
-  if (filtroEstado && filtroPaciente && filtroFecha && filtroMotivo) {
-    const applyFilters = async () => {
-      const filtros = {
-        estado: filtroEstado.value,
-        paciente: filtroPaciente.value,
-        fecha: filtroFecha.value,
-        motivo_id: filtroMotivo.value,
-      };
-      try {
-        const response = await fetch("/admisiones", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(filtros),
-        });
-        const admisiones = await response.json();
-        console.log("Admisiones filtradas:", admisiones);
-        // TODO: Actualizar tabla dinámicamente si es necesario
-      } catch (error) {
-        console.error("Error:", error);
-        alert("Error al aplicar filtros");
-      }
+  document.getElementById('btnLimpiarFiltros').addEventListener('click', () => {
+    document.getElementById('busqueda').value = '';
+    document.getElementById('filtro-estado').value = '';
+    document.getElementById('filtro-obra-social').value = '';
+    cargarPacientes(1);
+  });
+
+  // ============================================================================
+  // UTILIDADES
+  // ============================================================================
+  function getEstadoBadge(estado) {
+    const colores = {
+      'Activo': 'success',
+      'Inactivo': 'danger',
+      'Pendiente': 'warning',
+      'Completada': 'success',
+      'Cancelada': 'danger',
+      'PENDIENTE': 'warning',
+      'CONFIRMADO': 'info',
+      'COMPLETADO': 'success',
+      'CANCELADO': 'danger'
     };
-
-    filtroEstado.addEventListener("change", applyFilters);
-    filtroPaciente.addEventListener("change", applyFilters);
-    filtroFecha.addEventListener("change", applyFilters);
-    filtroMotivo.addEventListener("change", applyFilters);
+    return colores[estado] || 'secondary';
   }
+
+  function showLoading() {
+    const loading = document.getElementById('loading');
+    if (loading) loading.classList.remove('d-none');
+  }
+
+  function hideLoading() {
+    const loading = document.getElementById('loading');
+    if (loading) loading.classList.add('d-none');
+  }
+
+  function mostrarAlerta(tipo, mensaje) {
+    const alertaContainer = document.getElementById('alerta-container');
+    const tipoClase = tipo === 'success' ? 'alert-success' : tipo === 'error' ? 'alert-danger' : 'alert-warning';
+    
+    alertaContainer.innerHTML = `
+      <div class="alert ${tipoClase} alert-dismissible fade show" role="alert">
+        ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      </div>
+    `;
+
+    setTimeout(() => {
+      alertaContainer.innerHTML = '';
+    }, 5000);
+  }
+
+  function debounce(func, wait) {
+    let timeout;
+    return function executedFunction(...args) {
+      const later = () => {
+        clearTimeout(timeout);
+        func(...args);
+      };
+      clearTimeout(timeout);
+      timeout = setTimeout(later, wait);
+    };
+  }
+});

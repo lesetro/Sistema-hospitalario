@@ -1,0 +1,55 @@
+extends ../layouts/layout
+
+block content
+  .row.justify-content-center
+    .col-md-6.col-lg-5
+      .card.mt-5
+        .card-body.p-4
+          h2.text-center.mb-4
+            i.bi.bi-key.me-2
+            | Recuperar Contraseña
+          
+          if error
+            .alert.alert-danger.alert-dismissible.fade.show(role="alert")
+              | #{error}
+              button.btn-close(type="button" data-bs-dismiss="alert")
+          
+          if success
+            .alert.alert-success.alert-dismissible.fade.show(role="alert")
+              | #{success}
+              button.btn-close(type="button" data-bs-dismiss="alert")
+          
+          form(method="POST" action="/auth/recuperarContrasena")
+            .mb-3
+              label.form-label(for="email")
+                i.bi.bi-envelope.me-1
+                | Correo Electrónico
+              input#email.form-control(
+                type="email", 
+                name="email", 
+                required,
+                placeholder="usuario@ejemplo.com",
+                value= email || ''
+              )
+            
+            .mb-3
+              label.form-label(for="newPassword")
+                i.bi.bi-shield-lock.me-1
+                | Nueva Contraseña
+              input#newPassword.form-control(
+                type="password", 
+                name="newPassword", 
+                required,
+                placeholder="Mínimo 6 caracteres",
+                minlength="6"
+              )
+            
+            .d-grid.mb-3
+              button.btn.btn-custom(type="submit")
+                i.bi.bi-arrow-clockwise.me-2
+                | Cambiar Contraseña
+            
+            .text-center.mt-3
+              a(href="/auth/login")
+                i.bi.bi-arrow-left.me-1
+                | Volver al inicio de sesión

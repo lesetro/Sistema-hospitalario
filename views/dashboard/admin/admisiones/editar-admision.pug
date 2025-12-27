@@ -1,0 +1,138 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .row
+    .col-md-12
+      .card.mb-4
+        .card-header
+          h5.mb-0
+            i.fas.fa-edit.me-2
+            | Editar Admisión ##{admision.id}
+          .d-flex.justify-content-end
+            a.btn.btn-outline-secondary(href='/admisiones')
+              i.fas.fa-arrow-left.me-2
+              | Volver a Lista
+        .card-body.bg-light.p-3
+          form#editarAdmisionForm(method='POST' action=`/admisiones/editar/${admision.id}` novalidate)
+            
+            .row
+              .col-md-6.mb-3
+                label.form-label(for='paciente_id') Paciente *
+                select#paciente_id.form-select(name='paciente_id' required)
+                  if pacientes && pacientes.length
+                    each paciente in pacientes
+                      option(value=paciente.id selected=(paciente.id == admision.paciente_id))
+                        = `${paciente.usuario.nombre} ${paciente.usuario.apellido} - ${paciente.usuario.dni}`
+              
+              .col-md-6.mb-3
+                label.form-label(for='administrativo_id') Administrativo Responsable *
+                select#administrativo_id.form-select(name='administrativo_id' required)
+                  if administrativos && administrativos.length
+                    each administrativo in administrativos
+                      option(value=administrativo.id selected=(administrativo.id == admision.administrativo_id))
+                        = administrativo.responsabilidad || 'N/A'
+              
+              .col-md-6.mb-3
+                label.form-label(for='motivo_id') Motivo de Admisión *
+                select#motivo_id.form-select(name='motivo_id' required)
+                  if motivos && motivos.length
+                    each motivo in motivos
+                      option(value=motivo.id selected=(motivo.id == admision.motivo_id))
+                        = motivo.nombre
+              
+              .col-md-6.mb-3
+                label.form-label(for='forma_ingreso_id') Forma de Ingreso *
+                select#forma_ingreso_id.form-select(name='forma_ingreso_id' required)
+                  if formas && formas.length
+                    each forma in formas
+                      option(value=forma.id selected=(forma.id == admision.forma_ingreso_id))
+                        = forma.nombre
+              
+              .col-md-6.mb-3
+                label.form-label(for='fecha') Fecha de Admisión *
+                - var fechaAdmision = admision.fecha ? (typeof admision.fecha === 'string' ? admision.fecha.split('T')[0] : new Date(admision.fecha).toISOString().split('T')[0]) : ''
+                input#fecha.form-control(type='date' name='fecha' required value=fechaAdmision)
+              
+              .col-md-6.mb-3
+                label.form-label(for='medico_id') Médico *
+                select#medico_id.form-select(name='medico_id' required)
+                  if medicos && medicos.length
+                    each medico in medicos
+                      option(value=medico.id selected=(medico.id == admision.medico_id))
+                        = `${medico.usuario.nombre} ${medico.usuario.apellido}`
+              
+              .col-md-6.mb-3
+                label.form-label(for='sector_id') Sector *
+                select#sector_id.form-select(name='sector_id' required)
+                  if sectores && sectores.length
+                    each sector in sectores
+                      option(value=sector.id selected=(sector.id == admision.sector_id))
+                        = sector.nombre
+
+              // Campos del TURNO (manejo seguro de fechas)
+              if admision.turno
+                .col-md-6.mb-3
+                  label.form-label(for='turno_fecha') Fecha del Turno
+                  - var fechaTurno = admision.turno.fecha ? (typeof admision.turno.fecha === 'string' ? admision.turno.fecha.split('T')[0] : new Date(admision.turno.fecha).toISOString().split('T')[0]) : ''
+                  input#turno_fecha.form-control(type='date' name='turno_fecha' value=fechaTurno)
+                
+                .col-md-6.mb-3
+                  label.form-label(for='turno_hora') Hora del Turno
+                  - var horaTurno = admision.turno.hora_inicio ? (typeof admision.turno.hora_inicio === 'string' ? admision.turno.hora_inicio.substring(0,5) : '') : ''
+                  input#turno_hora.form-control(type='time' name='turno_hora' value=horaTurno)
+                
+                .col-md-6.mb-3
+                  label.form-label(for='tipo_turno_id') Tipo de Turno
+                  select#tipo_turno_id.form-select(name='tipo_turno_id')
+                    option(value='') Seleccione un tipo
+                    if tiposTurno && tiposTurno.length
+                      each tipo in tiposTurno
+                        option(value=tipo.id selected=(admision.turno.tipoTurno && tipo.id == admision.turno.tipoTurno.id))
+                          = tipo.nombre
+
+              // Campo ESPECIALIDAD
+              .col-md-6.mb-3
+                label.form-label(for='especialidad_id') Especialidad
+                select#especialidad_id.form-select(name='especialidad_id')
+                  option(value='') Sin especialidad
+                  if especialidades && especialidades.length
+                    each especialidad in especialidades
+                      option(value=especialidad.id selected=(especialidad.id == admision.especialidad_id))
+                        = especialidad.nombre
+
+              // Campo TIPO DE ESTUDIO
+              .col-md-6.mb-3
+                label.form-label(for='tipo_estudio_id') Tipo de Estudio
+                select#tipo_estudio_id.form-select(name='tipo_estudio_id')
+                  option(value='') Sin tipo de estudio
+                  if tiposEstudio && tiposEstudio.length
+                    each tipo in tiposEstudio
+                      option(value=tipo.id selected=(tipo.id == admision.tipo_estudio_id))
+                        = tipo.nombre
+              
+              .col-md-6.mb-3
+                label.form-label(for='estado') Estado
+                select#estado.form-select(name='estado')
+                  option(value='Pendiente' selected=(admision.estado == 'Pendiente')) Pendiente
+                  option(value='Completada' selected=(admision.estado == 'Completada')) Completada
+                  option(value='Cancelada' selected=(admision.estado == 'Cancelada')) Cancelada
+            
+            .d-flex.justify-content-between.mt-4
+              button.btn.btn-danger(type='button' onclick=`eliminarAdmision(${admision.id})`)
+                i.fas.fa-trash.me-2
+                | Eliminar
+              .btn-group
+                a.btn.btn-secondary(href='/admisiones')
+                  | Cancelar
+                button.btn.btn-primary(type='submit')
+                  i.fas.fa-save.me-2
+                  | Actualizar Admisión
+
+block scripts
+  script.
+    function eliminarAdmision(id) {
+      if (confirm('¿Está seguro de eliminar esta admisión?')) {
+        fetch(`/admisiones/eliminar/${id}`, { method: 'DELETE' })
+        .then(() => window.location.href = '/admisiones');
+      }
+    }

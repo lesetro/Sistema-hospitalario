@@ -1,0 +1,153 @@
+doctype html
+html(lang='es')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    title #{title} - Portal del Paciente
+    link(href='https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css', rel='stylesheet')
+    link(href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css', rel='stylesheet')
+    link(rel='stylesheet', href='/css/style.css')
+  body
+    nav#sidebar.sidebar
+      .sidebar-header
+        h4
+          i.fas.fa-hospital
+          |  Hospital
+        p Portal del Paciente
+        if user
+          .user-badge
+            small.text-muted #{user.nombre} #{user.apellido}
+            if user.obra_social
+              small.d-block.text-success #{user.obra_social}
+      
+      .sidebar-menu
+        .menu-item
+          a.menu-link(href='/paciente', class=(title === 'Mi Portal' ? 'active' : ''))
+            i.fas.fa-home
+            span Inicio
+        
+        .menu-section
+          .section-title MIS TURNOS
+        
+        .menu-item
+          a.menu-link(href='/paciente/turnos', class=(title === 'Mis Turnos' ? 'active' : ''))
+            i.fas.fa-calendar-alt
+            span Mis Turnos
+            span.badge.bg-info(id='badge-turnos-proximos', style='display:none') 0
+        
+        .menu-item
+          a.menu-link(href='/paciente/solicitar-turno', class=(title === 'Solicitar Turno' ? 'active' : ''))
+            i.fas.fa-calendar-plus
+            span Solicitar Turno
+        
+        .menu-item
+          a.menu-link(href='/paciente/lista-espera', class=(title === 'Lista de Espera' ? 'active' : ''))
+            i.fas.fa-clock
+            span Lista de Espera
+        
+        .menu-section
+          .section-title MI ATENCIÓN
+        
+        .menu-item
+          a.menu-link(href='/paciente/admisiones', class=(title === 'Mis Admisiones' ? 'active' : ''))
+            i.fas.fa-clipboard-list
+            span Mis Admisiones
+        
+        .menu-item
+          a.menu-link(href='/paciente/historial-medico', class=(title === 'Historial Médico' ? 'active' : ''))
+            i.fas.fa-notes-medical
+            span Historial Médico
+        
+        .menu-item
+          a.menu-link(href='/paciente/estudios', class=(title === 'Mis Estudios' ? 'active' : ''))
+            i.fas.fa-x-ray
+            span Mis Estudios
+        
+        .menu-item
+          a.menu-link(href='/paciente/recetas', class=(title === 'Recetas y Certificados' ? 'active' : ''))
+            i.fas.fa-file-prescription
+            span Recetas y Certificados
+        
+        .menu-item
+          a.menu-link(href='/paciente/internaciones', class=(title === 'Mis Internaciones' ? 'active' : ''))
+            i.fas.fa-bed
+            span Mis Internaciones
+        
+        .menu-section
+          .section-title FACTURACIÓN
+        
+        .menu-item
+          a.menu-link(href='/paciente/facturas', class=(title === 'Mis Facturas' ? 'active' : ''))
+            i.fas.fa-file-invoice-dollar
+            span Mis Facturas
+            span.badge.bg-warning(id='badge-facturas-pendientes', style='display:none') 0
+        
+        .menu-item
+          a.menu-link(href='/paciente/pagos', class=(title === 'Historial de Pagos' ? 'active' : ''))
+            i.fas.fa-credit-card
+            span Historial de Pagos
+        
+        .menu-section
+          .section-title COMUNICACIÓN
+        
+        .menu-item
+          a.menu-link(href='/paciente/notificaciones', class=(title === 'Notificaciones' ? 'active' : ''))
+            i.fas.fa-bell
+            span Notificaciones
+            span.badge.bg-danger(id='badge-notificaciones', style='display:none') 0
+        
+        .menu-item
+          a.menu-link(href='/paciente/mensajes', class=(title === 'Mensajes' ? 'active' : ''))
+            i.fas.fa-envelope
+            span Mensajes
+            span.badge.bg-primary(id='badge-mensajes', style='display:none') 0
+        
+        .menu-item
+          a.menu-link(href='/paciente/reclamos', class=(title === 'Reclamos y Sugerencias' ? 'active' : ''))
+            i.fas.fa-comment-alt
+            span Reclamos y Sugerencias
+
+    .main-content
+      header.header
+        .d-flex.align-items-center.justify-content-between.w-100
+          button.btn.btn-link.mobile-menu-toggle.me-3(onclick='toggleSidebar()')
+            i.fas.fa-bars
+          .header-actions.d-flex.align-items-center
+            a.btn.btn-sm.btn-outline-info.me-2(href='/paciente/turnos' title='Próximos Turnos')
+              i.fas.fa-calendar-check.me-1
+              span#header-turnos-count.badge.bg-info(style='display:none') 0
+            a.btn.btn-sm.btn-outline-warning.me-2(href='/paciente/facturas' title='Facturas Pendientes')
+              i.fas.fa-file-invoice.me-1
+              span#header-facturas-count.badge.bg-warning(style='display:none') 0
+            a.btn.btn-sm.btn-outline-primary.me-2(href='/paciente/mensajes' title='Mensajes')
+              i.fas.fa-envelope.me-1
+              span#header-contador-mensajes.badge.bg-danger(style='display:none') 0
+            .user-info.d-flex.align-items-center
+              span.me-2 #{user ? user.nombre : 'Paciente'}
+              .user-avatar
+                i.fas.fa-user
+              .dropdown.ms-2
+                button.btn.btn-sm.dropdown-toggle(data-bs-toggle='dropdown')
+                  i.fas.fa-cog
+                ul.dropdown-menu.dropdown-menu-end
+                  li
+                    a.dropdown-item(href='/paciente/perfil')
+                      i.fas.fa-user.me-2
+                      | Mi Perfil
+                  li
+                    a.dropdown-item(href='/paciente/datos-personales')
+                      i.fas.fa-id-card.me-2
+                      | Datos Personales
+                  li
+                    hr.dropdown-divider
+                  li
+                    a.dropdown-item(href='/auth/logout')
+                      i.fas.fa-sign-out-alt.me-2
+                      | Cerrar Sesión
+
+      .content-area
+        block content
+
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js')
+    script(src='/js/global.js')
+    block scripts

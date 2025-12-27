@@ -1,0 +1,143 @@
+doctype html
+html(lang='es')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    title #{title} - Sistema Médico
+    link(href='https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css', rel='stylesheet')
+    link(href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css', rel='stylesheet')
+    link(rel='stylesheet', href='/css/style.css')
+  body
+    // Sidebar
+    nav#sidebar.sidebar
+      .sidebar-header
+        h4
+          i.fas.fa-hospital
+          |  Hospital
+        p Sistema Médico
+        if user
+          .user-badge
+            small.text-muted Dr/a. #{user.nombre} #{user.apellido}
+            if user.especialidad
+              small.d-block.text-primary #{user.especialidad}
+      
+      .sidebar-menu
+        .menu-item
+          a.menu-link(href='/medico', class=(title === 'Dashboard Médico' ? 'active' : ''))
+            i.fas.fa-tachometer-alt
+            span Inicio
+        
+        .menu-section
+          .section-title ATENCIÓN MÉDICA
+        
+        .menu-item
+          a.menu-link(href='/medico/mis-turnos', class=(title === 'Mis Turnos' ? 'active' : ''))
+            i.fas.fa-calendar-check
+            span Mis Turnos
+            span.badge.bg-danger(id='badge-turnos-pendientes', style='display:none') 0
+        
+        .menu-item
+          a.menu-link(href='/medico/pacientes', class=(title === 'Mis Pacientes' ? 'active' : ''))
+            i.fas.fa-users
+            span Mis Pacientes
+        
+        .menu-item
+          a.menu-link(href='/medico/evaluaciones', class=(title === 'Evaluaciones Médicas' ? 'active' : ''))
+            i.fas.fa-stethoscope
+            span Evaluaciones Médicas
+        
+        .menu-item
+          a.menu-link(href='/medico/diagnosticos', class=(title === 'Diagnósticos' ? 'active' : ''))
+            i.fas.fa-notes-medical
+            span Diagnósticos
+        
+        .menu-section
+          .section-title PROCEDIMIENTOS
+        
+        .menu-item
+          a.menu-link(href='/medico/estudios-solicitados', class=(title === 'Estudios Solicitados' ? 'active' : ''))
+            i.fas.fa-x-ray
+            span Estudios Solicitados
+        
+        .menu-item
+          a.menu-link(href='/medico/intervenciones', class=(title === 'Intervenciones Quirúrgicas' ? 'active' : ''))
+            i.fas.fa-procedures
+            span Intervenciones Quirúrgicas
+        
+        .menu-item
+          a.menu-link(href='/medico/recetas-certificados', class=(title === 'Recetas y Certificados' ? 'active' : ''))
+            i.fas.fa-file-prescription
+            span Recetas y Certificados
+        
+        .menu-section
+          .section-title GESTIÓN
+        
+        .menu-item
+          a.menu-link(href='/medico/internaciones', class=(title === 'Internaciones' ? 'active' : ''))
+            i.fas.fa-bed
+            span Internaciones
+        
+        .menu-item
+          a.menu-link(href='/medico/altas-medicas', class=(title === 'Altas Médicas' ? 'active' : ''))
+            i.fas.fa-user-check
+            span Altas Médicas
+        
+        .menu-item
+          a.menu-link(href='/medico/derivaciones', class=(title === 'Derivaciones' ? 'active' : ''))
+            i.fas.fa-exchange-alt
+            span Derivaciones
+        
+        .menu-section
+          .section-title HERRAMIENTAS
+        
+        .menu-item
+          a.menu-link(href='/medico/buscar-paciente', class=(title === 'Buscar Paciente' ? 'active' : ''))
+            i.fas.fa-search
+            span Buscar Paciente
+        
+        .menu-item
+          a.menu-link(href='/medico/historial-clinico', class=(title === 'Historial Clínico' ? 'active' : ''))
+            i.fas.fa-clipboard-list
+            span Historial Clínico
+        
+        .menu-item
+          a.menu-link(href='/medico/comunicacion', class=(title === 'Comunicaciones' ? 'active' : ''))
+            i.fas.fa-comments
+            span Comunicaciones
+            span.badge.bg-primary(id='badge-mensajes', style='display:none') 0
+
+    // Main Content
+    .main-content
+      header.header
+        .d-flex.align-items-center.justify-content-between.w-100
+          button.btn.btn-link.mobile-menu-toggle.me-3(onclick='toggleSidebar()')
+            i.fas.fa-bars
+          .header-actions.d-flex.align-items-center
+            a.btn.btn-sm.btn-outline-primary.me-2(href='/medico/comunicacion' title='Mensajes')
+              i.fas.fa-envelope.me-1
+              span#header-contador-mensajes.badge.bg-danger(style='display:none') 0
+            .user-info.d-flex.align-items-center
+              span.me-2 Dr/a. #{user ? user.nombre : 'Médico'}
+              .user-avatar
+                i.fas.fa-user-md
+              .dropdown.ms-2
+                button.btn.btn-sm.dropdown-toggle(data-bs-toggle='dropdown')
+                  i.fas.fa-cog
+                ul.dropdown-menu.dropdown-menu-end
+                  li
+                    a.dropdown-item(href='/medico/perfil')
+                      i.fas.fa-user.me-2
+                      | Mi Perfil
+                  li
+                    hr.dropdown-divider
+                  li
+                    a.dropdown-item(href='/auth/logout')
+                      i.fas.fa-sign-out-alt.me-2
+                      | Cerrar Sesión
+
+      .content-area
+        block content
+
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js')
+    script(src='/js/global.js')
+    block scripts

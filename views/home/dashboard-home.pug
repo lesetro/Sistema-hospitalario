@@ -1,0 +1,143 @@
+extends ../layouts/base
+
+block content
+  section.hero-section.bg-primary.text-white.py-5.mb-4
+    .container
+      .row
+        .col-12.text-center
+          h1.display-4 Bienvenido al Hospital Central
+          if user && user.nombre
+            p.lead #{user.nombre} #{user.apellido} - #{user.rol_nombre || user.rol}
+          else
+            p.lead Su salud y bienestar son nuestra prioridad
+          
+          .d-flex.justify-content-center.gap-3.flex-wrap
+            if user && user.rol_ruta
+              //- Usuario autenticado CON rol_ruta
+              a.btn.btn-light.btn-lg.px-4.py-3.fw-medium(href=`/${user.rol_ruta}`) 
+                i.bi.bi-speedometer2.me-2
+                | Ir a Mi Dashboard
+              a.btn.btn-outline-light.btn-lg.px-4.py-3.fw-medium(href="/quienes-somos") 
+                i.bi.bi-info-circle.me-2
+                | Conócenos
+            else
+              //- Usuario no autenticado
+              a.btn.btn-light.btn-lg.px-4.py-3.fw-medium(href="/auth/login") 
+                i.bi.bi-box-arrow-in-right.me-2
+                | Ingresar al Sistema
+              a.btn.btn-outline-light.btn-lg.px-4.py-3.fw-medium(href="/quienes-somos") 
+                i.bi.bi-info-circle.me-2
+                | Conócenos
+
+  .container
+    //- Carrusel de Imágenes
+    section.mb-5
+      h2.h3.mb-3.text-center Nuestras Instalaciones
+      .row
+        .col-md-8.mx-auto
+          #hospitalCarousel.carousel.slide(data-bs-ride="carousel")
+            .carousel-inner.rounded
+              .carousel-item.active
+                img.d-block.w-100(src="/images/instalacion1.jpg", alt="Consultorios", style="height: 300px; object-fit: cover;")
+                .carousel-caption.d-none.d-md-block
+                  h5 Consultorios Modernos
+              .carousel-item
+                img.d-block.w-100(src="/images/instalacion2.jpg", alt="Emergencias", style="height: 300px; object-fit: cover;")
+                .carousel-caption.d-none.d-md-block
+                  h5 Área de Emergencias
+              .carousel-item
+                img.d-block.w-100(src="/images/instalacion4.jpg", alt="Laboratorio", style="height: 300px; object-fit: cover;")
+                .carousel-caption.d-none.d-md-block
+                  h5 Laboratorio de Análisis
+            button.carousel-control-prev(type="button" data-bs-target="#hospitalCarousel" data-bs-slide="prev")
+              span.carousel-control-prev-icon
+              span.visually-hidden Anterior
+            button.carousel-control-next(type="button" data-bs-target="#hospitalCarousel" data-bs-slide="next")
+              span.carousel-control-next-icon
+              span.visually-hidden Siguiente
+
+    //- Noticias
+    section.mb-5
+      .d-flex.justify-content-between.align-items-center.mb-4
+        h2.h3 📰 Últimas Noticias
+        a.btn.btn-outline-primary(href="#") Ver todas
+      
+      .row
+        if noticias && noticias.length > 0
+          each noticia in noticias
+            .col-md-6.col-lg-3.mb-3
+              .card.h-100
+                .card-body
+                  h5.card-title= noticia.titulo
+                  p.card-text.text-muted.small= noticia.texto.substring(0, 100) + '...'
+                .card-footer
+                  small.text-muted
+                    i.bi.bi-calendar.me-1
+                    | #{noticia.fecha.toLocaleDateString()}
+                    br
+                    i.bi.bi-person.me-1
+                    | #{noticia.autor.nombre} #{noticia.autor.apellido}
+        else
+          .col-12
+            .alert.alert-info.text-center
+              i.bi.bi-info-circle.me-2
+              | No hay noticias disponibles en este momento.
+
+    //- Especialidades
+    section.mb-5
+      h2.h3.mb-4.text-center 🩺 Nuestras Especialidades
+      .row
+        if especialidades && especialidades.length > 0
+          each especialidad in especialidades
+            .col-md-4.col-lg-2.mb-3
+              .card.text-center.h-100
+                .card-body
+                  .mb-3
+                    i.bi.bi-heart-pulse.fs-1.text-primary
+                  h6.card-title= especialidad.nombre
+        else
+          .col-12
+            .alert.alert-warning.text-center
+              i.bi.bi-exclamation-triangle.me-2
+              | Especialidades no disponibles
+      
+      .text-center.mt-3
+        a.btn.btn-primary(href="/especialidades") Ver todas las especialidades
+
+    //- Información de Contacto
+    section.mb-5
+      .row
+        .col-md-8.mx-auto
+          .card.bg-light
+            .card-body.text-center
+              h3.h4.mb-4 📞 Contacto
+              .row
+                .col-md-6.mb-3
+                  i.bi.bi-telephone.text-primary.fs-4
+                  h5.mt-2 Teléfono
+                  p.mb-1 +54 351 123-4567
+                  small.text-muted Lunes a Viernes 7:00-22:00
+                .col-md-6.mb-3
+                  i.bi.bi-ambulance.text-danger.fs-4
+                  h5.mt-2 Emergencias
+                  p.mb-1 +54 351 987-6543
+                  small.text-muted 24 horas, 365 días
+              .row.mt-3
+                .col-md-6.mb-3
+                  i.bi.bi-geo-alt.text-success.fs-4
+                  h5.mt-2 Dirección
+                  p Av. Vélez Sarsfield 1254
+                  small.text-muted Córdoba Capital
+                .col-md-6.mb-3
+                  i.bi.bi-envelope.text-info.fs-4
+                  h5.mt-2 Email
+                  p info@hospitalcentral.edu.ar
+                  small.text-muted Consultas generales
+
+block scripts
+  script.
+    // Inicializar carrusel
+    const carousel = new bootstrap.Carousel('#hospitalCarousel', {
+      interval: 4000,
+      wrap: true
+    });

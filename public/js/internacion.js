@@ -1,717 +1,522 @@
-
-class InternacionManager {
-  constructor() {
-    this.data = null;
-    this.filtros = {
-      sector: '',
-      estado: '',
-      tipo: ''
-    };
-    this.intervalId = null;
-    this.init();
+document.addEventListener('DOMContentLoaded', () => {
+  console.log(' Iniciando internacion.js...');
+  
+  // ============================================================================
+  // CARGAR RESUMEN DE DISPONIBILIDAD AL INICIO
+  // ============================================================================
+  const resumenDiv = document.getElementById('resumen_disponibilidad');
+  if (resumenDiv) {
+    cargarResumenDisponibilidad();
   }
 
-  init() {
-    this.setupEventListeners();
-    this.cargarDatos();
-    this.iniciarActualizacionAutomatica();
-  }
-
-  setupEventListeners() {
-    // Botón refresh
-    document.getElementById('btnRefresh').addEventListener('click', () => {
-      this.cargarDatos(true);
-    });
-
-    // Botón nueva habitación
-    document.getElementById('btnNuevaHabitacion').addEventListener('click', () => {
-      this.mostrarModalNuevaHabitacion();
-    });
-
-    // Filtros
-    document.getElementById('filtroSector').addEventListener('input', (e) => {
-      this.filtros.sector = e.target.value.toLowerCase();
-      this.aplicarFiltros();
-    });
-
-    document.getElementById('filtroEstado').addEventListener('change', (e) => {
-      this.filtros.estado = e.target.value;
-      this.aplicarFiltros();
-    });
-
-    document.getElementById('filtroTipo').addEventListener('change', (e) => {
-      this.filtros.tipo = e.target.value;
-      this.aplicarFiltros();
-    });
-
-    // Form nueva habitación
-    document.getElementById('formNuevaHabitacion').addEventListener('submit', (e) => {
-      e.preventDefault();
-      this.crearHabitacion();
-    });
-
-    // Confirmación finalizar limpieza
-    document.getElementById('btnConfirmarFinalizarLimpieza').addEventListener('click', () => {
-      this.finalizarLimpieza();
-    });
-  }
-
-  async cargarDatos(manual = false) {
+  async function cargarResumenDisponibilidad() {
     try {
-      if (manual) {
-        document.getElementById('btnRefresh').classList.add('actualizando');
+      const response = await fetch('/internacion/api/disponibilidad-resumen');
+      const data = await response.json();
+
+      if (!data.success || !data.sectores || data.sectores.length === 0) {
+        resumenDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>No hay datos de disponibilidad</div>';
+        return;
       }
 
-      this.mostrarLoading();
-
-      const response = await fetch('/internacion/api/dashboard');
-      if (!response.ok) {
-        throw new Error('Error al cargar datos');
-      }
-
-      this.data = await response.json();
-      this.renderizarDatos();
-      this.ocultarLoading();
-
-      if (manual) {
-        this.mostrarNotificacion('Datos actualizados', 'success');
-      }
-
-    } catch (error) {
-      console.error('Error al cargar datos:', error);
-      this.mostrarNotificacion('Error al cargar datos', 'error');
-      this.ocultarLoading();
-    } finally {
-      if (manual) {
-        document.getElementById('btnRefresh').classList.remove('actualizando');
-      }
-    }
-  }
-
-  renderizarDatos() {
-    if (!this.data) return;
-
-    this.renderizarEstadisticasGenerales();
-    this.renderizarSectores();
-    this.renderizarListaEspera();
-  }
-
-  renderizarEstadisticasGenerales() {
-    const stats = this.data.estadisticasGenerales;
-    
-    document.getElementById('totalCamas').textContent = stats.totalCamas;
-    document.getElementById('camasLibres').textContent = stats.camasLibres;
-    document.getElementById('camasOcupadas').textContent = stats.camasOcupadas;
-    document.getElementById('camasEnLimpieza').textContent = stats.camasEnLimpieza;
-    document.getElementById('porcentajeOcupacion').textContent = `${stats.porcentajeOcupacion}%`;
-    document.getElementById('totalSectores').textContent = stats.totalSectores;
-  }
-
-  renderizarSectores() {
-    const container = document.getElementById('sectoresContainer');
-    container.innerHTML = '';
-
-    this.data.sectores.forEach(sector => {
-      const sectorHtml = this.crearHtmlSector(sector);
-      container.appendChild(sectorHtml);
-    });
-  }
-
-  crearHtmlSector(sector) {
-    const div = document.createElement('div');
-    div.className = 'col-12 mb-4';
-    div.dataset.sectorId = sector.id;
-    div.dataset.sectorNombre = sector.nombre.toLowerCase();
-
-    const ocupacionColor = this.getColorOcupacion(sector.estadisticas.porcentajeOcupacion);
-
-    div.innerHTML = `
-      <div class="card sector-card">
-        <div class="sector-header" style="background: ${ocupacionColor};">
-          <div class="d-flex justify-content-between align-items-center">
-            <h4 class="mb-0">${sector.nombre}</h4>
-            <div class="sector-stats">
-              <div class="sector-stat">
-                <div class="sector-stat-number">${sector.estadisticas.totalCamas}</div>
-                <div class="sector-stat-label">Total</div>
+      let htmlResumen = '<div class="row">';
+      
+      data.sectores.forEach(sector => {
+        const total = sector.estadisticas.total || 0;
+        const libres = sector.estadisticas.libres || 0;
+        const porcentaje = total > 0 ? Math.round((libres / total) * 100) : 0;
+        const colorClase = porcentaje > 50 ? 'success' : porcentaje > 20 ? 'warning' : 'danger';
+        
+        htmlResumen += `
+          <div class="col-md-3 mb-3">
+            <div class="card border-${colorClase}">
+              <div class="card-header bg-${colorClase} text-white">
+                <strong>${sector.nombre}</strong>
               </div>
-              <div class="sector-stat">
-                <div class="sector-stat-number">${sector.estadisticas.camasLibres}</div>
-                <div class="sector-stat-label">Libres</div>
+              <div class="card-body text-center">
+                <h2 class="text-${colorClase}">${libres}</h2>
+                <p class="mb-0">Camas Disponibles</p>
+                <small class="text-muted">Total: ${total}</small>
+                <div class="progress mt-2" style="height: 10px;">
+                  <div class="progress-bar bg-${colorClase}" style="width: ${porcentaje}%"></div>
+                </div>
+                <small>${porcentaje}% disponible</small>
               </div>
-              <div class="sector-stat">
-                <div class="sector-stat-number">${sector.estadisticas.camasOcupadas}</div>
-                <div class="sector-stat-label">Ocupadas</div>
-              </div>
-              <div class="sector-stat">
-                <div class="sector-stat-number">${sector.estadisticas.camasEnLimpieza}</div>
-                <div class="sector-stat-label">Limpieza</div>
-              </div>
-              <div class="sector-stat">
-                <div class="sector-stat-number">${sector.estadisticas.porcentajeOcupacion}%</div>
-                <div class="sector-stat-label">Ocupación</div>
+              <div class="card-footer text-center">
+                <a href="/internacion/disponibilidad?sector_id=${sector.id}" class="btn btn-sm btn-primary">
+                  <i class="fas fa-eye me-1"></i> Ver Detalle
+                </a>
               </div>
             </div>
           </div>
-        </div>
-        <div class="card-body">
-          ${sector.habitaciones.length === 0 ? 
-            `<div class="habitacion-sin-camas">
-              <i class="bi bi-exclamation-triangle fs-2"></i>
-              <p class="mb-0 mt-2">No hay habitaciones en este sector</p>
-            </div>` :
-            sector.habitaciones.map(habitacion => this.crearHtmlHabitacion(habitacion)).join('')
-          }
-        </div>
-      </div>
-    `;
-
-    return div;
+        `;
+      });
+      
+      htmlResumen += '</div>';
+      resumenDiv.innerHTML = htmlResumen;
+      
+    } catch (error) {
+      console.error('Error al cargar resumen:', error);
+      resumenDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>Error al cargar disponibilidad</div>';
+    }
   }
 
-  crearHtmlHabitacion(habitacion) {
-    return `
-      <div class="habitacion-row" data-habitacion-tipo="${habitacion.tipo}">
-        <div class="habitacion-info">
-          <span class="habitacion-numero">Habitación ${habitacion.numero}</span>
-          <span class="habitacion-tipo">${habitacion.tipo}</span>
-          <span class="habitacion-sexo">${habitacion.sexo_permitido}</span>
-          <div class="habitacion-stats">
-            <span><i class="bi bi-bed"></i> ${habitacion.estadisticas.totalCamas} camas</span>
-            <span class="text-success"><i class="bi bi-check-circle"></i> ${habitacion.estadisticas.libres} libres</span>
-            <span class="text-danger"><i class="bi bi-x-circle"></i> ${habitacion.estadisticas.ocupadas} ocupadas</span>
-            ${habitacion.estadisticas.enLimpieza > 0 ? 
-              `<span class="text-warning"><i class="bi bi-clock"></i> ${habitacion.estadisticas.enLimpieza} limpieza</span>` : ''
+  // ============================================================================
+  // BUSCAR PACIENTE POR DNI
+  // ============================================================================
+  const btnBuscarPaciente = document.getElementById('buscar_paciente');
+  const inputPacienteSearch = document.getElementById('paciente_search');
+
+  if (btnBuscarPaciente && inputPacienteSearch) {
+    btnBuscarPaciente.addEventListener('click', async () => {
+      const dni = inputPacienteSearch.value.trim();
+      
+      if (!dni || dni.length < 7) {
+        alert('❌ Ingrese un DNI válido (7-8 dígitos)');
+        return;
+      }
+      
+      btnBuscarPaciente.disabled = true;
+      btnBuscarPaciente.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Buscando...';
+      
+      try {
+        const response = await fetch(`/internacion/api/buscar-paciente?dni=${dni}`);
+        
+        //  Verificar si la respuesta es OK antes de parsear
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({ message: 'Error del servidor' }));
+          console.error('Error del servidor:', errorData);
+          alert(`❌ ${errorData.message || 'Error al buscar paciente'}`);
+          return;
+        }
+        
+        const data = await response.json();
+        console.log(' Respuesta del servidor:', data);
+        
+        //  CASO 1: Paciente ya está internado
+        if (data.internado === true) {
+          const internacion = data.internacion || {};
+          alert(
+            ` PACIENTE YA INTERNADO\n\n` +
+            `${data.message}\n\n` +
+            ` Ubicación:\n` +
+            `   Sector: ${internacion.sector || 'N/A'}\n` +
+            `   Habitación: ${internacion.habitacion || 'N/A'}\n` +
+            `   Cama: ${internacion.cama || 'N/A'}\n\n` +
+            ` Fecha de ingreso: ${internacion.fecha_inicio ? new Date(internacion.fecha_inicio).toLocaleDateString('es-AR') : 'N/A'}`
+          );
+          return;
+        }
+        
+        //  CASO 2: Paciente existe y NO está internado
+        if (data.existe === true && data.internado === false) {
+          abrirModalCrearInternacion(data);
+          return;
+        }
+        
+        //  CASO 3: Paciente NO existe
+        if (data.existe === false) {
+          alert('❌ No se encontró un paciente con ese DNI');
+          return;
+        }
+        
+        //  CASO 4: Cualquier otro error
+        alert('❌ ' + (data.message || 'Error al buscar paciente'));
+        
+      } catch (error) {
+        console.error('❌ Error completo:', error);
+        alert(`❌ Error de conexión: ${error.message}`);
+      } finally {
+        btnBuscarPaciente.disabled = false;
+        btnBuscarPaciente.innerHTML = '<i class="fas fa-search me-2"></i>Buscar';
+      }
+    });
+    
+    // Enter en el input
+    inputPacienteSearch.addEventListener('keypress', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        btnBuscarPaciente.click();
+      }
+    });
+  }
+  
+  // ============================================================================
+  // MODAL: CREAR INTERNACIÓN
+  // ============================================================================
+  function abrirModalCrearInternacion(data) {
+    const modal = new bootstrap.Modal(document.getElementById('modalCrearInternacion'));
+    const paciente = data.paciente;
+    
+    console.log(' Abriendo modal con datos:', data);
+    
+    // Mostrar info del paciente
+    const nombrePacienteEl = document.getElementById('nombre_paciente_internacion');
+    if (nombrePacienteEl) {
+      nombrePacienteEl.textContent = 
+        `${paciente.nombre} ${paciente.apellido} (DNI: ${paciente.dni}) - Sexo: ${paciente.sexo}`;
+    }
+    
+    const pacienteIdInput = document.getElementById('internacion_paciente_id');
+    if (pacienteIdInput) {
+      pacienteIdInput.value = paciente.id;
+    }
+    
+    // Mostrar alerta si está en lista de espera
+    if (data.lista_espera) {
+      const alertLE = document.getElementById('alert_lista_espera');
+      const textoLE = document.getElementById('texto_lista_espera');
+      
+      if (alertLE && textoLE) {
+        const dias = Math.floor((new Date() - new Date(data.lista_espera.fecha_registro)) / (1000 * 60 * 60 * 24));
+        textoLE.textContent = 
+          `Este paciente está en lista de espera desde hace ${dias} días (Prioridad: ${data.lista_espera.prioridad})`;
+        alertLE.style.display = 'block';
+      }
+    }
+    
+    // Precargar evaluación médica si existe
+    if (data.evaluacion_medica) {
+      const select = document.getElementById('internacion_evaluacion_medica_id');
+      if (select) {
+        select.innerHTML = ''; // Limpiar opciones previas
+        const option = document.createElement('option');
+        option.value = data.evaluacion_medica.id;
+        option.textContent = `${new Date(data.evaluacion_medica.fecha).toLocaleDateString('es-AR')} - Dr/a. ${data.evaluacion_medica.medico.usuario.nombre}`;
+        option.selected = true;
+        select.appendChild(option);
+      }
+    }
+    
+    modal.show();
+  }
+  
+  // ============================================================================
+  // VER DISPONIBILIDAD DE SECTOR
+  // ============================================================================
+  const btnVerDisponibilidad = document.getElementById('btnVerDisponibilidad');
+  const sectorSelect = document.getElementById('internacion_sector_id');
+  
+  if (sectorSelect) {
+    sectorSelect.addEventListener('change', function() {
+      if (btnVerDisponibilidad) {
+        btnVerDisponibilidad.disabled = !this.value;
+      }
+      
+      // Reset habitación y cama
+      const habSelect = document.getElementById('internacion_habitacion_id');
+      const camaSelect = document.getElementById('internacion_cama_id');
+      
+      if (habSelect) {
+        habSelect.innerHTML = '<option value="">Seleccione sector primero</option>';
+        habSelect.disabled = true;
+      }
+      
+      if (camaSelect) {
+        camaSelect.innerHTML = '<option value="">Seleccione habitación primero</option>';
+        camaSelect.disabled = true;
+      }
+    });
+  }
+  
+  if (btnVerDisponibilidad && sectorSelect) {
+    btnVerDisponibilidad.addEventListener('click', async function() {
+      const sectorId = sectorSelect.value;
+      
+      if (!sectorId) {
+        alert(' Seleccione un sector primero');
+        return;
+      }
+      
+      // Obtener sexo del paciente
+      const nombrePacienteEl = document.getElementById('nombre_paciente_internacion');
+      let sexo = null;
+      
+      if (nombrePacienteEl) {
+        const nombrePaciente = nombrePacienteEl.textContent;
+        const sexoMatch = nombrePaciente.match(/Sexo: (\w+)/);
+        sexo = sexoMatch ? sexoMatch[1] : null;
+      }
+      
+      const modal = new bootstrap.Modal(document.getElementById('modalDisponibilidad'));
+      const sectorNombre = sectorSelect.options[sectorSelect.selectedIndex].text;
+      
+      const sectorNombreEl = document.getElementById('sector_nombre_modal');
+      if (sectorNombreEl) {
+        sectorNombreEl.textContent = sectorNombre;
+      }
+      
+      modal.show();
+      
+      const contenidoDiv = document.getElementById('contenido_disponibilidad');
+      if (contenidoDiv) {
+        contenidoDiv.innerHTML = `
+          <div class="text-center">
+            <div class="spinner-border" role="status"></div>
+            <p class="mt-2">Cargando disponibilidad...</p>
+          </div>
+        `;
+      }
+      
+      try {
+        const url = `/internacion/api/disponibilidad-habitaciones?sector_id=${sectorId}${sexo ? `&sexo_paciente=${sexo}` : ''}`;
+        console.log(' Consultando disponibilidad:', url);
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        console.log(' Disponibilidad recibida:', data);
+        
+        if (data.disponibilidad.length === 0) {
+          if (contenidoDiv) {
+            contenidoDiv.innerHTML = `
+              <div class="alert alert-warning">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                No hay habitaciones disponibles en este sector
+              </div>
+            `;
+          }
+          return;
+        }
+        
+        let html = '<div class="row">';
+        
+        data.disponibilidad.forEach(hab => {
+          const disponible = hab.camas_libres > 0 && hab.compatible;
+          const colorClase = disponible ? 'success' : 'danger';
+          
+          html += `
+            <div class="col-md-4 mb-3">
+              <div class="card border-${colorClase}">
+                <div class="card-header bg-${colorClase} text-white d-flex justify-content-between align-items-center">
+                  <strong>Habitación ${hab.numero}</strong>
+                  ${disponible ? '<i class="fas fa-check"></i>' : '<i class="fas fa-times"></i>'}
+                </div>
+                <div class="card-body">
+                  <p><strong>Tipo:</strong> ${hab.tipo}</p>
+                  <p><strong>Sexo Permitido:</strong> ${hab.sexo_permitido}</p>
+                  <p><strong>Servicio:</strong> ${hab.tipo_servicio || 'N/A'}</p>
+                  <hr>
+                  <p><strong>Camas Libres:</strong> ${hab.camas_libres}/${hab.total_camas}</p>
+                  <p><strong>Ocupadas:</strong> ${hab.camas_ocupadas}</p>
+                  <p><strong>En Limpieza:</strong> ${hab.camas_limpieza}</p>
+                  <div class="progress" style="height: 20px;">
+                    <div class="progress-bar bg-success" style="width: ${(hab.camas_libres/hab.total_camas)*100}%"></div>
+                    <div class="progress-bar bg-danger" style="width: ${(hab.camas_ocupadas/hab.total_camas)*100}%"></div>
+                    <div class="progress-bar bg-warning" style="width: ${(hab.camas_limpieza/hab.total_camas)*100}%"></div>
+                  </div>
+                  <small class="d-block mt-2">Ocupación: ${hab.porcentaje_ocupacion}%</small>
+                  ${!hab.compatible ? '<p class="text-danger mt-2 mb-0"><i class="fas fa-exclamation-triangle me-1"></i>Incompatible con sexo del paciente</p>' : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        });
+        
+        html += '</div>';
+        
+        if (contenidoDiv) {
+          contenidoDiv.innerHTML = html;
+        }
+        
+        // Cargar habitaciones en el select
+        cargarHabitacionesDisponibles(sectorId, sexo);
+        
+      } catch (error) {
+        console.error('❌ Error al cargar disponibilidad:', error);
+        if (contenidoDiv) {
+          contenidoDiv.innerHTML = `
+            <div class="alert alert-danger">
+              <i class="fas fa-times-circle me-2"></i>
+              Error al cargar disponibilidad: ${error.message}
+            </div>
+          `;
+        }
+      }
+    });
+  }
+  
+  // ============================================================================
+  // CARGAR HABITACIONES DISPONIBLES EN SELECT
+  // ============================================================================
+  async function cargarHabitacionesDisponibles(sectorId, sexo) {
+    try {
+      const url = `/internacion/api/disponibilidad-habitaciones?sector_id=${sectorId}${sexo ? `&sexo_paciente=${sexo}` : ''}`;
+      const response = await fetch(url);
+      const data = await response.json();
+      
+      const habSelect = document.getElementById('internacion_habitacion_id');
+      if (!habSelect) {
+        console.warn(' Elemento internacion_habitacion_id no encontrado');
+        return;
+      }
+      
+      habSelect.innerHTML = '<option value="">Seleccione...</option>';
+      
+      // Solo mostrar habitaciones compatibles con camas libres
+      const habDisponibles = data.disponibilidad.filter(h => h.compatible && h.camas_libres > 0);
+      
+      if (habDisponibles.length === 0) {
+        habSelect.innerHTML = '<option value="">Sin habitaciones disponibles</option>';
+        habSelect.disabled = true;
+        console.log(' No hay habitaciones disponibles. Paciente irá a lista de espera.');
+        return;
+      }
+      
+      habDisponibles.forEach(hab => {
+        const option = document.createElement('option');
+        option.value = hab.id;
+        option.textContent = `Hab. ${hab.numero} (${hab.camas_libres} libres - ${hab.tipo})`;
+        habSelect.appendChild(option);
+      });
+      
+      habSelect.disabled = false;
+      console.log(`✅ ${habDisponibles.length} habitación(es) cargada(s)`);
+      
+    } catch (error) {
+      console.error('❌ Error al cargar habitaciones:', error);
+    }
+  }
+  
+  // ============================================================================
+  // CARGAR CAMAS AL SELECCIONAR HABITACIÓN
+  // ============================================================================
+  const habitacionSelect = document.getElementById('internacion_habitacion_id');
+  if (habitacionSelect) {
+    habitacionSelect.addEventListener('change', async function() {
+      const habId = this.value;
+      
+      const camaSelect = document.getElementById('internacion_cama_id');
+      if (!camaSelect) {
+        console.warn(' Elemento internacion_cama_id no encontrado');
+        return;
+      }
+      
+      if (!habId) {
+        camaSelect.innerHTML = '<option value="">Seleccione habitación primero</option>';
+        camaSelect.disabled = true;
+        return;
+      }
+      
+      // Obtener sexo del paciente
+      const nombrePacienteEl = document.getElementById('nombre_paciente_internacion');
+      let sexo = null;
+      
+      if (nombrePacienteEl) {
+        const nombrePaciente = nombrePacienteEl.textContent;
+        const sexoMatch = nombrePaciente.match(/Sexo: (\w+)/);
+        sexo = sexoMatch ? sexoMatch[1] : null;
+      }
+      
+      try {
+        const url = `/internacion/api/camas-disponibles?habitacion_id=${habId}${sexo ? `&sexo_paciente=${sexo}` : ''}`;
+        console.log(' Consultando camas:', url);
+        
+        const response = await fetch(url);
+        const data = await response.json();
+        
+        console.log(' Camas recibidas:', data);
+        
+        camaSelect.innerHTML = '<option value="">Seleccione...</option>';
+        
+        if (data.camas.length === 0) {
+          camaSelect.innerHTML = '<option value="">Sin camas disponibles</option>';
+          camaSelect.disabled = true;
+          return;
+        }
+        
+        data.camas.forEach(cama => {
+          const option = document.createElement('option');
+          option.value = cama.id;
+          option.textContent = `Cama ${cama.numero}`;
+          camaSelect.appendChild(option);
+        });
+        
+        camaSelect.disabled = false;
+        console.log(`✅ ${data.camas.length} cama(s) cargada(s)`);
+        
+      } catch (error) {
+        console.error('❌ Error al cargar camas:', error);
+        alert('❌ Error al cargar camas disponibles');
+      }
+    });
+  }
+  
+  // ============================================================================
+  // GUARDAR INTERNACIÓN
+  // ============================================================================
+  const btnGuardarInternacion = document.getElementById('btnGuardarInternacion');
+  if (btnGuardarInternacion) {
+    btnGuardarInternacion.addEventListener('click', async () => {
+      const form = document.getElementById('formCrearInternacion');
+      if (!form) {
+        console.error('❌ Formulario formCrearInternacion no encontrado');
+        return;
+      }
+      
+      // Validar solo campos obligatorios (no cama/habitación)
+      const medicoId = document.getElementById('internacion_medico_id')?.value;
+      const tipoId = document.getElementById('internacion_tipo_internacion_id')?.value;
+      const prioridad = document.getElementById('internacion_prioridad')?.value;
+      const sectorId = document.getElementById('internacion_sector_id')?.value;
+      const pacienteId = document.getElementById('internacion_paciente_id')?.value;
+      
+      if (!medicoId || !tipoId || !prioridad || !sectorId || !pacienteId) {
+        alert('❌ Complete los campos obligatorios: Médico, Tipo de Internación, Prioridad, Sector');
+        form.classList.add('was-validated');
+        return;
+      }
+      
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData);
+      
+      // Convertir booleanos
+      data.es_prequirurgica = data.es_prequirurgica === 'true';
+      
+      console.log(' Enviando datos:', data);
+      
+      btnGuardarInternacion.disabled = true;
+      btnGuardarInternacion.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+      
+      try {
+        const response = await fetch('/internacion/api/crear', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        console.log(' Respuesta:', result);
+        
+        if (result.success) {
+          if (result.asignacion_inmediata) {
+            alert('✅ ' + result.message);
+          } else {
+            alert(' ' + result.message + `\nPrioridad: ${result.prioridad}`);
+          }
+          
+          const modalEl = document.getElementById('modalCrearInternacion');
+          if (modalEl) {
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) {
+              modalInstance.hide();
             }
-          </div>
-        </div>
-        ${habitacion.camas.length === 0 ? 
-          `<div class="alert alert-warning mt-2">
-            <i class="bi bi-exclamation-triangle"></i> Esta habitación no tiene camas asignadas
-            <button class="btn btn-sm btn-outline-primary ms-2" onclick="internacionManager.agregarCama(${habitacion.id})">
-              <i class="bi bi-plus"></i> Agregar Cama
-            </button>
-          </div>` :
-          `<div class="camas-grid">${habitacion.camas.map(cama => this.crearHtmlCama(cama)).join('')}</div>`
-        }
-      </div>
-    `;
-  }
-
-  crearHtmlCama(cama) {
-    const estadoClass = `cama-${cama.estado.toLowerCase()}`;
-    let contenidoExtra = '';
-
-    if (cama.estado === 'Ocupada' && cama.pacienteActual) {
-      contenidoExtra = `
-        <div class="cama-paciente">
-          ${cama.pacienteActual.usuario.nombre} ${cama.pacienteActual.usuario.apellido}
-          <br><small>DNI: ${cama.pacienteActual.usuario.dni}</small>
-        </div>
-      `;
-    } else if (cama.estado === 'EnLimpieza') {
-      contenidoExtra = `
-        <div class="cama-tiempo">${cama.tiempoRestanteLimpieza}min</div>
-        <button class="btn-finalizar" onclick="internacionManager.confirmarFinalizarLimpieza(${cama.id}, '${cama.numero}')" title="Finalizar limpieza">
-          <i class="bi bi-check"></i>
-        </button>
-      `;
-    }
-
-    return `
-      <div class="cama-card ${estadoClass}" data-cama-estado="${cama.estado}" onclick="internacionManager.mostrarDetalleCama(${cama.id})">
-        <div class="cama-numero">Cama ${cama.numero}</div>
-        <div class="cama-estado">${cama.estado}</div>
-        ${contenidoExtra}
-      </div>
-    `;
-  }
-
-  renderizarListaEspera() {
-    const container = document.getElementById('listaEsperaContent');
-    const contador = document.getElementById('contadorEspera');
-    
-    contador.textContent = this.data.listasEspera.length;
-
-    if (this.data.listasEspera.length === 0) {
-      container.innerHTML = '<div class="p-3 text-center text-muted">No hay pacientes en espera</div>';
-      return;
-    }
-
-    container.innerHTML = this.data.listasEspera.map(item => {
-  // Convertir prioridad numérica a texto
-  const prioridadTexto = item.prioridad === 1 ? 'ALTA' : item.prioridad === 2 ? 'MEDIA' : 'BAJA';
-  const prioridadClass = item.prioridad === 1 ? 'alta' : item.prioridad === 2 ? 'media' : 'baja';
-  
-  return `
-    <div class="list-group-item lista-espera-item prioridad-${prioridadClass}">
-      <div class="paciente-info">Paciente ${item.paciente_id}</div>
-      <div class="espera-tiempo">
-        <i class="bi bi-clock"></i> ${this.calcularTiempoEspera(item.fecha_registro)}
-      </div>
-      <div class="mt-1">
-        <span class="badge bg-${item.prioridad === 1 ? 'danger' : item.prioridad === 2 ? 'warning' : 'success'} text-white">
-          ${prioridadTexto}
-        </span>
-        <small class="text-muted">${item.tipo}</small>
-      </div>
-    </div>
-  `;
-}).join('');
-  }
-
-  getColorOcupacion(porcentaje) {
-    if (porcentaje >= 90) return 'linear-gradient(135deg, #dc3545 0%, #c82333 100%)'; // Rojo
-    if (porcentaje >= 70) return 'linear-gradient(135deg, #ffc107 0%, #e0a800 100%)'; // Amarillo
-    if (porcentaje >= 50) return 'linear-gradient(135deg, #17a2b8 0%, #138496 100%)'; // Azul
-    return 'linear-gradient(135deg, #28a745 0%, #1e7e34 100%)'; // Verde
-  }
-
-  calcularTiempoEspera(fechaRegistro) {
-    const ahora = new Date();
-    const registro = new Date(fechaRegistro);
-    const diferencia = ahora - registro;
-    
-    const horas = Math.floor(diferencia / (1000 * 60 * 60));
-    const minutos = Math.floor((diferencia % (1000 * 60 * 60)) / (1000 * 60));
-    
-    if (horas > 0) {
-      return `${horas}h ${minutos}m`;
-    }
-    return `${minutos}m`;
-  }
-
-  aplicarFiltros() {
-    const sectores = document.querySelectorAll('[data-sector-id]');
-    
-    sectores.forEach(sectorEl => {
-      const nombreSector = sectorEl.dataset.sectorNombre;
-      let mostrarSector = true;
-
-      // Filtro por nombre de sector
-      if (this.filtros.sector && !nombreSector.includes(this.filtros.sector)) {
-        mostrarSector = false;
-      }
-
-      // Filtros por habitación
-      const habitaciones = sectorEl.querySelectorAll('.habitacion-row');
-      let habitacionesVisibles = 0;
-
-      habitaciones.forEach(habitacionEl => {
-        let mostrarHabitacion = true;
-
-        // Filtro por tipo de habitación
-        if (this.filtros.tipo && habitacionEl.dataset.habitacionTipo !== this.filtros.tipo) {
-          mostrarHabitacion = false;
-        }
-
-        // Filtro por estado de camas
-        if (this.filtros.estado) {
-          const camas = habitacionEl.querySelectorAll(`[data-cama-estado="${this.filtros.estado}"]`);
-          if (camas.length === 0) {
-            mostrarHabitacion = false;
           }
+          
+          location.reload();
+        } else {
+          alert('❌ Error: ' + result.message);
         }
-
-        habitacionEl.style.display = mostrarHabitacion ? 'block' : 'none';
-        if (mostrarHabitacion) habitacionesVisibles++;
-      });
-
-      // Ocultar sector si no tiene habitaciones visibles
-      if (habitacionesVisibles === 0) {
-        mostrarSector = false;
+      } catch (error) {
+        console.error('❌ Error al crear internación:', error);
+        alert('❌ Error al crear internación: ' + error.message);
+      } finally {
+        btnGuardarInternacion.disabled = false;
+        btnGuardarInternacion.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Internación';
       }
-
-      sectorEl.style.display = mostrarSector ? 'block' : 'none';
     });
   }
-
-  async confirmarFinalizarLimpieza(camaId, camaNumero) {
-    document.getElementById('infoModalCama').textContent = `Cama ${camaNumero}`;
-    document.getElementById('btnConfirmarFinalizarLimpieza').dataset.camaId = camaId;
-    
-    const modal = new bootstrap.Modal(document.getElementById('modalFinalizarLimpieza'));
-    modal.show();
-  }
-
-  async finalizarLimpieza() {
-    const camaId = document.getElementById('btnConfirmarFinalizarLimpieza').dataset.camaId;
-    
-    try {
-      const response = await fetch(`/camas/${camaId}/finalizar-limpieza`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        this.mostrarNotificacion(data.message, 'success');
-        this.cargarDatos(); // Recargar datos
-        
-        // Cerrar modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modalFinalizarLimpieza'));
-        modal.hide();
-      } else {
-        this.mostrarNotificacion(data.message || 'Error al finalizar limpieza', 'error');
-      }
-
-    } catch (error) {
-      console.error('Error al finalizar limpieza:', error);
-      this.mostrarNotificacion('Error de conexión', 'error');
-    }
-  }
-
-  mostrarModalNuevaHabitacion() {
-    // Cargar sectores en el select
-    if (this.data && this.data.sectores) {
-      const select = document.getElementById('sector_id');
-      select.innerHTML = '<option value="">Seleccionar sector...</option>';
-      
-      this.data.sectores.forEach(sector => {
-        select.innerHTML += `<option value="${sector.id}">${sector.nombre}</option>`;
-      });
-    }
-
-    const modal = new bootstrap.Modal(document.getElementById('modalNuevaHabitacion'));
-    modal.show();
-  }
-
-  async crearHabitacion() {
-    const form = document.getElementById('formNuevaHabitacion');
-    const formData = new FormData(form);
-    
-    const data = {
-      sector_id: formData.get('sector_id'),
-      numero: formData.get('numero'),
-      tipo: formData.get('tipo'),
-      sexo_permitido: formData.get('sexo_permitido'),
-      tipo_de_servicio_id: formData.get('tipo_de_servicio_id'),
-      tipo_internacion_id: 1, // Por defecto
-      cantidad_camas: formData.get('cantidad_camas') || null
-    };
-
-    try {
-      const response = await fetch('/internacion/api/habitacion', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        this.mostrarNotificacion(result.message, 'success');
-        this.cargarDatos(); // Recargar datos
-        
-        // Cerrar modal y limpiar form
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevaHabitacion'));
-        modal.hide();
-        form.reset();
-      } else {
-        this.mostrarNotificacion(result.message || 'Error al crear habitación', 'error');
-      }
-
-    } catch (error) {
-      console.error('Error al crear habitación:', error);
-      this.mostrarNotificacion('Error de conexión', 'error');
-    }
-  }
-
-  mostrarDetalleCama(camaId) {
-    // Implementar modal de detalle de cama
-    console.log('Mostrar detalle de cama:', camaId);
-  }
-
-  agregarCama(habitacionId) {
-    // Implementar modal para agregar cama
-    console.log('Agregar cama a habitación:', habitacionId);
-  }
-
-  iniciarActualizacionAutomatica() {
-    // Actualizar cada 30 segundos
-    this.intervalId = setInterval(() => {
-      this.cargarDatos();
-    }, 30000);
-  }
-
-  // Gestión de Lista de Espera
-  toggleListaEspera() {
-    const cuerpo = document.getElementById('cuerpoListaEspera');
-    const footer = document.getElementById('footerListaEspera');
-    const icono = document.getElementById('iconoExpandir');
-    
-    if (cuerpo.style.display === 'none') {
-      cuerpo.style.display = 'block';
-      footer.style.display = 'block';
-      icono.className = 'bi bi-chevron-down';
-    } else {
-      cuerpo.style.display = 'none';
-      footer.style.display = 'none';
-      icono.className = 'bi bi-chevron-up';
-    }
-  }
-
-  mostrarModalGestionLista() {
-    this.cargarTablaGestionLista();
-    const modal = new bootstrap.Modal(document.getElementById('modalGestionLista'));
-    modal.show();
-  }
-
-  cargarTablaGestionLista() {
-    if (!this.data || !this.data.listasEspera) return;
-
-    const tbody = document.getElementById('cuerpoTablaLista');
-    tbody.innerHTML = '';
-
-    this.data.listasEspera.forEach((item, index) => {
-      const prioridadTexto = item.prioridad === 1 ? 'ALTA' : item.prioridad === 2 ? 'MEDIA' : 'BAJA';
-      const prioridadClass = item.prioridad === 1 ? 'danger' : item.prioridad === 2 ? 'warning' : 'success';
-      
-      const row = document.createElement('tr');
-      row.innerHTML = `
-        <td>${index + 1}</td>
-        <td>${item.paciente.usuario.nombre} ${item.paciente.usuario.apellido}</td>
-        <td>${item.paciente.usuario.dni}</td>
-        <td><span class="badge bg-info">${item.tipo}</span></td>
-        <td><span class="badge bg-${prioridadClass}">${prioridadTexto}</span></td>
-        <td><span class="badge bg-secondary">${item.estado}</span></td>
-        <td>${this.calcularTiempoEspera(item.fecha_registro)}</td>
-        <td>${item.sector_id || 'N/A'}</td>
-        <td>
-          <div class="btn-group btn-group-sm">
-            <button class="btn btn-outline-primary" onclick="internacionManager.editarPacienteLista(${item.id})" title="Editar">
-              <i class="bi bi-pencil"></i>
-            </button>
-            <button class="btn btn-outline-success" onclick="internacionManager.asignarPaciente(${item.id})" title="Asignar">
-              <i class="bi bi-check"></i>
-            </button>
-            <button class="btn btn-outline-danger" onclick="internacionManager.eliminarPacienteLista(${item.id})" title="Eliminar">
-              <i class="bi bi-trash"></i>
-            </button>
-          </div>
-        </td>
-      `;
-      tbody.appendChild(row);
-    });
-  }
-
-  mostrarModalAgregarPaciente() {
-    document.getElementById('tituloPacienteLista').textContent = 'Agregar Paciente a Lista';
-    document.getElementById('formPacienteLista').reset();
-    document.getElementById('infoPacienteEncontrado').style.display = 'none';
-    
-    // Cargar sectores
-    if (this.data && this.data.sectores) {
-      const selectSector = document.getElementById('sectorPacienteLista');
-      selectSector.innerHTML = '<option value="">Seleccionar sector...</option>';
-      this.data.sectores.forEach(sector => {
-        selectSector.innerHTML += `<option value="${sector.id}">${sector.nombre}</option>`;
-      });
-    }
-
-    const modal = new bootstrap.Modal(document.getElementById('modalPacienteLista'));
-    modal.show();
-  }
-
-  async buscarPacientePorDNI() {
-    const dni = document.getElementById('dniPacienteLista').value.trim();
-    
-    if (!dni || !/^\d{7,8}$/.test(dni)) {
-      this.mostrarNotificacion('Ingrese un DNI válido (7 u 8 dígitos)', 'error');
-      return;
-    }
-
-    try {
-      const response = await fetch(`/admisiones/pacientes/buscar?dni=${dni}`);
-      const data = await response.json();
-
-      if (response.ok && data.paciente) {
-        document.getElementById('nombrePacienteEncontrado').textContent = 
-          `${data.paciente.nombre} ${data.paciente.apellido} (DNI: ${data.paciente.dni})`;
-        document.getElementById('infoPacienteEncontrado').style.display = 'block';
-        document.getElementById('infoPacienteEncontrado').dataset.pacienteId = data.paciente.id;
-      } else {
-        document.getElementById('infoPacienteEncontrado').style.display = 'none';
-        this.mostrarNotificacion('Paciente no encontrado', 'error');
-      }
-    } catch (error) {
-      console.error('Error al buscar paciente:', error);
-      this.mostrarNotificacion('Error al buscar paciente', 'error');
-    }
-  }
-
-  mostrarCamposEspecificos(tipo) {
-    const sectorContainer = document.getElementById('sectorContainer');
-    const estudiosContainer = document.getElementById('estudiosContainer');
-    
-    // Ocultar todos primero
-    sectorContainer.style.display = 'none';
-    estudiosContainer.style.display = 'none';
-    
-    // Mostrar según el tipo
-    switch(tipo) {
-      case 'INTERNACION':
-        sectorContainer.style.display = 'block';
-        break;
-      case 'ESTUDIO':
-        estudiosContainer.style.display = 'block';
-        break;
-    }
-  }
-
-  async agregarPacienteALista() {
-    const pacienteInfo = document.getElementById('infoPacienteEncontrado');
-    const pacienteId = pacienteInfo.dataset.pacienteId;
-    
-    if (!pacienteId) {
-      this.mostrarNotificacion('Debe buscar y seleccionar un paciente', 'error');
-      return;
-    }
-
-    const formData = new FormData(document.getElementById('formPacienteLista'));
-    const data = {
-      paciente_id: parseInt(pacienteId),
-      tipo: formData.get('tipoListaPaciente'),
-      prioridad: parseInt(formData.get('prioridadPaciente')),
-      sector_id: formData.get('sectorPacienteLista') || null,
-      tipo_estudio_id: formData.get('tipoEstudioPaciente') || null,
-      observaciones: formData.get('observacionesPaciente') || null
-    };
-
-    try {
-      const response = await fetch('/internacion/api/lista-espera', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data)
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        this.mostrarNotificacion('Paciente agregado a lista de espera', 'success');
-        this.cargarDatos(); // Recargar datos
-        
-        // Cerrar modal
-        const modal = bootstrap.Modal.getInstance(document.getElementById('modalPacienteLista'));
-        modal.hide();
-      } else {
-        this.mostrarNotificacion(result.message || 'Error al agregar paciente', 'error');
-      }
-
-    } catch (error) {
-      console.error('Error al agregar paciente a lista:', error);
-      this.mostrarNotificación('Error de conexión', 'error');
-    }
-  }
-
-  async eliminarPacienteLista(listaId) {
-    if (!confirm('¿Está seguro de eliminar este paciente de la lista de espera?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/internacion/api/lista-espera/${listaId}`, {
-        method: 'DELETE'
-      });
-
-      const result = await response.json();
-
-      if (result.success) {
-        this.mostrarNotificacion('Paciente eliminado de la lista', 'success');
-        this.cargarDatos();
-        this.cargarTablaGestionLista();
-      } else {
-        this.mostrarNotificacion(result.message || 'Error al eliminar', 'error');
-      }
-
-    } catch (error) {
-      console.error('Error al eliminar:', error);
-      this.mostrarNotificacion('Error de conexión', 'error');
-    }
-  }
-
-  // Placeholder para futuras funciones
-  editarPacienteLista(listaId) {
-    console.log('Editar paciente lista:', listaId);
-    // Implementar modal de edición
-  }
-
-  asignarPaciente(listaId) {
-    console.log('Asignar paciente:', listaId);
-    // Implementar lógica de asignación automática
-  }
-
-  mostrarLoading() {
-    document.getElementById('loadingSpinner').classList.remove('d-none');
-    document.getElementById('sectoresContainer').style.opacity = '0.5';
-  }
-
-  ocultarLoading() {
-    document.getElementById('loadingSpinner').classList.add('d-none');
-    document.getElementById('sectoresContainer').style.opacity = '1';
-  }
-
-  mostrarNotificacion(mensaje, tipo = 'info') {
-    // Crear toast de Bootstrap
-    const toastContainer = document.getElementById('toastContainer') || this.crearToastContainer();
-    
-    const toastId = 'toast_' + Date.now();
-    const bgClass = tipo === 'success' ? 'bg-success' : tipo === 'error' ? 'bg-danger' : 'bg-info';
-    
-    const toastHtml = `
-      <div id="${toastId}" class="toast ${bgClass} text-white" role="alert">
-        <div class="toast-body">
-          ${mensaje}
-        </div>
-      </div>
-    `;
-    
-    toastContainer.insertAdjacentHTML('beforeend', toastHtml);
-    
-    const toastElement = document.getElementById(toastId);
-    const toast = new bootstrap.Toast(toastElement);
-    toast.show();
-    
-    // Eliminar después de mostrar
-    toastElement.addEventListener('hidden.bs.toast', () => {
-      toastElement.remove();
-    });
-  }
-
-  crearToastContainer() {
-    const container = document.createElement('div');
-    container.id = 'toastContainer';
-    container.className = 'toast-container position-fixed top-0 end-0 p-3';
-    container.style.zIndex = '1055';
-    document.body.appendChild(container);
-    return container;
-  }
-}
-
-// Inicializar cuando se carga la página
-let internacionManager;
-document.addEventListener('DOMContentLoaded', () => {
-  internacionManager = new InternacionManager();
-});
-
-// Limpiar al salir de la página
-window.addEventListener('beforeunload', () => {
-  if (internacionManager) {
-    internacionManager.detenerActualizacionAutomatica();
-  }
-});
-console.log('✅ internacion.js cargado correctamente');
-console.log('✅ InternacionManager creado:', window.internacionManager);
-
-// Exponer globalmente para debug
-window.debugToggle = function() {
-  const cuerpo = document.getElementById('cuerpoListaEspera');
-  const footer = document.getElementById('footerListaEspera');
-  console.log('Elementos:', { cuerpo, footer });
   
-  if (cuerpo && footer) {
-    cuerpo.style.display = cuerpo.style.display === 'none' ? 'block' : 'none';
-    footer.style.display = footer.style.display === 'none' ? 'block' : 'none';
-  }
-};
+  console.log(' internacion.js cargado completamente');
+});

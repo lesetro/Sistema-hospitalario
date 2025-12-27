@@ -7,135 +7,237 @@ block content
       h1
         i.fas.fa-hospital-alt
         |  Sistema de Gestión Hospitalaria
-      p.lead Bienvenido al panel administrativo del hospital. Desde aquí puedes gestionar todos los aspectos operativos.
+      p.lead Bienvenido al panel administrativo. Desde aquí puedes visualizar el estado general del hospital.
 
-    // Cards de estadísticas rápidas
+    // Cards de estadísticas rápidas - Fila 1
     .stats-grid.mb-4
       .stat-card
-        h3= estadisticas.pacientesActivos || 0
+        h3= (estadisticas && estadisticas.pacientesActivos) || 0
         p
           i.fas.fa-users.text-primary
           |  Pacientes Activos
       .stat-card
-        h3= estadisticas.camasOcupadas || 0
+        h3= estadisticas && estadisticas.camasTotales ? `${estadisticas.camasOcupadas || 0}/${estadisticas.camasTotales}` : '0/0'
         p
           i.fas.fa-bed.text-success
           |  Camas Ocupadas
       .stat-card
-        h3= estadisticas.turnosHoy || 0
+        h3= (estadisticas && estadisticas.turnosHoy) || 0
         p
           i.fas.fa-calendar.text-warning
           |  Turnos Hoy
       .stat-card
-        h3= estadisticas.admisionesHoy || 0
+        h3= (estadisticas && estadisticas.admisionesHoy) || 0
         p
           i.fas.fa-user-plus.text-info
           |  Admisiones Hoy
       .stat-card
-        h3= estadisticas.emergenciasActivas || 0
+        h3= (estadisticas && estadisticas.internacionesActivas) || 0
         p
-          i.fas.fa-exclamation-triangle.text-danger
-          |  Emergencias Activas
+          i.fas.fa-procedures.text-danger
+          |  Internaciones Activas
 
-   
+    // Cards de estadísticas rápidas - Fila 2
+    .stats-grid.mb-4
+      .stat-card
+        h3= (estadisticas && estadisticas.altasMedicasHoy) || 0
+        p
+          i.fas.fa-sign-out-alt.text-success
+          |  Altas Médicas Hoy
+      .stat-card
+        h3= (estadisticas && estadisticas.listasEsperaPendientes) || 0
+        p
+          i.fas.fa-clock.text-warning
+          |  Listas de Espera
+      .stat-card
+        h3= (estadisticas && estadisticas.facturasNoPublicas) || 0
+        p
+          i.fas.fa-file-invoice-dollar.text-info
+          |  Facturas Particulares/OS
+      .stat-card
+        h3= (estadisticas && estadisticas.facturasPublicas) || 0
+        p
+          i.fas.fa-hospital-symbol.text-primary
+          |  Facturas Sistema Público
 
-    // Tabla completa de admisiones
-    .admissions-section
+    // Sección de estadísticas demográficas
+    if demograficos
+      .row.mb-4
+        .col-md-6
+          .card
+            .card-header.bg-primary.text-white
+              h5.mb-0
+                i.fas.fa-venus-mars.me-2
+                | Admisiones Hoy por Sexo
+            .card-body
+              .row.text-center
+                .col-4
+                  h3.text-primary= demograficos.hombres || 0
+                  p.mb-0 Hombres
+                .col-4
+                  h3.text-danger= demograficos.mujeres || 0
+                  p.mb-0 Mujeres
+                .col-4
+                  h3.text-secondary= demograficos.otros || 0
+                  p.mb-0 Otros
+
+        .col-md-6
+          .card
+            .card-header.bg-success.text-white
+              h5.mb-0
+                i.fas.fa-users.me-2
+                | Admisiones Hoy por Edad
+            .card-body
+              .row.text-center
+                .col-3
+                  h4.text-info= demograficos.ninos || 0
+                  p.mb-0
+                    small Niños
+                    br
+                    small.text-muted (0-12)
+                .col-3
+                  h4.text-warning= demograficos.adolescentes || 0
+                  p.mb-0
+                    small Adolescentes
+                    br
+                    small.text-muted (13-17)
+                .col-3
+                  h4.text-primary= demograficos.adultos || 0
+                  p.mb-0
+                    small Adultos
+                    br
+                    small.text-muted (18-64)
+                .col-3
+                  h4.text-danger= demograficos.adultosMayores || 0
+                  p.mb-0
+                    small Mayores
+                    br
+                    small.text-muted (65+)
+
+    // Sección de formas de ingreso y estudios
+    .row.mb-4
+      .col-md-6
         .card
-          .card-header.d-flex.justify-content-between.align-items-center
+          .card-header.bg-info.text-white
             h5.mb-0
-              i.fas.fa-clipboard-list.me-2
-              | Listado de Admisiones 
-            .d-flex
-            
+              i.fas.fa-door-open.me-2
+              | Formas de Ingreso - Hoy
+          .card-body
+            if formasIngreso && formasIngreso.hoy && formasIngreso.hoy.length > 0
+              table.table.table-sm.table-striped
+                thead
+                  tr
+                    th Forma de Ingreso
+                    th.text-end Cantidad
+                tbody
+                  each forma in formasIngreso.hoy
+                    tr
+                      td= forma.nombre
+                      td.text-end
+                        span.badge.bg-info= forma.total
+            else
+              p.text-muted.text-center No hay admisiones hoy
 
-        
-          // Tabla de admisiones
-          .table-responsive
-            table.table.table-striped.table-hover
-              thead.table-dark
-                tr
-                  th DNI
-                  th Paciente
-                  th Fecha/Hora
-                  th Médico
-                  th Sector
-                  th Estado
-                  th Tipo
-                  th Acciones
-              tbody#admissionsTableBody
-                if admisiones && admisiones.length > 0
-                  each admision in admisiones
+      .col-md-6
+        .card
+          .card-header.bg-warning.text-dark
+            h5.mb-0
+              i.fas.fa-flask.me-2
+              | Estudios Más Solicitados - Este Mes
+          .card-body
+            if estudios && estudios.length > 0
+              table.table.table-sm.table-striped
+                thead
+                  tr
+                    th Tipo de Estudio
+                    th.text-end Cantidad
+                tbody
+                  each estudio in estudios
                     tr
                       td
-                        if admision.paciente && admision.paciente.usuario
-                          = admision.paciente.usuario.dni
-                        else
-                          | N/A
-                      td
-                        if admision.paciente && admision.paciente.usuario
-                          strong= `${admision.paciente.usuario.nombre} ${admision.paciente.usuario.apellido}`
-                        else
-                          | N/A
-                      td
-                        div= new Date(admision.fecha).toLocaleDateString()
-                        if admision.turno && admision.turno.hora_inicio
-                          small.text-muted= admision.turno.hora_inicio.substring(0, 5)
-                      td
-                        if admision.medico && admision.medico.usuario
-                          = `Dr. ${admision.medico.usuario.nombre} ${admision.medico.usuario.apellido}`
-                        else
-                          span.text-muted Sin asignar
-                      td
-                        if admision.sector
-                          = admision.sector.nombre
-                        else
-                          span.text-muted Sin asignar
-                      td
-                        span.badge(class=`bg-${admision.estado === 'Pendiente' ? 'warning' : admision.estado === 'Completada' ? 'success' : 'secondary'}`)
-                          = admision.estado
-                      td
-                        if admision.turno && admision.turno.tipoTurno
-                          = admision.turno.tipoTurno.nombre
-                        else
-                          span.text-muted N/A
-                      td
-                        .btn-group-sm
-                          button.btn.btn-sm.btn-outline-primary.me-1(onclick=`viewAdmission(${admision.id})`)
-                            i.fas.fa-eye
-                          button.btn.btn-sm.btn-outline-secondary.me-1(onclick=`editAdmission(${admision.id})`)
-                            i.fas.fa-edit
-                          if admision.estado === 'Pendiente'
-                            button.btn.btn-sm.btn-outline-success(onclick=`completeAdmission(${admision.id})`)
-                              i.fas.fa-check
-                else
-                  tr
-                    td.text-center.text-muted(colspan="8") No hay admisiones registradas
+                        = estudio.nombre
+                        br
+                        small.text-muted= estudio.categoria
+                      td.text-end
+                        span.badge.bg-warning.text-dark= estudio.total
+            else
+              p.text-muted.text-center No hay estudios este mes
 
-          // Paginación
-          if pagination
-            include ../../partials/pagination
-            
+    // Sección de tipos de internación
+    if tiposInternacion && tiposInternacion.length > 0
+      .row.mb-4
+        .col-12
+          .card
+            .card-header.bg-danger.text-white
+              h5.mb-0
+                i.fas.fa-procedures.me-2
+                | Internaciones Activas por Tipo
+            .card-body
+              .row
+                each tipo in tiposInternacion
+                  .col-md-3.col-sm-6.mb-3
+                    .card.border-danger
+                      .card-body.text-center
+                        h3.text-danger= tipo.total
+                        p.mb-0= tipo.nombre
 
-  // Modal para detalles de admisión
-  #admissionModal.modal.fade(tabindex="-1")
-    .modal-dialog.modal-lg
-      .modal-content
-        .modal-header
-          h5.modal-title Detalles de Admisión
-          button.btn-close(type="button" data-bs-dismiss="modal")
-        .modal-body
-          #admissionDetails
-            // Contenido dinámico
-        .modal-footer
-          button.btn.btn-secondary(type="button" data-bs-dismiss="modal") Cerrar
+    // Admisiones recientes
+    if admisionesRecientes && admisionesRecientes.length > 0
+      .row.mb-4
+        .col-12
+          .card
+            .card-header.bg-secondary.text-white
+              h5.mb-0
+                i.fas.fa-history.me-2
+                | Últimas Admisiones Registradas
+            .card-body
+              .table-responsive
+                table.table.table-hover.table-sm
+                  thead
+                    tr
+                      th DNI
+                      th Paciente
+                      th Motivo
+                      th Médico
+                      th Sector
+                      th Estado
+                      th Fecha
+                  tbody
+                    each admision in admisionesRecientes
+                      tr
+                        td
+                          if admision.paciente && admision.paciente.usuario
+                            = admision.paciente.usuario.dni
+                          else
+                            | N/A
+                        td
+                          if admision.paciente && admision.paciente.usuario
+                            strong= admision.paciente.usuario.nombre + ' ' + admision.paciente.usuario.apellido
+                          else
+                            | N/A
+                        td
+                          if admision.motivo
+                            = admision.motivo.nombre
+                          else
+                            | N/A
+                        td
+                          if admision.medico && admision.medico.usuario
+                            = 'Dr. ' + admision.medico.usuario.nombre + ' ' + admision.medico.usuario.apellido
+                          else
+                            span.text-muted Sin asignar
+                        td
+                          if admision.sector
+                            = admision.sector.nombre
+                          else
+                            | N/A
+                        td
+                          span.badge(class=`bg-${admision.estado === 'Pendiente' ? 'warning' : admision.estado === 'Completada' ? 'success' : 'secondary'}`)
+                            = admision.estado
+                        td
+                          small= new Date(admision.created_at).toLocaleString()
+              .text-end
+                a.btn.btn-sm.btn-outline-primary(href='/admisiones') Ver todas las admisiones →
 
-  block scripts
-    script.
-      // Configuración para búsqueda
-      window.searchConfig = {
-        baseUrl: '/',
-        globalSearchUrl: '/api/search/global',
-        admissionsUrl: '/admisiones/api'
-      };
-    script(src="/js/dashboard-admin.js")
+block scripts
+  
+  script(src="/js/dashboard-admin.js")

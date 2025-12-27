@@ -1,22 +1,131 @@
 extends ../layouts/layout
 
 block content
-  .container.mt-4
-    if error
-      .alert.alert-danger= error
-    h1.mb-4.text-center Iniciar Sesión
-    form(method='POST' action='/auth/login' novalidate)
-      .mb-3
-        label.form-label(for='email') Correo Electrónico
-        input#email.form-control(type='email' name='email' required)
-      .mb-3
-        label.form-label(for='password') Contraseña
-        input#password.form-control(type='password' name='password' required)
-      button.btn.btn-custom(type='submit')
-        i.bi.bi-box-arrow-in-right.me-2
-        | Iniciar Sesión
-    .mt-3.text-center
-      p ¿No tienes cuenta? 
-        a(href='/auth/register' data-link) Regístrate aquí
-      p ¿Olvidaste tu contraseña? 
-        a(href='/auth/recuperarContrasena' data-link) Recupera tu contraseña
+  .row.justify-content-center
+    .col-md-6.col-lg-5
+      .card.mt-5
+        .card-body.p-4
+          h2.text-center.mb-4
+            i.bi.bi-box-arrow-in-right.me-2
+            | Iniciar Sesión
+          
+          #errorAlert.alert.alert-danger.alert-dismissible.fade.show(role="alert" style="display: none;")
+            span#errorMessage
+            button.btn-close(type="button" data-bs-dismiss="alert")
+          
+          
+          form#loginForm
+            .mb-3
+              label.form-label(for="email")
+                i.bi.bi-envelope.me-1
+                | Correo Electrónico
+              input#email.form-control(
+                type="email", 
+                name="email", 
+                required,
+                placeholder="usuario@ejemplo.com"
+              )
+            
+            .mb-3
+              label.form-label(for="password")
+                i.bi.bi-key.me-1
+                | Contraseña
+              input#password.form-control(
+                type="password", 
+                name="password", 
+                required,
+                placeholder="••••••••"
+              )
+            
+            .d-grid.mb-3
+              button#submitBtn.btn.btn-custom(type="submit")
+                i.bi.bi-box-arrow-in-right.me-2
+                | Ingresar al Sistema
+            
+            .text-center.mt-4
+              .row
+                .col-md-6.mb-2
+                  a.btn.btn-outline-primary.w-100(href="/auth/register")
+                    i.bi.bi-person-plus.me-1
+                    | Registrarse
+                .col-md-6.mb-2
+                  a.btn.btn-outline-secondary.w-100(href="/auth/recuperar-contrasena")
+                    i.bi.bi-key.me-1
+                    | Recuperar Contraseña
+
+  
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      const loginForm = document.getElementById('loginForm');
+      const submitBtn = document.getElementById('submitBtn');
+      const errorAlert = document.getElementById('errorAlert');
+      const errorMessage = document.getElementById('errorMessage');
+      
+      loginForm.addEventListener('submit', async function(e) {
+        e.preventDefault(); // Prevenir envío tradicional
+        
+        const email = document.getElementById('email').value;
+        const password = document.getElementById('password').value;
+        
+        // Validación básica
+        if (!email || !password) {
+          showError('Por favor, completa todos los campos');
+          return;
+        }
+        
+        // Deshabilitar botón
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = '<i class="bi bi-hourglass-split me-2"></i>Procesando...';
+        
+        try {
+          
+          const response = await fetch('/auth/login', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Accept': 'application/json'
+            },
+            body: JSON.stringify({ email, password })
+          });
+          
+          const data = await response.json();
+          
+          if (data.success) {
+            // Login exitoso - redirigir
+            window.location.href = data.redirect || '/dashboard';
+          } else {
+            // Mostrar error
+            showError(data.message);
+            
+            //  MOSTRAR OPCIÓN DE RECUPERAR CONTRASEÑA
+            if (data.message.includes('Credenciales')) {
+              showPasswordRecoveryOption();
+            }
+          }
+        } catch (error) {
+          showError('Error de conexión. Intenta nuevamente.');
+        } finally {
+          // Restaurar botón
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = '<i class="bi bi-box-arrow-in-right me-2"></i>Ingresar al Sistema';
+        }
+      });
+      
+      function showError(message) {
+        errorMessage.textContent = message;
+        errorAlert.style.display = 'block';
+      }
+      
+      function showPasswordRecoveryOption() {
+        const recoveryHTML = `
+          <div class="mt-2">
+            <a href="/auth/recuperar-contrasena" class="btn btn-sm btn-outline-danger">
+              <i class="bi bi-key me-1"></i>¿Olvidaste tu contraseña?
+            </a>
+          </div>
+        `;
+        
+       
+        errorMessage.insertAdjacentHTML('afterend', recoveryHTML);
+      }
+    });

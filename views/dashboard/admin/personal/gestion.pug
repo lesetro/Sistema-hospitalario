@@ -1,0 +1,193 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    #alerta-container
+    #loading.text-center.d-none.my-4
+      .spinner-border
+      p.mt-2 Cargando...
+
+    //- ENCABEZADO Y ESTADÍSTICAS
+    .row.mb-4
+      .col-md-9
+        h2
+          i.fas.fa-users.me-2
+          | Gestión de Personal Hospitalario
+      .col-md-3
+        .row
+          .col-6
+            .card.text-center.bg-primary.text-white
+              .card-body.p-2
+                h4#total-medicos.mb-0 0
+                small Médicos
+          .col-6
+            .card.text-center.bg-success.text-white
+              .card-body.p-2
+                h4#total-enfermeros.mb-0 0
+                small Enfermeros
+          .col-6.mt-2
+            .card.text-center.bg-warning.text-white
+              .card-body.p-2
+                h4#total-administrativos.mb-0 0
+                small Admin
+          .col-6.mt-2
+            .card.text-center.bg-danger.text-white
+              .card-body.p-2
+                h4#sin-asignar.mb-0 0
+                small Sin Sector
+
+    //- FILTROS
+    .card.mb-4
+      .card-header
+        h5.mb-0
+          i.fas.fa-filter.me-2
+          | Filtros de Búsqueda
+      .card-body
+        .row
+          .col-md-3
+            label.form-label Búsqueda (mín 3 letras)
+            input#busqueda.form-control(type='text' placeholder='DNI, nombre...')
+          .col-md-2
+            label.form-label Tipo Personal
+            select#filtro-tipo.form-select
+              option(value='') Todos
+              option(value='medico') Médicos
+              option(value='enfermero') Enfermeros
+              option(value='administrativo') Administrativos
+          .col-md-2
+            label.form-label Sector
+            select#filtro-sector.form-select
+              option(value='') Todos
+              if sectores
+                each s in sectores
+                  option(value=s.id)= s.nombre
+          .col-md-2.d-flex.align-items-end
+            .form-check
+              input#filtro-sin-asignar.form-check-input(type='checkbox')
+              label.form-check-label(for='filtro-sin-asignar') Solo sin asignar
+
+    //- TABLA
+    .card
+      .card-header.bg-primary.text-white
+        h5.mb-0
+          i.fas.fa-table.me-2
+          | Personal Hospitalario
+      .card-body
+        .table-responsive
+          table.table.table-hover.table-sm
+            thead
+              tr
+                th Tipo
+                th Nombre
+                th Email
+                th Sector
+                th Detalle
+                th Estado
+                th Acciones
+            tbody#tabla-personal-body
+              tr
+                td.text-center(colspan='7') Cargando...
+      .card-footer
+        #paginacion
+
+  //- MODAL DETALLES
+  #modalDetalles.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5.modal-title
+            i.fas.fa-user.me-2
+            | Detalles del Empleado
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          .row.mb-3
+            .col-md-6
+              p
+                strong Nombre: 
+                span#detalle-nombre
+              p
+                strong DNI: 
+                span#detalle-dni
+              p
+                strong Email: 
+                span#detalle-email
+            .col-md-6
+              p
+                strong Sector: 
+                span#detalle-sector
+              p
+                strong Estado: 
+                span#detalle-estado
+          h6 Turnos Asignados
+          #detalle-turnos
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+  //- MODAL ASIGNAR SECTOR
+  #modalAsignarSector.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-warning.text-white
+          h5.modal-title
+            i.fas.fa-map-marker-alt.me-2
+            | Asignar Sector
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          input#asignar-tipo(type='hidden')
+          input#asignar-id(type='hidden')
+          .mb-3
+            label.form-label Sector *
+            select#asignar-sector-select.form-select(required)
+              option(value='') Seleccione...
+              if sectores
+                each s in sectores
+                  option(value=s.id)= s.nombre
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button#btnConfirmarAsignar.btn.btn-warning Asignar
+
+  //- MODAL TURNO
+  #modalTurno.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-clock.me-2
+            | Gestionar Turno
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#form-turno
+            input#turno-usuario-id(type='hidden')
+            .mb-3
+              label.form-label Tipo *
+              select#turno-tipo.form-select(required)
+                option(value='') Seleccione...
+                option(value='Atencion') Atención
+                option(value='Guardia Activa') Guardia Activa
+                option(value='Guardia Pasiva') Guardia Pasiva
+            .mb-3
+              label.form-label Días *
+              input#turno-dias.form-control(placeholder='Ej: Lunes,Martes,Miércoles' required)
+              small.text-muted Sin espacios, separados por coma
+            .row
+              .col-6
+                .mb-3
+                  label.form-label Hora Inicio *
+                  input#turno-hora-inicio.form-control(type='time' required)
+              .col-6
+                .mb-3
+                  label.form-label Hora Fin *
+                  input#turno-hora-fin.form-control(type='time' required)
+            .mb-3
+              label.form-label Sector
+              select#turno-sector.form-select
+                option(value='') Seleccione...
+                if sectores
+                  each s in sectores
+                    option(value=s.id)= s.nombre
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button#btnGuardarTurno.btn.btn-success(type='button') Guardar
+
+block scripts
+  script(src='/js/personal.js')

@@ -1,0 +1,630 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    .row
+      .col-md-12
+        .d-flex.justify-content-between.align-items-center.mb-4
+          h2
+            i.fas.fa-clock.me-2
+            | Lista de Espera para Internación
+          .btn-group(role='group')
+            a.btn.btn-primary(href='/internacion')
+              i.fas.fa-plus.me-2
+              | Nueva Internación
+            a.btn.btn-info(href='/internacion/lista')
+              i.fas.fa-bed.me-2
+              | Ver Internaciones
+
+    //- FILTROS
+    .row.mb-4
+      .col-md-12
+        .card
+          .card-header
+            h5.mb-0
+              i.fas.fa-filter.me-2
+              | Filtros
+          .card-body
+            form#formFiltros(method='GET')
+              .row
+                .col-md-4
+                  label.form-label(for='filtro_sector') Sector
+                  select#filtro_sector.form-select(name='sector_id')
+                    option(value='') Todos
+                    if sectores && sectores.length
+                      each sector in sectores
+                        option(value=sector.id selected=(filtros && filtros.sector_id == sector.id))= sector.nombre
+                
+                .col-md-4
+                  label.form-label(for='filtro_prioridad') Prioridad
+                  select#filtro_prioridad.form-select(name='prioridad')
+                    option(value='') Todas
+                    option(value='ALTA' selected=(filtros && filtros.prioridad === 'ALTA')) Alta
+                    option(value='MEDIA' selected=(filtros && filtros.prioridad === 'MEDIA')) Media
+                    option(value='BAJA' selected=(filtros && filtros.prioridad === 'BAJA')) Baja
+                
+                .col-md-4.d-flex.align-items-end
+                  button.btn.btn-primary.w-100(type='submit')
+                    i.fas.fa-search.me-2
+                    | Buscar
+
+    //- LISTA DE ESPERA
+    .row
+      .col-md-12
+        .card
+          .card-header.bg-warning.text-dark
+            h5.mb-0
+              i.fas.fa-users.me-2
+              | Pacientes en Espera
+          .card-body
+            if lista_espera && lista_espera.length > 0
+              .table-responsive
+                table.table.table-hover.table-striped
+                  thead
+                    tr
+                      th #
+                      th Paciente
+                      th Sexo
+                      th Prioridad
+                      th Fecha Registro
+                      th Días Esperando
+                      th Sector Solicitado
+                      th Acciones
+                  tbody
+                    each item, index in lista_espera
+                      tr(data-lista-id=item.id class=`priority-${item.prioridad.toLowerCase()}`)
+                        td= index + 1
+                        td
+                          strong= `${item.paciente.usuario.nombre} ${item.paciente.usuario.apellido}`
+                          br
+                          small.text-muted DNI: #{item.paciente.usuario.dni}
+                        td
+                          if item.paciente.usuario.sexo === 'Masculino'
+                            span.badge.bg-primary
+                              i.fas.fa-mars.me-1
+                              | M
+                          else if item.paciente.usuario.sexo === 'Femenino'
+                            span.badge.bg-danger
+                              i.fas.fa-venus.me-1
+                              | F
+                          else
+                            span.badge.bg-secondary
+                              i.fas.fa-genderless.me-1
+                              | Otro
+                        td
+                          if item.prioridad === 'ALTA'
+                            span.badge.bg-danger.fs-6 Alta
+                          else if item.prioridad === 'MEDIA'
+                            span.badge.bg-warning.text-dark.fs-6 Media
+                          else
+                            span.badge.bg-success.fs-6 Baja
+                        td= new Date(item.fecha_registro).toLocaleDateString('es-AR')
+                        td
+                          strong.text-danger= item.dias_espera
+                          |  días
+                        td
+                          if item.habitacion && item.habitacion.sector
+                            = item.habitacion.sector.nombre
+                          else
+                            span.text-muted Sin sector específico
+                        td
+                          .btn-group(role='group')
+                            button.btn.btn-sm.btn-success.btn-asignar-cama(
+                              type='button' 
+                              data-id=item.id 
+                              data-paciente-id=item.paciente.id
+                              data-paciente-nombre=`${item.paciente.usuario.nombre} ${item.paciente.usuario.apellido}`
+                              data-sexo=item.paciente.usuario.sexo
+                              title='Asignar Cama'
+                            )
+                              i.fas.fa-bed.me-1
+                              | Asignar
+                            button.btn.btn-sm.btn-danger.btn-cancelar-espera(
+                              type='button' 
+                              data-id=item.id 
+                              title='Cancelar'
+                            )
+                              i.fas.fa-times
+
+              //- Estadísticas rápidas
+              .row.mt-4
+                .col-md-3
+                  .card.bg-danger.text-white
+                    .card-body.text-center
+                      h3= lista_espera.filter(i => i.prioridad === 'ALTA').length
+                      p.mb-0 Prioridad Alta
+                
+                .col-md-3
+                  .card.bg-warning
+                    .card-body.text-center
+                      h3= lista_espera.filter(i => i.prioridad === 'MEDIA').length
+                      p.mb-0 Prioridad Media
+                
+                .col-md-3
+                  .card.bg-success.text-white
+                    .card-body.text-center
+                      h3= lista_espera.filter(i => i.prioridad === 'BAJA').length
+                      p.mb-0 Prioridad Baja
+                
+                .col-md-3
+                  .card.bg-info.text-white
+                    .card-body.text-center
+                      h3= Math.round(lista_espera.reduce((acc, i) => acc + i.dias_espera, 0) / lista_espera.length) || 0
+                      p.mb-0 Promedio días espera
+
+            else
+              .alert.alert-success.text-center
+                i.fas.fa-check-circle.me-2.fa-2x
+                h4 No hay pacientes en lista de espera
+
+  //- MODAL: ASIGNAR CAMA
+  #modalAsignarCama.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-bed.me-2
+            | Asignar Cama a 
+            span#paciente_nombre_asignar
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          form#formAsignarCama(novalidate)
+            input#asignar_lista_espera_id(type='hidden' name='lista_espera_id')
+            input#asignar_paciente_id(type='hidden' name='paciente_id')
+            input#asignar_sexo_paciente(type='hidden' name='sexo_paciente')
+            
+            //- Alerta de compatibilidad - IMPORTANTE: debe existir
+            #alerta_compatibilidad.alert.alert-info(style='display: none;')
+              i.fas.fa-info-circle.me-2
+              span#alerta_mensaje Información de compatibilidad
+            
+            .row.mb-3
+              .col-md-6
+                label.form-label(for='asignar_medico_id') Médico Responsable *
+                select#asignar_medico_id.form-select(name='medico_id' required)
+                  option(value='') Seleccione...
+                  if medicos && medicos.length
+                    each medico in medicos
+                      option(value=medico.id)= `Dr/a. ${medico.usuario.nombre} ${medico.usuario.apellido}`
+                .invalid-feedback Campo requerido
+              
+              .col-md-6
+                label.form-label(for='asignar_tipo_internacion_id') Tipo de Internación *
+                select#asignar_tipo_internacion_id.form-select(name='tipo_internacion_id' required)
+                  option(value='') Seleccione...
+                  if tiposInternacion && tiposInternacion.length
+                    each tipo in tiposInternacion
+                      option(value=tipo.id)= tipo.nombre
+                .invalid-feedback Campo requerido
+            
+            .row.mb-3
+              .col-md-4
+                label.form-label(for='asignar_sector_id') Sector *
+                select#asignar_sector_id.form-select(name='sector_id' required)
+                  option(value='') Seleccione...
+                  if sectores && sectores.length
+                    each sector in sectores
+                      option(value=sector.id)= sector.nombre
+                .invalid-feedback Campo requerido
+                button.btn.btn-sm.btn-info.mt-2#btnVerDisponibilidadAsignar(type='button' disabled)
+                  i.fas.fa-eye.me-2
+                  | Ver Disponibilidad
+              
+              .col-md-4
+                label.form-label(for='asignar_habitacion_id') Habitación *
+                select#asignar_habitacion_id.form-select(name='habitacion_id' required disabled)
+                  option(value='') Seleccione sector primero
+                .invalid-feedback Campo requerido
+              
+              .col-md-4
+                label.form-label(for='asignar_cama_id') Cama *
+                select#asignar_cama_id.form-select(name='cama_id' required disabled)
+                  option(value='') Seleccione habitación primero
+                .invalid-feedback Campo requerido
+        
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnConfirmarAsignacion.btn.btn-success(type='button')
+            i.fas.fa-check.me-2
+            | Asignar Cama
+
+  //- MODAL: VER DISPONIBILIDAD
+  #modalDisponibilidadAsignar.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5.modal-title
+            i.fas.fa-door-open.me-2
+            | Disponibilidad de Habitaciones
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          #contenido_disponibilidad_asignar
+            .text-center
+              .spinner-border(role='status')
+                span.visually-hidden Cargando...
+
+block scripts
+  script.
+    document.addEventListener('DOMContentLoaded', () => {
+      console.log('✅ Lista de espera cargada');
+      
+      // Referencias a elementos del modal
+      const modalAsignar = document.getElementById('modalAsignarCama');
+      const alertaDiv = document.getElementById('alerta_compatibilidad');
+      const alertaMensaje = document.getElementById('alerta_mensaje');
+      
+      // Botones de asignar cama
+      document.querySelectorAll('.btn-asignar-cama').forEach(btn => {
+        btn.addEventListener('click', function() {
+          const id = this.dataset.id;
+          const pacienteId = this.dataset.pacienteId;
+          const nombre = this.dataset.pacienteNombre;
+          const sexo = this.dataset.sexo;
+          
+          console.log('Abriendo modal para:', { id, pacienteId, nombre, sexo });
+          
+          // Setear valores en el formulario
+          const listaIdEl = document.getElementById('asignar_lista_espera_id');
+          const pacienteIdEl = document.getElementById('asignar_paciente_id');
+          const sexoEl = document.getElementById('asignar_sexo_paciente');
+          const nombreEl = document.getElementById('paciente_nombre_asignar');
+          
+          if (listaIdEl) listaIdEl.value = id;
+          if (pacienteIdEl) pacienteIdEl.value = pacienteId;
+          if (sexoEl) sexoEl.value = sexo;
+          if (nombreEl) nombreEl.textContent = nombre;
+          
+          // Limpiar formulario
+          const form = document.getElementById('formAsignarCama');
+          if (form) {
+            // Reset solo los selects, no los hidden
+            document.getElementById('asignar_medico_id').value = '';
+            document.getElementById('asignar_tipo_internacion_id').value = '';
+            document.getElementById('asignar_sector_id').value = '';
+          }
+          
+          const habSelect = document.getElementById('asignar_habitacion_id');
+          const camaSelect = document.getElementById('asignar_cama_id');
+          
+          if (habSelect) {
+            habSelect.innerHTML = '<option value="">Seleccione sector primero</option>';
+            habSelect.disabled = true;
+          }
+          if (camaSelect) {
+            camaSelect.innerHTML = '<option value="">Seleccione habitación primero</option>';
+            camaSelect.disabled = true;
+          }
+          
+          // Ocultar alerta
+          if (alertaDiv) {
+            alertaDiv.style.display = 'none';
+          }
+          
+          // Mostrar mensaje especial para sexo "Otro"
+          if (sexo === 'Otro' && alertaDiv && alertaMensaje) {
+            alertaDiv.className = 'alert alert-warning';
+            alertaMensaje.innerHTML = '<strong>Nota:</strong> Paciente con sexo "Otro" solo puede asignarse a habitaciones <strong>Mixtas</strong> o <strong>Individuales vacías</strong>.';
+            alertaDiv.style.display = 'block';
+          }
+          
+          // Mostrar modal
+          const modal = new bootstrap.Modal(modalAsignar);
+          modal.show();
+        });
+      });
+      
+      // Habilitar botón ver disponibilidad al seleccionar sector
+      const sectorSelect = document.getElementById('asignar_sector_id');
+      const btnVerDisponibilidad = document.getElementById('btnVerDisponibilidadAsignar');
+      
+      if (sectorSelect) {
+        sectorSelect.addEventListener('change', function() {
+          if (btnVerDisponibilidad) {
+            btnVerDisponibilidad.disabled = !this.value;
+          }
+          
+          // Limpiar habitaciones y camas
+          const habSelect = document.getElementById('asignar_habitacion_id');
+          const camaSelect = document.getElementById('asignar_cama_id');
+          
+          if (habSelect) {
+            habSelect.innerHTML = '<option value="">Cargando...</option>';
+          }
+          if (camaSelect) {
+            camaSelect.innerHTML = '<option value="">Seleccione habitación</option>';
+            camaSelect.disabled = true;
+          }
+          
+          if (this.value) {
+            cargarHabitaciones(this.value);
+          } else {
+            if (habSelect) {
+              habSelect.innerHTML = '<option value="">Seleccione sector primero</option>';
+              habSelect.disabled = true;
+            }
+          }
+        });
+      }
+      
+      // Ver disponibilidad
+      if (btnVerDisponibilidad) {
+        btnVerDisponibilidad.addEventListener('click', async function() {
+          const sectorId = sectorSelect ? sectorSelect.value : '';
+          const sexoEl = document.getElementById('asignar_sexo_paciente');
+          const sexo = sexoEl ? sexoEl.value : '';
+          
+          const modalDisp = new bootstrap.Modal(document.getElementById('modalDisponibilidadAsignar'));
+          modalDisp.show();
+          
+          const contenidoDiv = document.getElementById('contenido_disponibilidad_asignar');
+          if (contenidoDiv) {
+            contenidoDiv.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+          }
+          
+          try {
+            const response = await fetch(`/internacion/api/disponibilidad-habitaciones?sector_id=${sectorId}&sexo_paciente=${sexo}`);
+            const data = await response.json();
+            
+            if (!contenidoDiv) return;
+            
+            if (!data.disponibilidad || data.disponibilidad.length === 0) {
+              contenidoDiv.innerHTML = '<div class="alert alert-warning"><i class="fas fa-exclamation-triangle me-2"></i>No hay habitaciones en este sector</div>';
+              return;
+            }
+            
+            let html = '<div class="row">';
+            data.disponibilidad.forEach(hab => {
+              html += `
+                <div class="col-md-4 mb-3">
+                  <div class="card ${hab.compatible ? 'border-success' : 'border-danger'}">
+                    <div class="card-header ${hab.compatible ? 'bg-success text-white' : 'bg-danger text-white'}">
+                      <strong>Habitación ${hab.numero}</strong>
+                      ${hab.compatible ? '<i class="fas fa-check float-end"></i>' : '<i class="fas fa-times float-end"></i>'}
+                    </div>
+                    <div class="card-body">
+                      <p><strong>Tipo:</strong> ${hab.tipo}</p>
+                      <p><strong>Sexo permitido:</strong> ${hab.sexo_permitido}</p>
+                      <p><strong>Camas Libres:</strong> ${hab.camas_libres}/${hab.total_camas}</p>
+                      <p><strong>Ocupación:</strong> ${hab.porcentaje_ocupacion}%</p>
+                      ${!hab.compatible ? `<p class="text-danger"><i class="fas fa-exclamation-triangle me-1"></i>${hab.razon_incompatibilidad || 'Incompatible'}</p>` : ''}
+                    </div>
+                  </div>
+                </div>
+              `;
+            });
+            html += '</div>';
+            
+            contenidoDiv.innerHTML = html;
+          } catch (error) {
+            console.error('Error:', error);
+            if (contenidoDiv) {
+              contenidoDiv.innerHTML = '<div class="alert alert-danger"><i class="fas fa-times-circle me-2"></i>Error al cargar disponibilidad</div>';
+            }
+          }
+        });
+      }
+      
+      // Cargar habitaciones al seleccionar sector
+      async function cargarHabitaciones(sectorId) {
+        const sexoEl = document.getElementById('asignar_sexo_paciente');
+        const sexo = sexoEl ? sexoEl.value : '';
+        const habSelect = document.getElementById('asignar_habitacion_id');
+        
+        console.log('Cargando habitaciones para sector:', sectorId, 'sexo:', sexo);
+        
+        if (!habSelect) {
+          console.error('Elemento asignar_habitacion_id no encontrado');
+          return;
+        }
+        
+        try {
+          const response = await fetch(`/internacion/api/disponibilidad-habitaciones?sector_id=${sectorId}&sexo_paciente=${sexo}`);
+          const data = await response.json();
+          
+          console.log('Respuesta disponibilidad:', data);
+          
+          habSelect.innerHTML = '<option value="">Seleccione...</option>';
+          
+          if (!data.disponibilidad) {
+            habSelect.innerHTML = '<option value="">Error al cargar</option>';
+            habSelect.disabled = true;
+            return;
+          }
+          
+          const habCompatibles = data.disponibilidad.filter(h => h.compatible && h.camas_libres > 0);
+          const habIncompatibles = data.disponibilidad.filter(h => !h.compatible || h.camas_libres === 0);
+          
+          console.log('Compatibles:', habCompatibles.length, 'Incompatibles:', habIncompatibles.length);
+          
+          if (habCompatibles.length === 0) {
+            habSelect.innerHTML = '<option value="">Sin habitaciones disponibles</option>';
+            habSelect.disabled = true;
+            
+            // Mostrar alerta - verificar que existe
+            if (alertaDiv && alertaMensaje) {
+              alertaDiv.className = 'alert alert-danger';
+              let mensaje = '<strong>Sin habitaciones disponibles</strong><br>';
+              if (habIncompatibles.length > 0) {
+                mensaje += 'Hay habitaciones pero no son compatibles con el sexo del paciente o no tienen camas libres.';
+              } else {
+                mensaje += 'No hay habitaciones en este sector.';
+              }
+              alertaMensaje.innerHTML = mensaje;
+              alertaDiv.style.display = 'block';
+            }
+            return;
+          }
+          
+          // Ocultar alerta si había una de "sin habitaciones"
+          // Pero mantener la de "Otro" si aplica
+          const sexoPaciente = sexoEl ? sexoEl.value : '';
+          if (alertaDiv && sexoPaciente !== 'Otro') {
+            alertaDiv.style.display = 'none';
+          }
+          
+          habCompatibles.forEach(hab => {
+            const option = document.createElement('option');
+            option.value = hab.id;
+            option.textContent = `Hab. ${hab.numero} (${hab.camas_libres} libres - ${hab.tipo})`;
+            habSelect.appendChild(option);
+          });
+          
+          habSelect.disabled = false;
+          
+        } catch (error) {
+          console.error('Error al cargar habitaciones:', error);
+          if (habSelect) {
+            habSelect.innerHTML = '<option value="">Error al cargar</option>';
+            habSelect.disabled = true;
+          }
+          alert('❌ Error al cargar habitaciones');
+        }
+      }
+      
+      // Cargar camas al seleccionar habitación
+      const habSelectEl = document.getElementById('asignar_habitacion_id');
+      if (habSelectEl) {
+        habSelectEl.addEventListener('change', async function() {
+          const habId = this.value;
+          const sexoEl = document.getElementById('asignar_sexo_paciente');
+          const sexo = sexoEl ? sexoEl.value : '';
+          const camaSelect = document.getElementById('asignar_cama_id');
+          
+          if (!camaSelect) return;
+          
+          if (!habId) {
+            camaSelect.innerHTML = '<option value="">Seleccione habitación primero</option>';
+            camaSelect.disabled = true;
+            return;
+          }
+          
+          camaSelect.innerHTML = '<option value="">Cargando...</option>';
+          
+          try {
+            const response = await fetch(`/internacion/api/camas-disponibles?habitacion_id=${habId}&sexo_paciente=${sexo}`);
+            const data = await response.json();
+            
+            console.log('Camas disponibles:', data);
+            
+            camaSelect.innerHTML = '<option value="">Seleccione...</option>';
+            
+            if (!data.compatible) {
+              camaSelect.innerHTML = `<option value="">${data.razon_incompatibilidad || 'Incompatible'}</option>`;
+              camaSelect.disabled = true;
+              return;
+            }
+            
+            if (!data.camas || data.camas.length === 0) {
+              camaSelect.innerHTML = '<option value="">Sin camas disponibles</option>';
+              camaSelect.disabled = true;
+              return;
+            }
+            
+            data.camas.forEach(cama => {
+              const option = document.createElement('option');
+              option.value = cama.id;
+              option.textContent = `Cama ${cama.numero}`;
+              camaSelect.appendChild(option);
+            });
+            
+            camaSelect.disabled = false;
+          } catch (error) {
+            console.error('Error al cargar camas:', error);
+            camaSelect.innerHTML = '<option value="">Error al cargar</option>';
+            camaSelect.disabled = true;
+          }
+        });
+      }
+      
+      // Confirmar asignación
+      const btnConfirmar = document.getElementById('btnConfirmarAsignacion');
+      if (btnConfirmar) {
+        btnConfirmar.addEventListener('click', async function() {
+          const form = document.getElementById('formAsignarCama');
+          
+          if (form && !form.checkValidity()) {
+            form.classList.add('was-validated');
+            return;
+          }
+          
+          const listaIdEl = document.getElementById('asignar_lista_espera_id');
+          const camaIdEl = document.getElementById('asignar_cama_id');
+          const habIdEl = document.getElementById('asignar_habitacion_id');
+          const medicoIdEl = document.getElementById('asignar_medico_id');
+          const tipoIntEl = document.getElementById('asignar_tipo_internacion_id');
+          
+          const listaId = listaIdEl ? listaIdEl.value : '';
+          const data = {
+            cama_id: camaIdEl ? camaIdEl.value : '',
+            habitacion_id: habIdEl ? habIdEl.value : '',
+            medico_id: medicoIdEl ? medicoIdEl.value : '',
+            tipo_internacion_id: tipoIntEl ? tipoIntEl.value : ''
+          };
+          
+          console.log('Enviando asignación:', { listaId, data });
+          
+          // Validar campos
+          if (!data.cama_id || !data.habitacion_id || !data.medico_id || !data.tipo_internacion_id) {
+            alert('❌ Por favor complete todos los campos obligatorios');
+            return;
+          }
+          
+          this.disabled = true;
+          this.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Asignando...';
+          
+          try {
+            const response = await fetch(`/internacion/api/lista-espera/${listaId}/asignar-cama`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(data)
+            });
+            
+            const result = await response.json();
+            
+            console.log('Resultado:', result);
+            
+            if (result.success) {
+              alert('✅ ' + result.message);
+              location.reload();
+            } else {
+              alert('❌ Error: ' + result.message);
+            }
+          } catch (error) {
+            console.error('Error:', error);
+            alert('❌ Error al asignar cama');
+          } finally {
+            this.disabled = false;
+            this.innerHTML = '<i class="fas fa-check me-2"></i>Asignar Cama';
+          }
+        });
+      }
+      
+      // Cancelar lista de espera
+      document.querySelectorAll('.btn-cancelar-espera').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const id = this.dataset.id;
+          const motivo = prompt('Ingrese el motivo de la cancelación:');
+          
+          if (motivo) {
+            try {
+              const response = await fetch(`/internacion/api/lista-espera/${id}/cancelar`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ motivo })
+              });
+              
+              const data = await response.json();
+              
+              if (data.success) {
+                alert('✅ ' + data.message);
+                location.reload();
+              } else {
+                alert('❌ Error: ' + data.message);
+              }
+            } catch (error) {
+              alert('❌ Error al cancelar');
+            }
+          }
+        });
+      });
+    });

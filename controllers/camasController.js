@@ -1,4 +1,4 @@
-// controllers/camasController.js
+
 const db = require('../database/db');
 const { 
   Cama, 
@@ -88,7 +88,6 @@ const procesarListaEsperaSector = async (sector_id, transaction) => {
       const pacienteEspera = pacientesEspera[0];
       console.log(`Cama liberada en sector ${sector_id}. Paciente en espera: ${pacienteEspera.paciente_id}`);
       
-      // Aquí podrías implementar notificación automática o manual
       await crearAlertaCamaDisponible(pacienteEspera, sector_id, transaction);
     }
 

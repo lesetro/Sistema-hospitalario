@@ -1,0 +1,158 @@
+extends ../layouts/base
+
+block content
+  .container.mt-4
+    //- Hero Section
+    .row.mb-5
+      .col-12
+        .bg-primary.text-white.p-5.rounded
+          h1.display-4 🏥 Quiénes Somos
+          p.lead Conoce más sobre Hospital Central y nuestra misión
+
+    //- Misión, Visión, Valores
+    .row.mb-5
+      .col-md-4.mb-4
+        .card.h-100.text-center
+          .card-body
+            .text-primary.mb-3
+              i.bi.bi-bullseye.fs-1
+            h3.card-title Misión
+            p.card-text
+              | Brindar atención médica de excelencia con calidez humana, 
+              | formando profesionales de la salud comprometidos con la comunidad 
+              | y la innovación en el cuidado paciente.
+      .col-md-4.mb-4
+        .card.h-100.text-center
+          .card-body
+            .text-success.mb-3
+              i.bi.bi-eye.fs-1
+            h3.card-title Visión
+            p.card-text
+              | Ser el hospital universitario de referencia en la región, 
+              | reconocido por nuestra excelencia académica, investigación 
+              | innovadora y compromiso con el bienestar de la comunidad.
+      .col-md-4.mb-4
+        .card.h-100.text-center
+          .card-body
+            .text-warning.mb-3
+              i.bi.bi-heart.fs-1
+            h3.card-title Valores
+            p.card-text
+              | Ética profesional, Excelencia académica, Compromiso social, 
+              | Innovación constante, Trabajo en equipo, Respeto y empatía.
+
+    //- Historia
+    .row.mb-5
+      .col-12
+        .card
+          .card-body
+            h2.h3.mb-4 📜 Nuestra Historia
+            .row
+              .col-md-6
+                p
+                  | Fundado en 1985, el Hospital Central nació como un proyecto 
+                  | visionario de la Universidad Nacional de Córdoba para integrar 
+                  | la docencia, investigación y atención médica en un solo espacio.
+                p
+                  | A lo largo de más de 35 años, hemos crecido hasta convertirnos 
+                  | en una institución de referencia, formando a generaciones de 
+                  | profesionales de la salud y atendiendo a miles de pacientes 
+                  | con la más alta calidad.
+                p
+                  | Nuestro compromiso con la innovación nos ha llevado a implementar 
+                  | tecnologías de vanguardia y sistemas de gestión modernos que 
+                  | mejoran continuamente la experiencia del paciente.
+              .col-md-6
+                .bg-light.p-4.rounded
+                  h4.h5 🎓 Datos Institucionales
+                  ul.list-unstyled
+                    li.mb-2
+                      strong  Fundación: 
+                      | 15 de Marzo de 1985
+                    li.mb-2
+                      strong  Tipo: 
+                      | Hospital Universitario
+                    li.mb-2
+                      strong Ubicación: 
+                      | Córdoba Capital, Argentina
+                    li.mb-2
+                      strong  Acreditaciones: 
+                      | Ministerio de Salud de la Nación
+                    li.mb-2
+                      strong  Capacidad: 
+                      | 150 camas
+                    li.mb-2
+                      strong  Especialidades: 
+                      | 25 especialidades médicas
+
+    //- Equipo Directivo
+    .row.mb-5
+      .col-12
+        h2.h3.mb-4 👥 Equipo Directivo
+        .row
+          .col-md-3.mb-3
+            .card.text-center
+              .card-body
+                .bg-primary.text-white.rounded-circle.mx-auto.mb-3.d-flex.align-items-center.justify-content-center(style="width: 80px; height: 80px;")
+                  i.bi.bi-person-fill.fs-4
+                h5.card-title Dr. Roberto Medina
+                p.card-text.text-muted Director General
+          .col-md-3.mb-3
+            .card.text-center
+              .card-body
+                .bg-success.text-white.rounded-circle.mx-auto.mb-3.d-flex.align-items-center.justify-content-center(style="width: 80px; height: 80px;")
+                  i.bi.bi-person-fill.fs-4
+                h5.card-title Dra. María López
+                p.card-text.text-muted Directora Médica
+          .col-md-3.mb-3
+            .card.text-center
+              .card-body
+                .bg-info.text-white.rounded-circle.mx-auto.mb-3.d-flex.align-items-center.justify-content-center(style="width: 80px; height: 80px;")
+                  i.bi.bi-person-fill.fs-4
+                h5.card-title Lic. Carlos Rodríguez
+                p.card-text.text-muted Director Administrativo
+          .col-md-3.mb-3
+            .card.text-center
+              .card-body
+                .bg-warning.text-white.rounded-circle.mx-auto.mb-3.d-flex.align-items-center.justify-content-center(style="width: 80px; height: 80px;")
+                  i.bi.bi-person-fill.fs-4
+                h5.card-title Dr. Javier Gómez
+                p.card-text.text-muted Jefe de Enseñanza
+
+    //- Instalaciones
+    .row.mb-5
+      .col-12
+        h2.h3.mb-4  Nuestras Instalaciones
+        .row
+          .col-md-4.mb-3
+            .card
+              .card-body.text-center
+                i.bi.bi-building.text-primary.fs-1.mb-3
+                h5 5 Pisos de atención
+                p.text-muted Consultorios, internación y áreas especializadas
+          .col-md-4.mb-3
+            .card
+              .card-body.text-center
+                i.bi.bi-droplet.text-success.fs-1.mb-3
+                h5 Laboratorio moderno
+                p.text-muerte Tecnología de última generación
+          .col-md-4.mb-3
+            .card
+              .card-body.text-center
+                i.bi.bi-ambulance.text-danger.fs-1.mb-3
+                h5 Emergencias 24/7
+                p.text-muted Atención inmediata permanente
+
+    //- CTA Final
+    .row
+      .col-12
+        .bg-light.p-5.rounded.text-center
+          h3 ¿Necesitas atención médica?
+          p.mb-4 Estamos aquí para ayudarte. Contamos con un equipo de profesionales listos para atenderte.
+          .d-flex.gap-3.justify-content-center
+            a.btn.btn-primary.btn-lg(href="/reclamos")
+              i.bi.bi-chat-dots.me-2
+              | Hacer una consulta
+            a.btn.btn-outline-primary.btn-lg(href="/especialidades")
+              i.bi.bi-heart-pulse.me-2
+              | Ver especialidades

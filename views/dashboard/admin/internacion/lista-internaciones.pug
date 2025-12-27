@@ -1,0 +1,285 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    .row
+      .col-md-12
+        .d-flex.justify-content-between.align-items-center.mb-4
+          h2
+            i.fas.fa-list.me-2
+            | Lista de Internaciones
+          .btn-group(role='group')
+            a.btn.btn-primary(href='/internacion')
+              i.fas.fa-plus.me-2
+              | Nueva Internación
+            a.btn.btn-warning(href='/internacion/lista-espera')
+              i.fas.fa-clock.me-2
+              | Lista de Espera
+
+    //- FILTROS
+    .row.mb-4
+      .col-md-12
+        .card
+          .card-header
+            h5.mb-0
+              i.fas.fa-filter.me-2
+              | Filtros
+          .card-body
+            form#formFiltros(method='GET')
+              .row
+                .col-md-3
+                  label.form-label(for='filtro_sector') Sector
+                  select#filtro_sector.form-select(name='sector_id')
+                    option(value='') Todos
+                    if sectores && sectores.length
+                      each sector in sectores
+                        option(value=sector.id selected=(filtros && filtros.sector_id == sector.id))= sector.nombre
+                
+                .col-md-3
+                  label.form-label(for='filtro_tiene_alta') Estado Alta
+                  select#filtro_tiene_alta.form-select(name='tiene_alta')
+                    option(value='') Todos
+                    option(value='false' selected=(filtros && filtros.tiene_alta === 'false')) Activas (Sin alta)
+                    option(value='true' selected=(filtros && filtros.tiene_alta === 'true')) Con alta
+                
+                .col-md-3
+                  label.form-label(for='filtro_estado_paciente') Estado Paciente
+                  select#filtro_estado_paciente.form-select(name='estado_paciente')
+                    option(value='') Todos
+                    option(value='Estable' selected=(filtros && filtros.estado_paciente === 'Estable')) Estable
+                    option(value='Grave' selected=(filtros && filtros.estado_paciente === 'Grave')) Grave
+                    option(value='Critico' selected=(filtros && filtros.estado_paciente === 'Critico')) Crítico
+                    option(value='Sin_Evaluar' selected=(filtros && filtros.estado_paciente === 'Sin_Evaluar')) Sin Evaluar
+                
+                .col-md-3.d-flex.align-items-end
+                  button.btn.btn-primary.w-100(type='submit')
+                    i.fas.fa-search.me-2
+                    | Buscar
+
+    //- TABLA DE INTERNACIONES
+    .row
+      .col-md-12
+        .card
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-bed.me-2
+              | Internaciones
+          .card-body
+            if internaciones && internaciones.length > 0
+              .table-responsive
+                table.table.table-hover.table-striped
+                  thead
+                    tr
+                      th ID
+                      th Paciente
+                      th Habitación/Cama
+                      th Médico
+                      th Fecha Ingreso
+                      th Días
+                      th Estado
+                      th Acciones
+                  tbody
+                    each internacion in internaciones
+                      tr(data-internacion-id=internacion.id)
+                        td= internacion.id
+                        td
+                          strong= `${internacion.paciente.usuario.nombre} ${internacion.paciente.usuario.apellido}`
+                          br
+                          small.text-muted DNI: #{internacion.paciente.usuario.dni}
+                          br
+                          if internacion.paciente.obraSocial
+                            small.badge.bg-info= internacion.paciente.obraSocial.nombre
+                        td
+                          strong Hab. #{internacion.habitacion.numero}
+                          br
+                          small Cama #{internacion.cama.numero}
+                          br
+                          small.text-muted= internacion.habitacion.sector.nombre
+                        td
+                          if internacion.medico
+                            = `Dr/a. ${internacion.medico.usuario.nombre} ${internacion.medico.usuario.apellido}`
+                          else
+                            span.text-muted Sin asignar
+                        td= new Date(internacion.fecha_inicio).toLocaleDateString('es-AR')
+                        td
+                          span.badge.bg-secondary= `${internacion.dias_internado} días`
+                        td
+                          if internacion.fecha_alta
+                            span.badge.bg-success
+                              i.fas.fa-check.me-1
+                              | Alta
+                          else
+                            span.badge(class=internacion.estado_paciente === 'Estable' ? 'bg-success' : (internacion.estado_paciente === 'Grave' ? 'bg-warning text-dark' : (internacion.estado_paciente === 'Critico' ? 'bg-danger' : 'bg-secondary')))= internacion.estado_paciente
+                        td
+                          .btn-group(role='group')
+                            button.btn.btn-sm.btn-info.btn-ver-detalle(type='button' data-id=internacion.id title='Ver Detalle')
+                              i.fas.fa-eye
+                            if internacion.fecha_alta
+                              //- Si ya tiene alta, mostrar botón para ver el alta
+                              a.btn.btn-sm.btn-success(href=`/altas-medicas?internacion_id=${internacion.id}` title='Ver Alta Médica')
+                                i.fas.fa-file-medical
+                            else
+                              //- Si NO tiene alta, mostrar badge indicando que está pendiente
+                              span.badge.bg-warning.text-dark.ms-2
+                                i.fas.fa-clock.me-1
+                                | Pendiente de Alta
+
+              //- PAGINACIÓN
+              if pagination && pagination.totalPages > 1
+                nav.mt-4(aria-label='Paginación')
+                  ul.pagination.justify-content-center
+                    li.page-item(class=pagination.currentPage === 1 ? 'disabled' : '')
+                      a.page-link(href=`?page=${pagination.currentPage - 1}&sector_id=${filtros && filtros.sector_id || ''}&tiene_alta=${filtros && filtros.tiene_alta || ''}&estado_paciente=${filtros && filtros.estado_paciente || ''}`)
+                        i.fas.fa-chevron-left
+                    
+                    - var startPage = Math.max(1, pagination.currentPage - 2)
+                    - var endPage = Math.min(pagination.totalPages, pagination.currentPage + 2)
+                    
+                    - for (var i = startPage; i <= endPage; i++)
+                      li.page-item(class=pagination.currentPage === i ? 'active' : '')
+                        a.page-link(href=`?page=${i}&sector_id=${filtros && filtros.sector_id || ''}&tiene_alta=${filtros && filtros.tiene_alta || ''}&estado_paciente=${filtros && filtros.estado_paciente || ''}`)= i
+                    
+                    li.page-item(class=pagination.currentPage === pagination.totalPages ? 'disabled' : '')
+                      a.page-link(href=`?page=${pagination.currentPage + 1}&sector_id=${filtros && filtros.sector_id || ''}&tiene_alta=${filtros && filtros.tiene_alta || ''}&estado_paciente=${filtros && filtros.estado_paciente || ''}`)
+                        i.fas.fa-chevron-right
+                
+                .text-center.mt-2
+                  small.text-muted
+                    | Mostrando #{(pagination.currentPage - 1) * pagination.itemsPerPage + 1} - #{Math.min(pagination.currentPage * pagination.itemsPerPage, pagination.totalItems)} de #{pagination.totalItems} registros
+
+            else
+              .alert.alert-info
+                i.fas.fa-info-circle.me-2
+                | No se encontraron internaciones con los filtros aplicados
+
+  //- MODAL: DETALLE DE INTERNACIÓN
+  #modalDetalleInternacion.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5.modal-title
+            i.fas.fa-bed.me-2
+            | Detalle de Internación #
+            span#detalle_internacion_id
+          button.btn-close(type='button' data-bs-dismiss='modal')
+        .modal-body
+          #contenido_detalle_internacion
+            .text-center
+              .spinner-border(role='status')
+                span.visually-hidden Cargando...
+
+block scripts
+  script.
+    document.addEventListener('DOMContentLoaded', () => {
+      // Ver detalle
+      document.querySelectorAll('.btn-ver-detalle').forEach(btn => {
+        btn.addEventListener('click', async function() {
+          const id = this.dataset.id;
+          const modal = new bootstrap.Modal(document.getElementById('modalDetalleInternacion'));
+          
+          document.getElementById('detalle_internacion_id').textContent = id;
+          document.getElementById('contenido_detalle_internacion').innerHTML = `
+            <div class="text-center">
+              <div class="spinner-border" role="status">
+                <span class="visually-hidden">Cargando...</span>
+              </div>
+            </div>
+          `;
+          
+          modal.show();
+          
+          try {
+            const response = await fetch(`/internacion/api/${id}`);
+            const data = await response.json();
+            
+            if (!data.success) {
+              throw new Error(data.message);
+            }
+            
+            const i = data.internacion;
+            
+            document.getElementById('contenido_detalle_internacion').innerHTML = `
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card mb-3">
+                    <div class="card-header bg-primary text-white">
+                      <i class="fas fa-user me-2"></i>Datos del Paciente
+                    </div>
+                    <div class="card-body">
+                      <p><strong>Nombre:</strong> ${i.paciente.usuario.nombre} ${i.paciente.usuario.apellido}</p>
+                      <p><strong>DNI:</strong> ${i.paciente.usuario.dni}</p>
+                      <p><strong>Sexo:</strong> ${i.paciente.usuario.sexo}</p>
+                      <p><strong>Obra Social:</strong> ${i.paciente.obraSocial ? i.paciente.obraSocial.nombre : 'Sin obra social'}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-md-6">
+                  <div class="card mb-3">
+                    <div class="card-header bg-success text-white">
+                      <i class="fas fa-bed me-2"></i>Ubicación
+                    </div>
+                    <div class="card-body">
+                      <p><strong>Sector:</strong> ${i.habitacion.sector.nombre}</p>
+                      <p><strong>Habitación:</strong> ${i.habitacion.numero} (${i.habitacion.tipo})</p>
+                      <p><strong>Cama:</strong> ${i.cama.numero}</p>
+                      <p><strong>Servicio:</strong> ${i.habitacion.tipoServicio ? i.habitacion.tipoServicio.nombre : 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="card mb-3">
+                    <div class="card-header bg-info text-white">
+                      <i class="fas fa-user-md me-2"></i>Médico Responsable
+                    </div>
+                    <div class="card-body">
+                      <p><strong>Nombre:</strong> Dr/a. ${i.medico.usuario.nombre} ${i.medico.usuario.apellido}</p>
+                      <p><strong>Especialidad:</strong> ${i.medico.especialidad ? i.medico.especialidad.nombre : 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+                
+                <div class="col-md-6">
+                  <div class="card mb-3">
+                    <div class="card-header bg-warning text-dark">
+                      <i class="fas fa-info-circle me-2"></i>Estado
+                    </div>
+                    <div class="card-body">
+                      <p><strong>Fecha Ingreso:</strong> ${new Date(i.fecha_inicio).toLocaleDateString('es-AR')}</p>
+                      <p><strong>Días Internado:</strong> ${i.dias_internado}</p>
+                      <p><strong>Estado Paciente:</strong> <span class="badge bg-${i.estado_paciente === 'Estable' ? 'success' : (i.estado_paciente === 'Grave' ? 'warning' : 'danger')}">${i.estado_paciente}</span></p>
+                      <p><strong>Tipo:</strong> ${i.tipoInternacion ? i.tipoInternacion.nombre : 'N/A'}</p>
+                      ${i.fecha_alta ? `<p><strong>Fecha Alta:</strong> ${new Date(i.fecha_alta).toLocaleDateString('es-AR')}</p>` : ''}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              ${i.altasMedicas && i.altasMedicas.length > 0 ? `
+                <div class="card">
+                  <div class="card-header bg-success text-white">
+                    <i class="fas fa-sign-out-alt me-2"></i>Alta Médica
+                  </div>
+                  <div class="card-body">
+                    <p><strong>Fecha:</strong> ${new Date(i.altasMedicas[0].fecha_alta).toLocaleDateString('es-AR')}</p>
+                    <p><strong>Tipo:</strong> ${i.altasMedicas[0].tipo_alta}</p>
+                    <p><strong>Médico:</strong> Dr/a. ${i.altasMedicas[0].medico.usuario.nombre} ${i.altasMedicas[0].medico.usuario.apellido}</p>
+                    ${i.altasMedicas[0].instrucciones_post_alta ? `<p><strong>Instrucciones:</strong> ${i.altasMedicas[0].instrucciones_post_alta}</p>` : ''}
+                  </div>
+                </div>
+              ` : ''}
+            `;
+          } catch (error) {
+            document.getElementById('contenido_detalle_internacion').innerHTML = `
+              <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Error al cargar los detalles: ${error.message}
+              </div>
+            `;
+          }
+        });
+      });
+    });

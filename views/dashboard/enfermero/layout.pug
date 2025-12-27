@@ -1,0 +1,149 @@
+doctype html
+html(lang='es')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    title #{title} - Sistema de Enfermería
+    link(href='https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/css/bootstrap.min.css', rel='stylesheet')
+    link(href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css', rel='stylesheet')
+    link(rel='stylesheet', href='/css/style.css')
+  body
+    nav#sidebar.sidebar
+      .sidebar-header
+        h4
+          i.fas.fa-hospital
+          |  Hospital
+        p Sistema de Enfermería
+        if user
+          .user-badge
+            small.text-muted Enf. #{user.nombre} #{user.apellido}
+            if user.nivel
+              small.d-block.text-info #{user.nivel}
+      
+      .sidebar-menu
+        .menu-item
+          a.menu-link(href='/enfermero', class=(title === 'Dashboard Enfermería' ? 'active' : ''))
+            i.fas.fa-tachometer-alt
+            span Inicio
+        
+        .menu-section
+          .section-title ATENCIÓN
+        
+        .menu-item
+          a.menu-link(href='/enfermero/triaje', class=(title === 'Triaje' ? 'active' : ''))
+            i.fas.fa-heartbeat
+            span Triaje
+            span.badge.bg-danger(id='badge-triaje-pendientes', style='display:none') 0
+        
+        .menu-item
+          a.menu-link(href='/enfermero/evaluaciones', class=(title === 'Evaluaciones de Enfermería' ? 'active' : ''))
+            i.fas.fa-clipboard-check
+            span Evaluaciones
+        
+        .menu-item
+          a.menu-link(href='/enfermero/controles', class=(title === 'Controles de Enfermería' ? 'active' : ''))
+            i.fas.fa-temperature-high
+            span Controles de Enfermería
+        
+        .menu-item
+          a.menu-link(href='/enfermero/signos-vitales', class=(title === 'Signos Vitales' ? 'active' : ''))
+            i.fas.fa-chart-line
+            span Signos Vitales
+        
+        .menu-section
+          .section-title PROCEDIMIENTOS
+        
+        .menu-item
+          a.menu-link(href='/enfermero/procedimientos', class=(title === 'Procedimientos' ? 'active' : ''))
+            i.fas.fa-syringe
+            span Procedimientos
+        
+        .menu-item
+          a.menu-link(href='/enfermero/prequirurgicos', class=(title === 'Preparación Pre-quirúrgica' ? 'active' : ''))
+            i.fas.fa-notes-medical
+            span Preparación Pre-quirúrgica
+        
+        .menu-item
+          a.menu-link(href='/enfermero/medicacion', class=(title === 'Administración de Medicación' ? 'active' : ''))
+            i.fas.fa-pills
+            span Administración de Medicación
+        
+        .menu-section
+          .section-title GESTIÓN
+        
+        .menu-item
+          a.menu-link(href='/enfermero/pacientes', class=(title === 'Mis Pacientes' ? 'active' : ''))
+            i.fas.fa-users
+            span Mis Pacientes
+        
+        .menu-item
+          a.menu-link(href='/enfermero/internados', class=(title === 'Pacientes Internados' ? 'active' : ''))
+            i.fas.fa-bed
+            span Pacientes Internados
+        
+        .menu-item
+          a.menu-link(href='/enfermero/camas', class=(title === 'Gestión de Camas' ? 'active' : ''))
+            i.fas.fa-hospital-user
+            span Gestión de Camas
+        
+        .menu-item
+          a.menu-link(href='/enfermero/lista-espera', class=(title === 'Lista de Espera' ? 'active' : ''))
+            i.fas.fa-list-ol
+            span Lista de Espera
+        
+        .menu-section
+          .section-title HERRAMIENTAS
+        
+        .menu-item
+          a.menu-link(href='/enfermero/buscar', class=(title === 'Buscar Paciente' ? 'active' : ''))
+            i.fas.fa-search
+            span Buscar Paciente
+        
+        .menu-item
+          a.menu-link(href='/enfermero/comunicacion', class=(title === 'Comunicaciones' ? 'active' : ''))
+            i.fas.fa-comments
+            span Comunicaciones
+            span.badge.bg-primary(id='badge-mensajes', style='display:none') 0
+        
+        .menu-item
+          a.menu-link(href='/enfermero/mis-turnos', class=(title === 'Mis Turnos' ? 'active' : ''))
+            i.fas.fa-calendar-alt
+            span Mis Turnos
+
+    .main-content
+      header.header
+        .d-flex.align-items-center.justify-content-between.w-100
+          button.btn.btn-link.mobile-menu-toggle.me-3(onclick='toggleSidebar()')
+            i.fas.fa-bars
+          .header-actions.d-flex.align-items-center
+            a.btn.btn-sm.btn-outline-danger.me-2(href='/enfermero/triaje' title='Pacientes en Triaje')
+              i.fas.fa-exclamation-triangle.me-1
+              span#header-triaje-count.badge.bg-danger(style='display:none') 0
+            a.btn.btn-sm.btn-outline-primary.me-2(href='/enfermero/comunicacion' title='Mensajes')
+              i.fas.fa-envelope.me-1
+              span#header-contador-mensajes.badge.bg-danger(style='display:none') 0
+            .user-info.d-flex.align-items-center
+              span.me-2 Enf. #{user ? user.nombre : 'Enfermero'}
+              .user-avatar
+                i.fas.fa-user-nurse
+              .dropdown.ms-2
+                button.btn.btn-sm.dropdown-toggle(data-bs-toggle='dropdown')
+                  i.fas.fa-cog
+                ul.dropdown-menu.dropdown-menu-end
+                  li
+                    a.dropdown-item(href='/enfermero/perfil')
+                      i.fas.fa-user.me-2
+                      | Mi Perfil
+                  li
+                    hr.dropdown-divider
+                  li
+                    a.dropdown-item(href='/auth/logout')
+                      i.fas.fa-sign-out-alt.me-2
+                      | Cerrar Sesión
+
+      .content-area
+        block content
+
+    script(src='https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js')
+    script(src='/js/global.js')
+    block scripts

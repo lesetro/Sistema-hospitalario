@@ -1,0 +1,220 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    //- BREADCRUMB
+    nav(aria-label='breadcrumb')
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href='/admin') Dashboard
+        li.breadcrumb-item
+          a(href='/configuracion/infraestructura') Infraestructura
+        li.breadcrumb-item
+          a(href=`/configuracion/infraestructura/sector/${sector.id}/habitaciones`)= sector.nombre
+        li.breadcrumb-item.active(aria-current='page') Habitación #{habitacion.numero}
+
+    //- ENCABEZADO
+    .d-flex.justify-content-between.align-items-center.mb-4
+      div
+        h2
+          i.fas.fa-bed.me-2
+          | Camas - Habitación #{habitacion.numero}
+        p.text-muted.mb-0
+          span.badge.bg-info.me-2= habitacion.tipo
+          span.badge(class=habitacion.sexo_permitido === 'Mixto' ? 'bg-secondary' : (habitacion.sexo_permitido === 'Masculino' ? 'bg-primary' : 'bg-danger'))= habitacion.sexo_permitido
+          if habitacion.tipoServicio
+            span.badge.bg-warning.text-dark.ms-2= habitacion.tipoServicio.nombre
+      .btn-group
+        a.btn.btn-secondary(href=`/configuracion/infraestructura/sector/${sector.id}/habitaciones`)
+          i.fas.fa-arrow-left.me-2
+          | Volver a Habitaciones
+        button#btnNuevaCama.btn.btn-primary
+          i.fas.fa-plus.me-2
+          | Nueva Cama
+        button#btnCrearMultiples.btn.btn-success
+          i.fas.fa-plus-circle.me-2
+          | Crear Múltiples
+
+    //- ESTADÍSTICAS DE LA HABITACIÓN
+    .row.mb-4
+      .col-md-3
+        .card.border-primary.h-100
+          .card-body.text-center
+            h2.text-primary.mb-0= camas.length
+            small.text-muted Total Camas
+      .col-md-3
+        .card.border-success.h-100
+          .card-body.text-center
+            h2.text-success.mb-0= camas.filter(c => c.estado === 'Libre').length
+            small.text-muted Libres
+      .col-md-3
+        .card.border-danger.h-100
+          .card-body.text-center
+            h2.text-danger.mb-0= camas.filter(c => c.estado === 'Ocupada').length
+            small.text-muted Ocupadas
+      .col-md-3
+        .card.border-warning.h-100
+          .card-body.text-center
+            h2.text-warning.mb-0= camas.filter(c => c.estado === 'EnLimpieza').length
+            small.text-muted En Limpieza
+
+    //- LISTA DE CAMAS
+    .card
+      .card-header.bg-info.text-white
+        .d-flex.justify-content-between.align-items-center
+          h5.mb-0
+            i.fas.fa-list.me-2
+            | Camas de la Habitación
+          span.badge.bg-light.text-info= `${camas.length} cama(s)`
+      .card-body
+        if camas && camas.length > 0
+          .row
+            each cama in camas
+              .col-md-3.mb-3
+                .card.h-100.cama-card(
+                  data-id=cama.id
+                  class=cama.estado === 'Libre' ? 'border-success' : (cama.estado === 'Ocupada' ? 'border-danger' : 'border-warning')
+                )
+                  .card-header.text-center.py-2(
+                    class=cama.estado === 'Libre' ? 'bg-success text-white' : (cama.estado === 'Ocupada' ? 'bg-danger text-white' : 'bg-warning text-dark')
+                  )
+                    h5.mb-0
+                      i.fas.fa-bed.me-2
+                      = cama.numero
+                  .card-body.text-center
+                    .mb-2
+                      if cama.estado === 'Libre'
+                        span.badge.bg-success.fs-6
+                          i.fas.fa-check-circle.me-1
+                          | Libre
+                      else if cama.estado === 'Ocupada'
+                        span.badge.bg-danger.fs-6
+                          i.fas.fa-user.me-1
+                          | Ocupada
+                      else
+                        span.badge.bg-warning.text-dark.fs-6
+                          i.fas.fa-broom.me-1
+                          | En Limpieza
+                    
+                    if cama.ocupanteActual
+                      .small.text-muted.mt-2
+                        strong Paciente:
+                        br
+                        = `${cama.ocupanteActual.paciente.usuario.nombre} ${cama.ocupanteActual.paciente.usuario.apellido}`
+                        br
+                        small DNI: #{cama.ocupanteActual.paciente.usuario.dni}
+                    
+                    if cama.sexo_ocupante
+                      .mt-2
+                        small.text-muted Último ocupante: 
+                        span.badge(class=cama.sexo_ocupante === 'Masculino' ? 'bg-primary' : 'bg-danger')= cama.sexo_ocupante
+                    
+                    .small.text-muted.mt-2
+                      i.fas.fa-calendar.me-1
+                      | Creada: #{new Date(cama.createdAt).toLocaleDateString('es-AR')}
+                  
+                  .card-footer.text-center.py-2
+                    if cama.estado === 'Ocupada'
+                      span.text-muted.small
+                        i.fas.fa-lock.me-1
+                        | No editable
+                    else
+                      .btn-group.btn-group-sm
+                        button.btn.btn-outline-warning.btn-editar-cama(data-id=cama.id title='Editar')
+                          i.fas.fa-edit
+                        button.btn.btn-outline-danger.btn-eliminar-cama(data-id=cama.id data-numero=cama.numero title='Eliminar')
+                          i.fas.fa-trash
+                        if cama.estado === 'EnLimpieza'
+                          button.btn.btn-outline-success.btn-marcar-libre(data-id=cama.id title='Marcar como Libre')
+                            i.fas.fa-check
+        else
+          .alert.alert-info.text-center
+            i.fas.fa-info-circle.me-2.fa-2x
+            h5 No hay camas en esta habitación
+            p Agregue camas para poder gestionar internaciones
+            .btn-group
+              button.btn.btn-primary(onclick='document.getElementById("btnNuevaCama").click()')
+                i.fas.fa-plus.me-2
+                | Crear Una Cama
+              button.btn.btn-success(onclick='document.getElementById("btnCrearMultiples").click()')
+                i.fas.fa-plus-circle.me-2
+                | Crear Múltiples
+
+  //- MODAL: CREAR/EDITAR CAMA
+  #modalCama.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5#modalCamaTitle.modal-title
+            i.fas.fa-bed.me-2
+            | Nueva Cama
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          form#formCama
+            input#cama_id(type='hidden')
+            input#cama_habitacion_id(type='hidden' value=habitacion.id)
+            
+            .mb-3
+              label.form-label(for='cama_numero') Número/Identificador de Cama *
+              input#cama_numero.form-control(type='text' required placeholder='Ej: 101-A, 101-B...')
+              .form-text Sugerencia: #{habitacion.numero}-A, #{habitacion.numero}-B, etc.
+              .invalid-feedback Ingrese el número de la cama
+            
+            .mb-3
+              label.form-label(for='cama_estado') Estado
+              select#cama_estado.form-select
+                option(value='Libre' selected) Libre
+                option(value='EnLimpieza') En Limpieza
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnGuardarCama.btn.btn-info(type='button')
+            i.fas.fa-save.me-2
+            | Guardar
+
+  //- MODAL: CREAR MÚLTIPLES CAMAS
+  #modalCamasMultiples.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-plus-circle.me-2
+            | Crear Múltiples Camas
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          form#formCamasMultiples
+            .mb-3
+              label.form-label(for='cantidad_camas') Cantidad de Camas a Crear *
+              input#cantidad_camas.form-control(type='number' min='1' max='50' value='1' required)
+              .form-text Máximo 50 camas a la vez
+            .mb-3
+              label.form-label(for='prefijo_camas') Prefijo (opcional)
+              input#prefijo_camas.form-control(type='text' placeholder=`Ej: ${habitacion.numero}-`)
+              .form-text Las camas se numerarán automáticamente: #{habitacion.numero}-01, #{habitacion.numero}-02, etc.
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnCrearCamasMultiples.btn.btn-success(type='button')
+            i.fas.fa-plus-circle.me-2
+            | Crear Camas
+
+  //- MODAL: CONFIRMAR ELIMINACIÓN
+  #modalConfirmarEliminar.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-danger.text-white
+          h5.modal-title
+            i.fas.fa-exclamation-triangle.me-2
+            | Confirmar Eliminación
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          #confirmar-mensaje
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnConfirmarEliminar.btn.btn-danger(type='button')
+            i.fas.fa-trash.me-2
+            | Sí, Eliminar
+
+block scripts
+  script.
+    const HABITACION_ID = #{habitacion.id};
+    const HABITACION_NUMERO = '#{habitacion.numero}';
+  script(src='/js/infraestructura.js')

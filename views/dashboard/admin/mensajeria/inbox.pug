@@ -1,0 +1,95 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    #alerta-container
+
+    //- ENCABEZADO
+    .row.mb-3
+      .col-md-9
+        h2
+          i.fas.fa-comments.me-2
+          | Comunicaciones Internas
+          span#contador-mensajes.badge.bg-danger.ms-2(style='display:none') 0
+      .col-md-3.text-end
+        .d-flex.gap-2.justify-content-end
+          button.btn.btn-primary(data-bs-toggle='modal' data-bs-target='#modalNuevoMensaje')
+            i.fas.fa-paper-plane.me-2
+            | Nuevo Mensaje
+          a.btn.btn-success(href='/noticias')
+            i.fas.fa-newspaper.me-2
+            | Nueva Noticia
+
+    //- TABS DE NAVEGACIÓN
+    .row.mb-3
+      .col-md-12
+        ul.nav.nav-tabs#mensajesTabs
+          li.nav-item
+            a.nav-link.active(href="#" data-tipo="recibidos")
+              i.fas.fa-inbox.me-1
+              | Recibidos
+          li.nav-item
+            a.nav-link(href="#" data-tipo="enviados")
+              i.fas.fa-paper-plane.me-1
+              | Enviados
+          li.nav-item
+            a.nav-link(href="#" data-tipo="eliminados")
+              i.fas.fa-trash.me-1
+              | Eliminados
+
+    //- FILTROS (solo para Recibidos)
+    .row.mb-3#filtrosRecibidos
+      .col-md-12
+        .card
+          .card-body.py-2
+            .d-flex.justify-content-between.align-items-center
+              .form-check
+                input#filtroNoLeidos.form-check-input(type='checkbox')
+                label.form-check-label(for='filtroNoLeidos') Solo mensajes no leídos
+              .btn-group
+                button#btnMarcarTodosLeidos.btn.btn-sm.btn-outline-primary
+                  i.fas.fa-check-double.me-1
+                  | Marcar todos como leídos
+
+    //- LISTA DE MENSAJES
+    .row
+      .col-md-12
+        #lista-mensajes
+          .text-center.text-muted.py-5
+            .spinner-border
+            p.mt-2 Cargando mensajes...
+
+    //- PAGINACIÓN
+    .row.mt-3
+      .col-12
+        #paginacion
+
+  //- MODAL NUEVO MENSAJE
+  #modalNuevoMensaje.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-paper-plane.me-2
+            | Enviar Mensaje
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          .mb-3
+            label.form-label Destinatario *
+            select#destinatario.form-select(required)
+              option(value='') Seleccione...
+              if usuarios
+                each u in usuarios
+                  option(value=u.id)= `${u.nombre} ${u.apellido} (${u.rol_principal.nombre})`
+          .mb-3
+            label.form-label Mensaje *
+            textarea#mensaje.form-control(rows='4' maxlength='255' required placeholder='Escriba su mensaje aquí...')
+            small.text-muted Máximo 255 caracteres
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button#btnEnviarMensaje.btn.btn-primary
+            i.fas.fa-paper-plane.me-2
+            | Enviar
+
+block scripts
+  script(src='/js/mensajeria.js')

@@ -1,0 +1,170 @@
+extends ../layouts/base
+
+block content
+  .container.mt-4
+    //- Hero Section
+    .row.mb-5
+      .col-12
+        .bg-warning.text-dark.p-5.rounded
+          h1.display-4  Reclamos y Consultas
+          p.lead Tu opinión es importante para nosotros
+
+    //- Alertas
+    if success
+      .row.mb-4
+        .col-12
+          .alert.alert-success.alert-dismissible.fade.show(role="alert")
+            i.bi.bi-check-circle-fill.me-2
+            strong ¡Gracias por contactarnos!
+            |  Tu mensaje ha sido enviado correctamente. Te responderemos a la brevedad.
+            button.btn-close(type="button" data-bs-dismiss="alert")
+    
+    if error
+      .row.mb-4
+        .col-12
+          .alert.alert-danger.alert-dismissible.fade.show(role="alert")
+            i.bi.bi-exclamation-triangle-fill.me-2
+            strong Error al enviar el mensaje
+            |  Por favor, intenta nuevamente o contacta por teléfono.
+            button.btn-close(type="button" data-bs-dismiss="alert")
+
+    .row
+      //- Formulario
+      .col-md-8
+        .card
+          .card-header.bg-primary.text-white
+            h4.mb-0  Envíanos tu consulta
+          .card-body
+            form(action="/reclamos" method="POST")
+              .row
+                .col-md-6.mb-3
+                  label.form-label(for="nombre") Nombre completo *
+                  input.form-control(type="text" id="nombre" name="nombre" required)
+                .col-md-6.mb-3
+                  label.form-label(for="email") Email *
+                  input.form-control(type="email" id="email" name="email" required)
+              
+              .mb-3
+                label.form-label(for="tipo") Tipo de consulta *
+                select.form-select(id="tipo" name="tipo" required)
+                  option(value="") Selecciona una opción
+                  option(value="Consulta general") Consulta general
+                  option(value="Reclamo") Reclamo
+                  option(value="Sugerencia") Sugerencia
+                  option(value="Felicitaciones") Felicitaciones
+                  option(value="Duda sobre turnos") Duda sobre turnos
+                  option(value="Información de servicios") Información de servicios
+              
+              .mb-3
+                label.form-label(for="mensaje") Mensaje *
+                textarea.form-control(id="mensaje" name="mensaje" rows="6" placeholder="Describe tu consulta o reclamo..." required)
+              
+              .mb-3
+                .form-check
+                  input.form-check-input(type="checkbox" id="privacidad" required)
+                  label.form-check-label(for="privacidad")
+                    small Acepto la política de privacidad y el tratamiento de mis datos
+              
+              button.btn.btn-primary.btn-lg(type="submit")
+                i.bi.bi-send.me-2
+                | Enviar mensaje
+
+      //- Información de Contacto
+      .col-md-4
+        .card.mb-4
+          .card-header.bg-success.text-white
+            h5.mb-0 📞 Contacto Directo
+          .card-body
+            .mb-3
+              i.bi.bi-telephone.text-primary.me-2
+              strong Teléfono: 
+              | 351-1234567
+              br
+              small.text-muted Lunes a Viernes 7:00-22:00
+            .mb-3
+              i.bi.bi-ambulance.text-danger.me-2
+              strong Emergencias: 
+              | 351-9876543
+              br
+              small.text-muted 24 horas, 365 días
+            .mb-3
+              i.bi.bi-envelope.text-info.me-2
+              strong Email: 
+              | info@hospitalcentral.edu.ar
+            .mb-3
+              i.bi.bi-geo-alt.text-success.me-2
+              strong Dirección: 
+              | Av. Vélez Sarsfield 1254
+              br
+              small.text-muted Córdoba Capital
+
+        .card
+          .card-header.bg-info.text-white
+            h5.mb-0 ⏰ Tiempos de Respuesta
+          .card-body
+            .mb-3
+              strong Consultas generales: 
+              | 24-48 horas
+            .mb-3
+              strong Reclamos: 
+              | 72 horas
+            .mb-3
+              strong Urgencias: 
+              | Contactar por teléfono
+            .mb-3
+              strong Turnos: 
+              | 24 horas
+
+    //- Preguntas Frecuentes
+    .row.mt-5
+      .col-12
+        .card
+          .card-header.bg-secondary.text-white
+            h4.mb-0 ❓ Preguntas Frecuentes
+          .card-body
+            .accordion#faqAccordion
+              .accordion-item
+                h2.accordion-header
+                  button.accordion-button(type="button" data-bs-toggle="collapse" data-bs-target="#faq1")
+                    | ¿Cómo solicito un turno médico?
+                .accordion-collapse.collapse.show#faq1
+                  .accordion-body
+                    | Puedes solicitar turnos llamando al 351-1234567 de lunes a viernes de 7:00 a 22:00, 
+                    | o acercándote personalmente a recepción. Necesitarás tu DNI y credencial de obra social.
+              
+              .accordion-item
+                h2.accordion-header
+                  button.accordion-button.collapsed(type="button" data-bs-toggle="collapse" data-bs-target="#faq2")
+                    | ¿Atienden emergencias las 24 horas?
+                .accordion-collapse.collapse#faq2
+                  .accordion-body
+                    | Sí, nuestro servicio de emergencias funciona las 24 horas, los 365 días del año. 
+                    | Para emergencias llama al 351-9876543 o acércate directamente.
+              
+              .accordion-item
+                h2.accordion-header
+                  button.accordion-button.collapsed(type="button" data-bs-toggle="collapse" data-bs-target="#faq3")
+                    | ¿Trabajan con todas las obras sociales?
+                .accordion-collapse.collapse#faq3
+                  .accordion-body
+                    | Trabajamos con la mayoría de las obras sociales del país. También atendemos pacientes 
+                    | particulares. Consulta en recepción por la cobertura de tu obra social.
+              
+              .accordion-item
+                h2.accordion-header
+                  button.accordion-button.collapsed(type="button" data-bs-toggle="collapse" data-bs-target="#faq4")
+                    | ¿Ofrecen servicios para estudiantes?
+                .accordion-collapse.collapse#faq4
+                  .accordion-body
+                    | Sí, como hospital universitario ofrecemos descuentos especiales para estudiantes 
+                    | y programas de atención específicos. Presenta tu libreta universitaria en recepción.
+
+    //- CTA Final
+    .row.mt-4
+      .col-12.text-center
+        .bg-light.p-4.rounded
+          h4 ¿Prefieres contactarnos por teléfono?
+          p.mb-3 Nuestro equipo de atención al cliente está disponible para ayudarte
+          a.btn.btn-primary.btn-lg(href="tel:3511234567")
+            i.bi.bi-telephone-outbound.me-2
+            | Llamar ahora: 351-1234567

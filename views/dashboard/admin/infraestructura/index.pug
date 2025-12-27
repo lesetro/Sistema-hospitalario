@@ -1,0 +1,198 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    //- BREADCRUMB
+    nav(aria-label='breadcrumb')
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href='/admin') Dashboard
+        li.breadcrumb-item.active(aria-current='page') Infraestructura
+
+    //- ENCABEZADO
+    .d-flex.justify-content-between.align-items-center.mb-4
+      div
+        h2
+          i.fas.fa-building.me-2
+          | Infraestructura Hospitalaria
+        p.text-muted.mb-0 Gestión de sectores, habitaciones y camas
+      button#btnNuevoSector.btn.btn-primary
+        i.fas.fa-plus.me-2
+        | Nuevo Sector
+
+    //- ESTADÍSTICAS GLOBALES
+    .row.mb-4
+      .col-md-3
+        .card.border-primary.h-100
+          .card-body.text-center
+            .display-4.text-primary
+              i.fas.fa-hospital
+            h3.mb-0#stat-sectores= estadisticas.totalSectores
+            small.text-muted Sectores
+      .col-md-3
+        .card.border-success.h-100
+          .card-body.text-center
+            .display-4.text-success
+              i.fas.fa-door-open
+            h3.mb-0#stat-habitaciones= estadisticas.totalHabitaciones
+            small.text-muted Habitaciones
+      .col-md-3
+        .card.border-info.h-100
+          .card-body.text-center
+            .display-4.text-info
+              i.fas.fa-bed
+            h3.mb-0#stat-camas= estadisticas.totalCamas
+            small.text-muted Total Camas
+      .col-md-3
+        .card.border-warning.h-100
+          .card-body.text-center
+            .display-4.text-warning
+              i.fas.fa-chart-pie
+            h3.mb-0
+              span#stat-libres= estadisticas.camasLibres
+              small.text-muted= ` / ${estadisticas.totalCamas}`
+            small.text-muted Camas Libres
+
+    //- LISTA DE SECTORES
+    .card
+      .card-header.bg-primary.text-white
+        .d-flex.justify-content-between.align-items-center
+          h5.mb-0
+            i.fas.fa-list.me-2
+            | Sectores del Hospital
+          span.badge.bg-light.text-primary= `${sectores.length} sector(es)`
+      .card-body
+        if sectores && sectores.length > 0
+          .table-responsive
+            table.table.table-hover
+              thead.table-light
+                tr
+                  th(style='width: 5%') #
+                  th(style='width: 20%') Sector
+                  th(style='width: 25%') Descripción
+                  th.text-center(style='width: 12%') Habitaciones
+                  th.text-center(style='width: 12%') Camas
+                  th.text-center(style='width: 12%') Ocupación
+                  th.text-center(style='width: 14%') Acciones
+              tbody
+                each sector, index in sectores
+                  tr.sector-row(data-id=sector.id style='cursor: pointer;')
+                    td= index + 1
+                    td
+                      strong= sector.nombre
+                    td
+                      if sector.descripcion
+                        = sector.descripcion
+                      else
+                        span.text-muted.fst-italic Sin descripción
+                    td.text-center
+                      span.badge.bg-info.fs-6= sector.estadisticas.totalHabitaciones
+                    td.text-center
+                      span.badge.bg-primary.fs-6= sector.estadisticas.totalCamas
+                      if sector.estadisticas.totalCamas > 0
+                        br
+                        small.text-success
+                          i.fas.fa-check-circle.me-1
+                          = sector.estadisticas.camasLibres
+                        | &nbsp;
+                        small.text-danger
+                          i.fas.fa-times-circle.me-1
+                          = sector.estadisticas.camasOcupadas
+                    td.text-center
+                      if sector.estadisticas.totalCamas > 0
+                        .progress(style='height: 20px;')
+                          .progress-bar(
+                            class=sector.estadisticas.porcentajeOcupacion > 80 ? 'bg-danger' : (sector.estadisticas.porcentajeOcupacion > 50 ? 'bg-warning' : 'bg-success')
+                            role='progressbar'
+                            style=`width: ${sector.estadisticas.porcentajeOcupacion}%`
+                          )= `${sector.estadisticas.porcentajeOcupacion}%`
+                      else
+                        span.badge.bg-secondary Sin camas
+                    td.text-center
+                      .btn-group(role='group')
+                        a.btn.btn-sm.btn-info(href=`/configuracion/infraestructura/sector/${sector.id}/habitaciones` title='Ver Habitaciones')
+                          i.fas.fa-door-open
+                        button.btn.btn-sm.btn-warning.btn-editar-sector(type='button' data-id=sector.id title='Editar' onclick='event.stopPropagation();')
+                          i.fas.fa-edit
+                        button.btn.btn-sm.btn-danger.btn-eliminar-sector(type='button' data-id=sector.id data-nombre=sector.nombre title='Eliminar' onclick='event.stopPropagation();')
+                          i.fas.fa-trash
+        else
+          .alert.alert-info.text-center
+            i.fas.fa-info-circle.me-2.fa-2x
+            h5 No hay sectores configurados
+            p Comience creando el primer sector del hospital
+            button.btn.btn-primary(onclick='document.getElementById("btnNuevoSector").click()')
+              i.fas.fa-plus.me-2
+              | Crear Primer Sector
+
+    //- AYUDA
+    .card.mt-4
+      .card-header
+        h6.mb-0
+          i.fas.fa-question-circle.me-2
+          | ¿Cómo funciona?
+      .card-body
+        .row
+          .col-md-4
+            .text-center.mb-3
+              .display-6.text-primary
+                i.fas.fa-hospital
+              h6 1. Sectores
+              p.small.text-muted Cree los sectores del hospital (Emergencias, UCI, Quirófano, etc.)
+          .col-md-4
+            .text-center.mb-3
+              .display-6.text-success
+                i.fas.fa-door-open
+              h6 2. Habitaciones
+              p.small.text-muted Agregue habitaciones a cada sector con su tipo y configuración
+          .col-md-4
+            .text-center.mb-3
+              .display-6.text-info
+                i.fas.fa-bed
+              h6 3. Camas
+              p.small.text-muted Configure las camas de cada habitación para gestionar internaciones
+
+  //- MODAL: CREAR/EDITAR SECTOR
+  #modalSector.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5#modalSectorTitle.modal-title
+            i.fas.fa-hospital.me-2
+            | Nuevo Sector
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          form#formSector
+            input#sector_id(type='hidden')
+            .mb-3
+              label.form-label(for='sector_nombre') Nombre del Sector *
+              input#sector_nombre.form-control(type='text' required placeholder='Ej: Emergencias, UCI, Quirófano...')
+              .invalid-feedback Ingrese el nombre del sector
+            .mb-3
+              label.form-label(for='sector_descripcion') Descripción
+              textarea#sector_descripcion.form-control(rows='3' placeholder='Descripción opcional del sector...')
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnGuardarSector.btn.btn-primary(type='button')
+            i.fas.fa-save.me-2
+            | Guardar
+
+  //- MODAL: CONFIRMAR ELIMINACIÓN
+  #modalConfirmarEliminar.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-danger.text-white
+          h5.modal-title
+            i.fas.fa-exclamation-triangle.me-2
+            | Confirmar Eliminación
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          #confirmar-mensaje
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnConfirmarEliminar.btn.btn-danger(type='button')
+            i.fas.fa-trash.me-2
+            | Sí, Eliminar
+
+block scripts
+  script(src='/js/infraestructura.js')

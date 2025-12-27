@@ -1,32 +1,468 @@
-extends ../dashboard/admin/dashboard-admin.pug
-
+extends ../../../dashboard/admin/layout
 
 block content
-    .container.mt-4
-      h1 Lista de Usuarios
-      a.btn.btn-custom.mb-3(href='/usuarios/new') Nuevo Usuario
-      table.table
-        thead
-          tr
-            th DNI
-            th Nombre
-            th Correo
-            th Rol
-            th Hospital
-            th Acciones
-        tbody
-          each usuario in usuarios
-            tr
-              td= usuario.dni
-              td= usuario.nombre
-              td= usuario.email
-              td= usuario.rol
-              td= usuario.hospital ? usuario.hospital.nombre : 'Sin hospital'
-              td
-                a.btn.btn-info.btn-sm(href=`/usuarios/${usuario.id}`) Ver
-                a.btn.btn-warning.btn-sm.ml-2(href=`/usuarios/${usuario.id}/edit`) Editar
-                form(method='POST' action=`/usuarios/${usuario.id}` style='display:inline;')
-                  input(type='hidden' name='_method' value='DELETE')
-                  button.btn.btn-danger.btn-sm(type='submit') Eliminar
-    script(src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js')
-    script(src='/js/script.js')
+  .container-fluid
+    //- ALERTAS
+    #alerta-container
+
+    //- LOADING
+    #loading.text-center.d-none.my-4
+      .spinner-border(role='status')
+      p.mt-2 Cargando...
+
+    //- ENCABEZADO
+    .row.mb-4
+      .col-md-12
+        .d-flex.justify-content-between.align-items-center
+          h2
+            i.fas.fa-users-cog.me-2
+            | Gestión de Usuarios
+          .btn-group
+            button#btnLimpiarFiltros.btn.btn-secondary
+              i.fas.fa-eraser.me-2
+              | Limpiar Filtros
+            button#btnNuevoUsuario.btn.btn-primary(data-bs-toggle='modal' data-bs-target='#modalNuevo')
+              i.fas.fa-user-plus.me-2
+              | Nuevo Usuario
+
+    //- FILTROS
+    .row.mb-4
+      .col-md-12
+        .card
+          .card-header
+            h5.mb-0
+              i.fas.fa-filter.me-2
+              | Filtros de Búsqueda
+          .card-body
+            .row
+              .col-md-3
+                label.form-label Búsqueda
+                input#busqueda.form-control(
+                  type='text'
+                  placeholder='DNI, nombre, email...'
+                )
+              .col-md-2
+                label.form-label Estado
+                select#filtro-estado.form-select
+                  option(value='') Todos
+                  option(value='Activo') Activo
+                  option(value='Inactivo') Inactivo
+                  option(value='Bloqueado') Bloqueado
+                  option(value='Pendiente') Pendiente
+              .col-md-2
+                label.form-label Sexo
+                select#filtro-sexo.form-select
+                  option(value='') Todos
+                  option(value='Masculino') Masculino
+                  option(value='Femenino') Femenino
+                  option(value='Otro') Otro
+              .col-md-3
+                label.form-label Rol Principal
+                select#filtro-rol.form-select
+                  option(value='') Todos
+                  if roles && roles.length
+                    each rol in roles
+                      option(value=rol.id)= rol.nombre
+
+    //- TABLA DE USUARIOS
+    .row
+      .col-md-12
+        .card
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-table.me-2
+              | Listado de Usuarios
+          .card-body
+            .table-responsive
+              table.table.table-hover.table-striped
+                thead
+                  tr
+                    th DNI
+                    th Nombre Completo
+                    th Email
+                    th Teléfono
+                    th Sexo
+                    th Rol Principal
+                    th Estado
+                    th Registro
+                    th Acciones
+                tbody#tabla-usuarios-body
+                  tr
+                    td.text-center(colspan='9') 
+
+          .card-footer
+            #paginacion
+
+  //- ============================================================================
+  //- MODAL: VER DETALLES
+  //- ============================================================================
+  #modalDetalles.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5.modal-title
+            i.fas.fa-user-circle.me-2
+            | Detalles del Usuario
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          //- DATOS PERSONALES
+          .card.mb-3
+            .card-header.bg-light
+              h6.mb-0
+                i.fas.fa-id-card.me-2
+                | Información Personal
+            .card-body
+              .row
+                .col-md-3
+                  p.mb-2
+                    strong Nombre:
+                    br
+                    span#detalle-nombre
+                .col-md-3
+                  p.mb-2
+                    strong DNI:
+                    br
+                    span#detalle-dni
+                .col-md-3
+                  p.mb-2
+                    strong Sexo:
+                    br
+                    span#detalle-sexo
+                .col-md-3
+                  p.mb-2
+                    strong Fecha Nac.:
+                    br
+                    span#detalle-fecha-nacimiento
+              .row
+                .col-md-4
+                  p.mb-2
+                    strong Email:
+                    br
+                    span#detalle-email
+                .col-md-4
+                  p.mb-2
+                    strong Teléfono:
+                    br
+                    span#detalle-telefono
+                .col-md-4
+                  p.mb-2
+                    strong Edad:
+                    br
+                    span#detalle-edad
+              .row
+                .col-md-4
+                  p.mb-2
+                    strong Rol Principal:
+                    br
+                    span#detalle-rol-principal
+                .col-md-4
+                  p.mb-2
+                    strong Rol Secundario:
+                    br
+                    span#detalle-rol-secundario
+                .col-md-4
+                  p.mb-2
+                    strong Estado:
+                    br
+                    span#detalle-estado
+              .row
+                .col-md-4
+                  p.mb-2
+                    strong Fecha Registro:
+                    br
+                    span#detalle-fecha-registro
+                .col-md-4
+                  p.mb-2
+                    strong Última Actualización:
+                    br
+                    span#detalle-ultima-actualizacion
+
+          //- INFORMACIÓN ESPECÍFICA DEL ROL
+          #detalle-rol-especifico
+
+          //- ESTADÍSTICAS
+          .row.mb-3#detalle-estadisticas
+
+         
+
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cerrar
+
+  //- ============================================================================
+  //- MODAL: NUEVO USUARIO
+  //- ============================================================================
+  #modalNuevo.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-user-plus.me-2
+            | Nuevo Usuario
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          form#formNuevoUsuario
+            .row
+              .col-md-6
+                .mb-3
+                  label.form-label 
+                    | DNI 
+                    span.text-danger *
+                  input#nuevo-dni.form-control(
+                    type='text'
+                    required
+                    placeholder='Ej: 12345678'
+                    maxlength='10'
+                  )
+              .col-md-6
+                .mb-3
+                  label.form-label 
+                    | Email 
+                    span.text-danger *
+                  input#nuevo-email.form-control(
+                    type='email'
+                    required
+                    placeholder='usuario@email.com'
+                  )
+            .row
+              .col-md-6
+                .mb-3
+                  label.form-label 
+                    | Nombre 
+                    span.text-danger *
+                  input#nuevo-nombre.form-control(
+                    type='text'
+                    required
+                    placeholder='Nombre'
+                  )
+              .col-md-6
+                .mb-3
+                  label.form-label 
+                    | Apellido 
+                    span.text-danger *
+                  input#nuevo-apellido.form-control(
+                    type='text'
+                    required
+                    placeholder='Apellido'
+                  )
+            .row
+              .col-md-6
+                .mb-3
+                  label.form-label 
+                    | Sexo 
+                    span.text-danger *
+                  select#nuevo-sexo.form-select(required)
+                    option(value='') Seleccionar...
+                    option(value='Masculino') Masculino
+                    option(value='Femenino') Femenino
+                    option(value='Otro') Otro
+              .col-md-6
+                .mb-3
+                  label.form-label 
+                    | Fecha Nacimiento 
+                    span.text-danger *
+                  input#nuevo-fecha-nacimiento.form-control(
+                    type='date'
+                    required
+                  )
+            .row
+              .col-md-6
+                .mb-3
+                  label.form-label 
+                    | Rol Principal 
+                    span.text-danger *
+                  select#nuevo-rol-principal.form-select(required)
+                    option(value='') Seleccionar...
+                    if roles && roles.length
+                      each rol in roles
+                        option(value=rol.id)= rol.nombre
+              .col-md-6
+                .mb-3
+                  label.form-label Rol Secundario
+                  select#nuevo-rol-secundario.form-select
+                    option(value='') Ninguno
+                    if roles && roles.length
+                      each rol in roles
+                        option(value=rol.id)= rol.nombre
+            .row
+              .col-md-6
+                .mb-3
+                  label.form-label Teléfono
+                  input#nuevo-telefono.form-control(
+                    type='tel'
+                    placeholder='(xxx) xxx-xxxx'
+                  )
+              .col-md-6
+                .mb-3
+                  label.form-label Estado
+                  select#nuevo-estado.form-select
+                    option(value='Activo') Activo
+                    option(value='Pendiente') Pendiente
+                    option(value='Inactivo') Inactivo
+            .row
+              .col-md-6
+                .mb-3
+                  label.form-label 
+                    | Contraseña 
+                    span.text-danger *
+                  input#nuevo-password.form-control(
+                    type='password'
+                    required
+                    placeholder='********'
+                  )
+              .col-md-6
+                .mb-3
+                  label.form-label 
+                    | Confirmar Contraseña 
+                    span.text-danger *
+                  input#nuevo-password-confirm.form-control(
+                    type='password'
+                    required
+                    placeholder='********'
+                  )
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnCrearUsuario.btn.btn-primary
+            i.fas.fa-save.me-2
+            | Crear Usuario
+
+  //- ============================================================================
+  //- MODAL: EDITAR USUARIO
+  //- ============================================================================
+  #modalEditar.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-warning
+          h5.modal-title
+            i.fas.fa-edit.me-2
+            | Editar Usuario
+          button.btn-close(type='button' data-bs-dismiss='modal')
+        .modal-body
+          form#formEditarUsuario
+            input#editar-id(type='hidden')
+            
+            .alert.alert-info
+              i.fas.fa-info-circle.me-2
+              small
+                strong Nota: 
+                | Solo se pueden modificar datos de contacto y estado.
+
+            .mb-3
+              label.form-label Nombre Completo
+              input#editar-nombre.form-control(type='text' disabled)
+
+            .mb-3
+              label.form-label DNI
+              input#editar-dni.form-control(type='text' disabled)
+
+            .mb-3
+              label.form-label Email
+              input#editar-email.form-control(type='email' required)
+
+            .mb-3
+              label.form-label Teléfono
+              input#editar-telefono.form-control(type='tel')
+
+            .mb-3
+              label.form-label Rol Secundario
+              select#editar-rol-secundario.form-select
+                option(value='') Ninguno
+                if roles && roles.length
+                  each rol in roles
+                    option(value=rol.id)= rol.nombre
+
+            .mb-3
+              label.form-label Estado
+              select#editar-estado.form-select
+                option(value='Activo') Activo
+                option(value='Inactivo') Inactivo
+                option(value='Bloqueado') Bloqueado
+                option(value='Pendiente') Pendiente
+
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnGuardarEdicion.btn.btn-warning
+            i.fas.fa-save.me-2
+            | Guardar Cambios
+
+  //- ============================================================================
+  //- MODAL: BLOQUEAR USUARIO
+  //- ============================================================================
+  #modalBloquear.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-danger.text-white
+          h5.modal-title
+            i.fas.fa-user-lock.me-2
+            | Bloquear/Desbloquear Usuario
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          input#bloquear-id(type='hidden')
+          input#bloquear-nombre(type='hidden')
+          
+          .alert.alert-warning
+            i.fas.fa-exclamation-triangle.me-2
+            strong Advertencia: 
+            | Esta acción 
+            span#bloquear-accion-texto
+            | al usuario. El usuario no podrá acceder al sistema.
+
+          .mb-3
+            label.form-label 
+              | Motivo 
+              span.text-danger *
+            textarea#bloquear-motivo.form-control(rows='3' required placeholder='Ingrese el motivo...')
+
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnConfirmarBloquear.btn.btn-danger
+            i.fas.fa-check.me-2
+            | Confirmar
+
+  //- ============================================================================
+  //- MODAL: RESETEAR CONTRASEÑA
+  //- ============================================================================
+  #modalResetPassword.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-warning
+          h5.modal-title
+            i.fas.fa-key.me-2
+            | Resetear Contraseña
+          button.btn-close(type='button' data-bs-dismiss='modal')
+        .modal-body
+          input#reset-id(type='hidden')
+          input#reset-nombre(type='hidden')
+          
+          .alert.alert-info
+            i.fas.fa-info-circle.me-2
+            | Se asignará una nueva contraseña para el usuario:
+            br
+            strong#reset-nombre-texto
+
+          .mb-3
+            label.form-label 
+              | Nueva Contraseña 
+              span.text-danger *
+            input#reset-password.form-control(
+              type='password'
+              required
+              placeholder='********'
+            )
+          .mb-3
+            label.form-label 
+              | Confirmar Nueva Contraseña 
+              span.text-danger *
+            input#reset-password-confirm.form-control(
+              type='password'
+              required
+              placeholder='********'
+            )
+
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnConfirmarReset.btn.btn-warning
+            i.fas.fa-key.me-2
+            | Resetear Contraseña
+
+block scripts
+  script(src='/js/usuarios.js')

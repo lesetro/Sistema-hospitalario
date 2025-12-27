@@ -1,0 +1,159 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    #alerta-container
+
+    //- ENCABEZADO
+    .row.mb-4
+      .col-md-8
+        h2
+          i.fas.fa-hospital-user.me-2
+          | Gestión de Altas Médicas
+        p.text-muted Consulta y seguimiento de altas hospitalarias
+      .col-md-4.text-end
+        .btn-group
+          button.btn.btn-outline-primary(onclick='window.print()')
+            i.fas.fa-print.me-2
+            | Imprimir
+          button.btn.btn-outline-success(onclick='exportarExcel()')
+            i.fas.fa-file-excel.me-2
+            | Exportar
+
+    //- ESTADÍSTICAS
+    .row.mb-4
+      .col-md-3
+        .card.border-primary.h-100
+          .card-body.text-center
+            i.fas.fa-clipboard-check.fa-2x.text-primary.mb-2
+            h3#stat-total.text-primary.mb-0 0
+            small.text-muted Total de Altas
+      .col-md-3
+        .card.border-info.h-100
+          .card-body.text-center
+            i.fas.fa-calendar-alt.fa-2x.text-info.mb-2
+            h3#stat-mes.text-info.mb-0 0
+            small.text-muted Altas este Mes
+      .col-md-3
+        .card.border-success.h-100
+          .card-body.text-center
+            i.fas.fa-user-check.fa-2x.text-success.mb-2
+            h3#stat-medicas.text-success.mb-0 0
+            small.text-muted Altas Médicas
+      .col-md-3
+        .card.border-warning.h-100
+          .card-body.text-center
+            i.fas.fa-door-open.fa-2x.text-warning.mb-2
+            h3#stat-voluntarias.text-warning.mb-0 0
+            small.text-muted Altas Voluntarias
+
+    //- FILTROS
+    .card.mb-4
+      .card-header.bg-light
+        h5.mb-0
+          i.fas.fa-filter.me-2
+          | Filtros de Búsqueda
+      .card-body
+        .row.g-3
+          .col-md-3
+            label.form-label
+              i.fas.fa-search.me-1
+              | Buscar Paciente
+            input#busqueda.form-control(type='text', placeholder='Nombre, apellido o DNI...')
+          .col-md-2
+            label.form-label
+              i.fas.fa-clipboard-list.me-1
+              | Tipo de Alta
+            select#filtro-tipo-alta.form-select
+              option(value='') Todos
+              option(value='Medica') Médica
+              option(value='Voluntaria') Voluntaria
+              option(value='Contraindicada') Contraindicada
+          .col-md-2
+            label.form-label
+              i.fas.fa-heartbeat.me-1
+              | Estado Paciente
+            select#filtro-estado.form-select
+              option(value='') Todos
+              option(value='Estable') Estable
+              option(value='Grave') Grave
+              option(value='Critico') Crítico
+              option(value='Fallecido') Fallecido
+          .col-md-2
+            label.form-label
+              i.fas.fa-calendar.me-1
+              | Desde
+            input#fecha-desde.form-control(type='date')
+          .col-md-2
+            label.form-label
+              i.fas.fa-calendar.me-1
+              | Hasta
+            input#fecha-hasta.form-control(type='date')
+          .col-md-1.d-flex.align-items-end
+            button#btnLimpiarFiltros.btn.btn-secondary.w-100(title='Limpiar filtros')
+              i.fas.fa-times
+
+    //- TABLA
+    .card
+      .card-header.bg-primary.text-white
+        h5.mb-0
+          i.fas.fa-list.me-2
+          | Registro de Altas Médicas
+      .card-body
+        .table-responsive
+          table.table.table-hover.align-middle
+            thead.table-light
+              tr
+                th
+                  i.fas.fa-calendar.me-1
+                  | Fecha Alta
+                th
+                  i.fas.fa-user.me-1
+                  | Paciente
+                th
+                  i.fas.fa-birthday-cake.me-1
+                  | Edad/Sexo
+                th
+                  i.fas.fa-user-md.me-1
+                  | Médico
+                th
+                  i.fas.fa-clipboard-check.me-1
+                  | Tipo
+                th
+                  i.fas.fa-heartbeat.me-1
+                  | Estado
+                th.text-center
+                  i.fas.fa-bed.me-1
+                  | Intern.
+                th.text-center Acciones
+            tbody#tabla-altas
+              tr
+                td.text-center(colspan='8')
+                  .spinner-border.text-primary(role='status')
+                    span.visually-hidden Cargando...
+      .card-footer
+        #paginacion
+
+  //- MODAL DETALLE
+  #modalDetalle.modal.fade(tabindex='-1', aria-hidden='true')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-info-circle.me-2
+            | Detalle del Alta Médica
+          button.btn-close.btn-close-white(data-bs-dismiss='modal', aria-label='Close')
+        .modal-body
+          #detalle-contenido
+            .text-center.py-5
+              .spinner-border.text-primary(role='status')
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal')
+            i.fas.fa-times.me-2
+            | Cerrar
+          button.btn.btn-primary(onclick='window.print()')
+            i.fas.fa-print.me-2
+            | Imprimir
+
+block scripts
+  script(src='/js/altasMedicas.js')

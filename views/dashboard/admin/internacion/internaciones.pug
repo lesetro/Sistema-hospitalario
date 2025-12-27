@@ -1,0 +1,192 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    .row
+      .col-md-12
+        .d-flex.justify-content-between.align-items-center.mb-4
+          h2
+            i.fas.fa-bed.me-2
+            | Gestión de Internaciones
+          .btn-group(role='group')
+            a.btn.btn-primary(href='/internacion/lista')
+              i.fas.fa-list.me-2
+              | Ver Internaciones
+            a.btn.btn-warning(href='/internacion/lista-espera')
+              i.fas.fa-clock.me-2
+              | Lista de Espera
+            a.btn.btn-info(href='/internacion/disponibilidad')
+              i.fas.fa-door-open.me-2
+              | Disponibilidad
+
+    //- BUSCAR PACIENTE
+    .row
+      .col-md-12
+        .card.mb-4.border-primary
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-search.me-2
+              | Buscar Paciente para Internación
+          .card-body
+            .row
+              .col-md-6
+                label.form-label(for='paciente_search') DNI del Paciente *
+                .input-group
+                  input#paciente_search.form-control(type='text' placeholder='Ingrese DNI (7-8 dígitos)' pattern='[0-9]{7,8}' maxlength='8')
+                  button.btn.btn-primary#buscar_paciente(type='button')
+                    i.fas.fa-search.me-2
+                    | Buscar
+              .col-md-6
+                #paciente_info_quick.alert(style='display: none;')
+                  strong#paciente_nombre_quick
+                  p.mb-0.mt-2.small#paciente_detalles_quick
+
+    //- RESUMEN DE DISPONIBILIDAD RÁPIDA
+    .row
+      .col-md-12
+        .card.mb-4
+          .card-header
+            h5.mb-0
+              i.fas.fa-chart-bar.me-2
+              | Resumen de Disponibilidad
+          .card-body
+            #resumen_disponibilidad
+              .text-center
+                .spinner-border(role='status')
+                  span.visually-hidden Cargando...
+
+  //- MODAL: CREAR INTERNACIÓN
+  #modalCrearInternacion.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-bed.me-2
+            | Nueva Internación
+          button.btn-close(type='button' data-bs-dismiss='modal')
+        .modal-body
+          #alert_paciente_internacion.alert.alert-info.mb-3
+            strong Paciente: 
+            span#nombre_paciente_internacion
+          
+          form#formCrearInternacion(novalidate)
+            input#internacion_paciente_id(type='hidden' name='paciente_id')
+            
+            //- Alerta si está en lista de espera
+            #alert_lista_espera.alert.alert-warning(style='display: none;')
+              i.fas.fa-clock.me-2
+              span#texto_lista_espera
+            
+            //- Médico y tipo de internación
+            .row.mb-3
+              .col-md-4
+                label.form-label(for='internacion_medico_id') Médico Responsable *
+                select#internacion_medico_id.form-select(name='medico_id' required)
+                  option(value='') Seleccione...
+                  if medicos && medicos.length
+                    each medico in medicos
+                      option(value=medico.id)= `Dr/a. ${medico.usuario.nombre} ${medico.usuario.apellido}`
+                .invalid-feedback Campo requerido
+              
+              .col-md-4
+                label.form-label(for='internacion_tipo_internacion_id') Tipo de Internación *
+                select#internacion_tipo_internacion_id.form-select(name='tipo_internacion_id' required)
+                  option(value='') Seleccione...
+                  if tiposInternacion && tiposInternacion.length
+                    each tipo in tiposInternacion
+                      option(value=tipo.id)= tipo.nombre
+                .invalid-feedback Campo requerido
+              
+              .col-md-4
+                label.form-label(for='internacion_prioridad') Prioridad *
+                select#internacion_prioridad.form-select(name='prioridad' required)
+                  option(value='MEDIA' selected) Media
+                  option(value='ALTA') Alta
+                  option(value='BAJA') Baja
+                .invalid-feedback Campo requerido
+            
+            //- Sector, Habitación y Cama
+            .row.mb-3
+              .col-md-4
+                label.form-label(for='internacion_sector_id') Sector *
+                select#internacion_sector_id.form-select(name='sector_id' required)
+                  option(value='') Seleccione...
+                  if sectores && sectores.length
+                    each sector in sectores
+                      option(value=sector.id)= sector.nombre
+                .invalid-feedback Campo requerido
+                button.btn.btn-sm.btn-info.mt-2#btnVerDisponibilidad(type='button' disabled)
+                  i.fas.fa-eye.me-2
+                  | Ver Disponibilidad
+              
+              .col-md-4
+                label.form-label(for='internacion_habitacion_id') Habitación
+                select#internacion_habitacion_id.form-select(name='habitacion_id' disabled)
+                  option(value='') Seleccione sector primero
+                .form-text#info_habitacion
+              
+              .col-md-4
+                label.form-label(for='internacion_cama_id') Cama
+                select#internacion_cama_id.form-select(name='cama_id' disabled)
+                  option(value='') Seleccione habitación primero
+                .form-text.text-danger
+                  i.fas.fa-info-circle.me-1
+                  | Si no hay camas, se agregará a lista de espera
+            
+            //- Evaluación médica y cirugía
+            .row.mb-3
+              .col-md-6
+                label.form-label(for='internacion_evaluacion_medica_id') Evaluación Médica
+                select#internacion_evaluacion_medica_id.form-select(name='evaluacion_medica_id')
+                  option(value='') Sin evaluación previa
+                .form-text Se cargará si existe una evaluación previa
+              
+              .col-md-6
+                label.form-label(for='internacion_fecha_cirugia') Fecha de Cirugía (si aplica)
+                input#internacion_fecha_cirugia.form-control(type='date' name='fecha_cirugia')
+            
+            //- Tipo de operación
+            .row.mb-3
+              .col-md-6
+                label.form-label(for='internacion_es_prequirurgica') ¿Es prequirúrgica?
+                select#internacion_es_prequirurgica.form-select(name='es_prequirurgica')
+                  option(value='false' selected) No
+                  option(value='true') Sí
+              
+              .col-md-6
+                label.form-label(for='internacion_estado_operacion') Estado de Operación
+                select#internacion_estado_operacion.form-select(name='estado_operacion')
+                  option(value='No aplica' selected) No aplica
+                  option(value='Prequirurgico') Prequirúrgico
+                  option(value='Postquirurgico') Postquirúrgico
+            
+            //- Observaciones
+            .row
+              .col-md-12
+                label.form-label(for='internacion_observaciones') Observaciones
+                textarea#internacion_observaciones.form-control(name='observaciones' rows='3')
+        
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnGuardarInternacion.btn.btn-primary(type='button')
+            i.fas.fa-save.me-2
+            | Guardar Internación
+
+  //- MODAL: DISPONIBILIDAD DE HABITACIONES
+  #modalDisponibilidad.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5.modal-title
+            i.fas.fa-door-open.me-2
+            | Disponibilidad de Habitaciones - 
+            span#sector_nombre_modal
+          button.btn-close(type='button' data-bs-dismiss='modal')
+        .modal-body
+          #contenido_disponibilidad
+            .text-center
+              .spinner-border(role='status')
+                span.visually-hidden Cargando...
+
+block scripts
+  script(src='/js/internacion.js')

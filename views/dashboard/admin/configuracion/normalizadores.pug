@@ -1,0 +1,111 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    #alerta-container
+
+    //- ENCABEZADO
+    .row.mb-3
+      .col-md-9
+        h2
+          i.fas.fa-cogs.me-2
+          | Configuración de Datos Base
+      .col-md-3.text-end
+        button#btnNuevo.btn.btn-primary
+          i.fas.fa-plus.me-2
+          | Nuevo Registro
+
+    //- ESTADÍSTICAS
+    .row.mb-4
+      .col-md-3
+        .card.border-primary
+          .card-body.text-center
+            h3#stat-sectores.text-primary 0
+            small Sectores
+      .col-md-3
+        .card.border-success
+          .card-body.text-center
+            h3#stat-especialidades.text-success 0
+            small Especialidades
+      .col-md-3
+        .card.border-info
+          .card-body.text-center
+            h3#stat-obras-sociales.text-info 0
+            small Obras Sociales
+      .col-md-3
+        .card.border-warning
+          .card-body.text-center
+            h3#stat-total.text-warning 0
+            small Total Registros
+
+    //- NAVEGACIÓN
+    .row.mb-3
+      .col-12
+        .btn-group.flex-wrap(role='group')
+          button.btn.btn-outline-primary.btn-sm.btn-modelo.active(data-modelo='sectores') Sectores
+          button.btn.btn-outline-primary.btn-sm.btn-modelo(data-modelo='especialidades') Especialidades
+          button.btn.btn-outline-primary.btn-sm.btn-modelo(data-modelo='obras-sociales') Obras Sociales
+          button.btn.btn-outline-primary.btn-sm.btn-modelo(data-modelo='tratamientos') Tratamientos
+          button.btn.btn-outline-primary.btn-sm.btn-modelo(data-modelo='tipos-estudio') Tipos Estudio
+          button.btn.btn-outline-primary.btn-sm.btn-modelo(data-modelo='tipos-diagnostico') Tipos Diagnóstico
+          button.btn.btn-outline-primary.btn-sm.btn-modelo(data-modelo='diagnosticos') Diagnósticos
+          button.btn.btn-outline-primary.btn-sm.btn-modelo(data-modelo='motivos-admision') Motivos Admisión
+          button.btn.btn-outline-primary.btn-sm.btn-modelo(data-modelo='motivos-consulta') Motivos Consulta
+          button.btn.btn-outline-primary.btn-sm.btn-modelo(data-modelo='formas-ingreso') Formas Ingreso
+          button.btn.btn-outline-primary.btn-sm.btn-modelo(data-modelo='tipos-servicio') Tipos Servicio
+          button.btn.btn-outline-primary.btn-sm.btn-modelo(data-modelo='tipos-internacion') Tipos Internación
+          button.btn.btn-outline-primary.btn-sm.btn-modelo(data-modelo='tipos-turno') Tipos Turno
+
+    //- TABLA
+    .card
+      .card-header
+        .row
+          .col-md-8
+            h5#titulo-modelo.mb-0 Sectores
+          .col-md-4
+            input#busqueda.form-control.form-control-sm(placeholder='Buscar...')
+      .card-body
+        .table-responsive
+          table.table.table-hover.table-sm
+            thead
+              tr
+                th ID
+                th Nombre
+                th Descripción/Código
+                th Tipo
+                th Acciones
+            tbody#tabla-body
+              tr
+                td.text-center(colspan='5') Cargando...
+      .card-footer
+        #paginacion
+
+  //- MODAL FORMULARIO
+  #modalForm.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header
+          h5#modalTitle.modal-title Nuevo Registro
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body
+          form#form-datos.needs-validation(novalidate)
+            input#form-id(type='hidden')
+            #form-campos
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button#btnGuardar.btn.btn-primary Guardar
+
+  //- MODAL DETALLE
+  #modalDetalle.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5.modal-title Detalles
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          #detalle-contenido
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+block scripts
+  script(src='/js/configuracionNormalizadores.js')

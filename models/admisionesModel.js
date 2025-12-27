@@ -1,4 +1,3 @@
-
 module.exports = (sequelize, DataTypes) => {
   const Admision = sequelize.define('Admision', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
@@ -74,37 +73,50 @@ module.exports = (sequelize, DataTypes) => {
       { fields: ['especialidad_id'] },
       { fields: ['tipo_estudio_id'] },
       { fields: ['motivo_consulta_id'] },
-      
     ]
   });
 
+  // ============================================================================
+  // HOOK BEFORE CREATE - Validar turno si existe
+  // ============================================================================
   Admision.beforeCreate(async (admision, options) => {
-  const transaction = options.transaction || await sequelize.transaction();
-  try {
-    if (admision.turno_id) {
-      const turno = await sequelize.models.Turno.findByPk(admision.turno_id, { transaction });
-      
-      // Validar que existe
-      if (!turno) {
-        throw new Error('Turno no encontrado');
+    const transaction = options.transaction || await sequelize.transaction();
+    
+    try {
+      // Solo validar si hay turno_id
+      if (admision.turno_id) {
+        const turno = await sequelize.models.Turno.findByPk(admision.turno_id, { transaction });
+        
+        // Validar que existe
+        if (!turno) {
+          throw new Error('Turno no encontrado');
+        }
+        
+        // ✅ CORRECCIÓN CRÍTICA: Comparar como números usando Number()
+        const turnoPacienteId = Number(turno.paciente_id);
+        const admisionPacienteId = Number(admision.paciente_id);
+        
+        console.log('=== VALIDACIÓN TURNO-ADMISION ===');
+        console.log('turno.paciente_id:', turno.paciente_id, '→', turnoPacienteId);
+        console.log('admision.paciente_id:', admision.paciente_id, '→', admisionPacienteId);
+        console.log('¿Son iguales?:', turnoPacienteId === admisionPacienteId);
+        
+        if (turnoPacienteId !== admisionPacienteId) {
+          throw new Error(`El turno no pertenece al paciente (turno=${turnoPacienteId}, admision=${admisionPacienteId})`);
+        }
+        
+        // Validar estado del turno
+        if (!['CONFIRMADO', 'PENDIENTE'].includes(turno.estado)) {
+          throw new Error('El turno debe estar confirmado o pendiente para crear admisión');
+        }
       }
       
-      // Ya lo tenías
-      if (turno.paciente_id !== admision.paciente_id) {
-        throw new Error('El turno no pertenece al paciente');
-      }
-      
-      // Validar estado
-      if (turno.estado !== 'Confirmado') {
-        throw new Error('El turno debe estar confirmado para crear admisión');
-      }
+      if (!options.transaction) await transaction.commit();
+    } catch (error) {
+      if (!options.transaction) await transaction.rollback();
+      throw error;
     }
-    if (!options.transaction) await transaction.commit();
-  } catch (error) {
-    if (!options.transaction) await transaction.rollback();
-    throw error;
-  }
-});
+  });
 
   Admision.associate = function(models) {
     Admision.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
@@ -121,10 +133,6 @@ module.exports = (sequelize, DataTypes) => {
     Admision.hasMany(models.HistorialMedico, { foreignKey: 'admision_id', as: 'historiales' });
     Admision.belongsTo(models.MotivoConsulta, { foreignKey: 'motivo_consulta_id', as: 'motivo_consulta' });
     Admision.hasOne(models.AltaMedica, { foreignKey: 'admision_id', as: 'alta_medica' });
-    // Pacientes internados (con internacion_id)
-    // Pacientes de consulta externa (con admision_id)
-    // Pacientes de curación (con admision_id)
-    // se les puede dar el alta en diferentes casos
   };
 
   return Admision;

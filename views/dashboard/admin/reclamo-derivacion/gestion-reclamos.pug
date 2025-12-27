@@ -1,0 +1,228 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    #alerta-container
+    #loading.text-center.d-none.my-4
+      .spinner-border
+      p.mt-2 Cargando...
+
+    //- ENCABEZADO
+    .row.mb-3
+      .col-md-12
+        h2
+          i.fas.fa-clipboard-list.me-2
+          | Gestión de Reclamos y Derivaciones
+
+    //- ESTADÍSTICAS
+    .row.mb-4
+      .col-md-6
+        .card.border-primary
+          .card-header.bg-primary.text-white
+            h6.mb-0
+              i.fas.fa-exclamation-circle.me-2
+              | Reclamos
+          .card-body
+            .row.text-center
+              .col-3
+                h4#reclamos-total 0
+                small Total
+              .col-3
+                h4#reclamos-pendientes.text-warning 0
+                small Pendientes
+              .col-3
+                h4#reclamos-resueltos.text-success 0
+                small Resueltos
+              .col-3
+                h4#reclamos-hoy.text-info 0
+                small Hoy
+
+      .col-md-6
+        .card.border-success
+          .card-header.bg-success.text-white
+            h6.mb-0
+              i.fas.fa-exchange-alt.me-2
+              | Derivaciones
+          .card-body
+            .row.text-center
+              .col-3
+                h4#derivaciones-total 0
+                small Total
+              .col-3
+                h4#derivaciones-pendientes.text-warning 0
+                small Pendientes
+              .col-3
+                h4#derivaciones-internas.text-info 0
+                small Internas
+              .col-3
+                h4#derivaciones-externas.text-warning 0
+                small Externas
+
+    //- NAVEGACIÓN
+    .row.mb-3
+      .col-12
+        .btn-group.w-100(role='group')
+          button.btn.btn-outline-primary.btn-seccion.active(data-seccion='reclamos')
+            i.fas.fa-exclamation-circle.me-2
+            | Reclamos
+          button.btn.btn-outline-success.btn-seccion(data-seccion='derivaciones')
+            i.fas.fa-exchange-alt.me-2
+            | Derivaciones
+
+    //- FILTROS RECLAMOS
+    #filtros-reclamos.card.mb-3
+      .card-body
+        .row
+          .col-md-3
+            label.form-label Estado
+            select#reclamos-estado.form-select
+              option(value='') Todos
+              option(value='Pendiente') Pendiente
+              option(value='Resuelto') Resuelto
+          .col-md-3
+            label.form-label Desde
+            input#reclamos-fecha-desde.form-control(type='date')
+          .col-md-3
+            label.form-label Hasta
+            input#reclamos-fecha-hasta.form-control(type='date')
+          .col-md-3
+            label.form-label Búsqueda
+            input#reclamos-busqueda.form-control(placeholder='Nombre, DNI...')
+
+    //- FILTROS DERIVACIONES
+    #filtros-derivaciones.card.mb-3.d-none
+      .card-body
+        .row
+          .col-md-3
+            label.form-label Estado
+            select#derivaciones-estado.form-select
+              option(value='') Todos
+              option(value='Pendiente') Pendiente
+              option(value='Aprobada') Aprobada
+              option(value='Rechazada') Rechazada
+          .col-md-3
+            label.form-label Tipo
+            select#derivaciones-tipo.form-select
+              option(value='') Todos
+              option(value='Interna') Interna
+              option(value='Externa') Externa
+          .col-md-3
+            label.form-label Sector Origen
+            select#derivaciones-sector.form-select
+              option(value='') Todos
+              if sectores
+                each s in sectores
+                  option(value=s.id)= s.nombre
+
+    //- TABLA
+    .card
+      .card-body
+        .table-responsive
+          table.table.table-hover.table-sm
+            thead#tabla-header
+            tbody#tabla-contenido
+              tr
+                td.text-center(colspan='8') Cargando...
+      .card-footer
+        #paginacion
+
+  //- MODAL DETALLE RECLAMO
+  #modalDetalleReclamo.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5.modal-title
+            i.fas.fa-exclamation-circle.me-2
+            | Detalle del Reclamo
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          p
+            strong Usuario: 
+            span#detalle-reclamo-usuario
+          p
+            strong DNI: 
+            span#detalle-reclamo-dni
+          p
+            strong Fecha: 
+            span#detalle-reclamo-fecha
+          p
+            strong Estado: 
+            span#detalle-reclamo-estado
+          hr
+          p
+            strong Reclamo:
+          p#detalle-reclamo-texto.alert.alert-light
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+  //- MODAL DETALLE DERIVACIÓN
+  #modalDetalleDerivacion.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-exchange-alt.me-2
+            | Detalle de Derivación
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          .row.mb-3
+            .col-md-6
+              p
+                strong Paciente: 
+                span#detalle-derivacion-paciente
+              p
+                strong DNI: 
+                span#detalle-derivacion-dni
+              p
+                strong Origen: 
+                span#detalle-derivacion-origen
+            .col-md-6
+              p
+                strong Destino: 
+                span#detalle-derivacion-destino
+              p
+                strong Tipo: 
+                span#detalle-derivacion-tipo
+              p
+                strong Estado: 
+                span#detalle-derivacion-estado
+          hr
+          p
+            strong Motivo:
+          p#detalle-derivacion-motivo.alert.alert-light
+          #detalle-recursos
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+  //- MODAL EDITAR DERIVACIÓN
+  #modalEditarDerivacion.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-warning.text-white
+          h5.modal-title
+            i.fas.fa-edit.me-2
+            | Editar Derivación
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          input#editar-id(type='hidden')
+          .mb-3
+            label.form-label Tipo *
+            select#editar-tipo.form-select(required)
+              option(value='Interna') Interna
+              option(value='Externa') Externa
+          #campo-destino.mb-3
+            label.form-label Sector Destino *
+            select#editar-destino.form-select
+              option(value='') Seleccione...
+              if sectores
+                each s in sectores
+                  option(value=s.id)= s.nombre
+          .mb-3
+            label.form-label Motivo *
+            textarea#editar-motivo.form-control(rows='3' required)
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button#btnGuardarDerivacion.btn.btn-warning Guardar
+
+block scripts
+  script(src='/js/reclamoDerivacion.js')

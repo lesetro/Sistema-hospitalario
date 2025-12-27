@@ -482,9 +482,9 @@ module.exports = {
       await queryInterface.addIndex('noticias', ['autor_id'], { transaction });
       await queryInterface.addIndex('noticias', ['fecha'], { transaction });
 
-      // ===================================
-      // NOTIFICACIONES
-      // ===================================
+    // ===================================
+    // NOTIFICACIONES
+    // ===================================
       await queryInterface.createTable('notificaciones', {
         id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
         usuario_id: {
@@ -494,15 +494,25 @@ module.exports = {
           onUpdate: 'CASCADE',
           onDelete: 'RESTRICT'
         },
-        mensaje: { type: Sequelize.STRING(255), allowNull: false },
+        remitente_id: {
+          type: Sequelize.INTEGER,
+          allowNull: true,
+          references: { model: 'usuarios', key: 'id' },
+          onUpdate: 'CASCADE',
+          onDelete: 'SET NULL'
+        },
+        eliminado: { type: Sequelize.BOOLEAN, defaultValue: false },
+        mensaje: { type: Sequelize.TEXT, allowNull: false }, 
         leida: { type: Sequelize.BOOLEAN, defaultValue: false },
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
         updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') }
       }, { transaction, engine: 'InnoDB', charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' });
 
       await queryInterface.addIndex('notificaciones', ['usuario_id'], { transaction });
+      await queryInterface.addIndex('notificaciones', ['remitente_id'], { transaction }); 
       await queryInterface.addIndex('notificaciones', ['leida'], { transaction });
-
+      await queryInterface.addIndex('notificaciones', ['eliminado'], { transaction }); 
+      await queryInterface.addIndex('notificaciones', ['created_at'], { transaction }); 
       // ===================================
       // RECLAMOS
       // ===================================

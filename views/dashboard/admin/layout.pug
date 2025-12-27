@@ -38,15 +38,15 @@ html(lang='es')
             i.fas.fa-users
             span Pacientes
         .menu-item
-          a.menu-link(href='/facturacion', class=(title === 'Facturación y Pagos' ? 'active' : ''))
+          a.menu-link(href='/facturas', class=(title === 'Facturación y Pagos' ? 'active' : ''))
             i.fas.fa-file-invoice-dollar
             span Facturación y Pagos
         .menu-item
-          a.menu-link(href='/procedimientos', class=(title === 'Procedimientos y Estudios' ? 'active' : ''))
+          a.menu-link(href='/procedimientos-estudios', class=(title === 'Procedimientos y Estudios' ? 'active' : ''))
             i.fas.fa-stethoscope
             span Procedimientos y Estudios
         .menu-item
-          a.menu-link(href='/derivaciones', class=(title === 'Derivaciones y Reclamos' ? 'active' : ''))
+          a.menu-link(href='/reclamos-derivaciones', class=(title === 'Derivaciones y Reclamos' ? 'active' : ''))
             i.fas.fa-exchange-alt
             span Derivaciones y Reclamos
         .menu-item
@@ -58,7 +58,7 @@ html(lang='es')
             i.fas.fa-user-md
             span Gestión de Personal
         .menu-item
-          a.menu-link(href='/configuracion', class=(title === 'Configuración del Hospital' ? 'active' : ''))
+          a.menu-link(href='/configuracion/normalizadores', class=(title === 'Configuración del Hospital' ? 'active' : ''))
             i.fas.fa-cogs
             span Configuración
         .menu-item
@@ -66,13 +66,14 @@ html(lang='es')
             i.fas.fa-shield-alt
             span Usuarios
         .menu-item
-          a.menu-link(href='/reportes', class=(title === 'Reporte' ? 'active' : ''))
-            i.fas.fa-chart-bar
-            span Reportes
+          a.menu-link(href='/altas-medicas', class=(title === 'Altas medicas' ? 'active' : ''))
+            i.fas.fa-shield-alt
+            span Altas 
         .menu-item
-          a.menu-link(href='/diagn', class=(title === 'Recetas y Diagnosticos' ? 'active' : ''))
-            i.fas.fa-prescription-bottle-alt
-            span Diagnósticos
+          a.menu-link(href='/configuracion/infraestructura', class=(title === 'Infraestructura Hospitalaria' ? 'active' : ''))
+            i.fas.fa-building
+            span Infraestructura
+        
 
     // Main Content
     .main-content
@@ -82,6 +83,9 @@ html(lang='es')
           button.btn.btn-link.mobile-menu-toggle.me-3(onclick='toggleSidebar()')
             i.fas.fa-bars
           .user-info.d-flex.align-items-center
+            a.btn.btn-sm.btn-outline-primary.me-3(href='/comunicacion' title='Mensajes')
+              i.fas.fa-envelope.me-1
+              span#header-contador-mensajes.badge.bg-danger(style='display:none') 0
             span.me-2 #{user ? user.nombre : 'Administrador'}
             .user-avatar
               i.fas.fa-user
@@ -109,28 +113,7 @@ html(lang='es')
             #searchResults.mt-3(style="display: none;")
               // Resultados de búsqueda aparecerán aquí
 
-      // Alertas y notificaciones
-      if alertas && alertas.length > 0
-        .notifications-section.mb-4
-          .card.border-warning
-            .card-header.bg-warning.text-dark
-              h5.mb-0
-                i.fas.fa-bell.me-2
-                | Alertas y Notificaciones
-                span.badge.bg-danger.ms-2= alertas.filter(a => !a.read).length
-            .card-body
-              each alerta in alertas.slice(0, 5)
-                .alert.alert-dismissible.fade.show(class=`alert-${alerta.type === 'emergency' ? 'danger' : alerta.type === 'warning' ? 'warning' : 'info'}`)
-                  .d-flex.justify-content-between.align-items-start
-                    div
-                      strong= alerta.title
-                      p.mb-1= alerta.message
-                      small.text-muted= new Date(alerta.timestamp).toLocaleString()
-                    if alerta.actions && alerta.actions.length > 0
-                      .btn-group-sm
-                        each action in alerta.actions
-                          a.btn.btn-sm.btn-outline-primary.me-1(href=action.url)= action.label
-                  button.btn-close(type="button" data-bs-dismiss="alert" onclick=`markNotificationAsRead('${alerta.id}')`)
+      
 
       // Content Area
       .content-area
@@ -139,6 +122,7 @@ html(lang='es')
     // Scripts
     script(src='https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js')
     script(src='/js/script.js')
+    script(src='/js/busqueda-global.js')
     block scripts
       if title === 'Admisiones'
         script(src='/js/admision.js')

@@ -43,16 +43,11 @@ module.exports = (sequelize, DataTypes) => {
     // Usuario.hasMany(models.Turno, { foreignKey: 'medico_id', as: 'turnos_medico' });
     Usuario.hasMany(models.TurnoPersonal, { foreignKey: 'usuario_id', as: 'turnos_personal' });
     Usuario.hasMany(models.Reclamo, { foreignKey: 'usuario_id', as: 'reclamos' });
-    Usuario.hasMany(models.Notificacion, { foreignKey: 'usuario_id', as: 'notificaciones' });
+    Usuario.hasMany(models.Notificacion, {foreignKey: 'usuario_id', as: 'notificaciones_recibidas' });
+    Usuario.hasMany(models.Notificacion, {foreignKey: 'remitente_id', as: 'notificaciones_enviadas' });
     Usuario.hasMany(models.Noticia, { foreignKey: 'autor_id', as: 'noticias' });
-     Usuario.belongsTo(models.Rol, { 
-      foreignKey: 'rol_principal_id', 
-      as: 'rol_principal' 
-    });
-    Usuario.belongsTo(models.Rol, { 
-      foreignKey: 'rol_secundario_id', 
-      as: 'rol_secundario' 
-    });
+    Usuario.belongsTo(models.Rol, { foreignKey: 'rol_principal_id', as: 'rol_principal' });
+    Usuario.belongsTo(models.Rol, { foreignKey: 'rol_secundario_id', as: 'rol_secundario' });
   };
 
   return Usuario;

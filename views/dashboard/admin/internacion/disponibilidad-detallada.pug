@@ -1,0 +1,329 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    //- BREADCRUMB DE NAVEGACIÓN
+    nav(aria-label='breadcrumb')
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href='/internacion') Internaciones
+        if sectorSeleccionado && !habitacionSeleccionada
+          li.breadcrumb-item.active(aria-current='page')= sectorSeleccionado.nombre
+        else if habitacionSeleccionada
+          li.breadcrumb-item
+            a(href=`/internacion/disponibilidad?sector_id=${sectorSeleccionado.id}`)= sectorSeleccionado.nombre
+          li.breadcrumb-item.active(aria-current='page')= `Habitación ${habitacionSeleccionada.numero}`
+        else
+          li.breadcrumb-item.active(aria-current='page') Disponibilidad General
+
+    .row
+      .col-md-12
+        .d-flex.justify-content-between.align-items-center.mb-4
+          h2
+            i.fas.fa-chart-pie.me-2
+            if sectorSeleccionado && !habitacionSeleccionada
+              | Habitaciones - #{sectorSeleccionado.nombre}
+            else if habitacionSeleccionada
+              | Camas - Habitación #{habitacionSeleccionada.numero}
+            else
+              | Disponibilidad por Sector
+          .btn-group(role='group')
+            if sectorSeleccionado || habitacionSeleccionada
+              a.btn.btn-secondary(href='/internacion/disponibilidad')
+                i.fas.fa-arrow-left.me-2
+                | Volver a Sectores
+            a.btn.btn-primary(href='/internacion')
+              i.fas.fa-bed.me-2
+              | Nueva Internación
+
+    //- ========================================================================
+    //- NIVEL 1: VISTA POR SECTORES
+    //- ========================================================================
+    if !sectorSeleccionado
+      .row
+        each sector in sectores
+          .col-md-4.mb-4
+            .card.h-100.border-primary.hover-shadow(style='cursor: pointer;' onclick=`location.href='/internacion/disponibilidad?sector_id=${sector.id}'`)
+              .card-header.bg-primary.text-white
+                h5.mb-0
+                  i.fas.fa-hospital.me-2
+                  = sector.nombre
+              .card-body
+                .row.text-center.mb-3
+                  .col-4
+                    .stat-box.bg-success-subtle.p-3.rounded
+                      .h3.mb-0.text-success= sector.estadisticas.libres
+                      small.text-muted Libres
+                  .col-4
+                    .stat-box.bg-danger-subtle.p-3.rounded
+                      .h3.mb-0.text-danger= sector.estadisticas.ocupadas
+                      small.text-muted Ocupadas
+                  .col-4
+                    .stat-box.bg-warning-subtle.p-3.rounded
+                      .h3.mb-0.text-warning= sector.estadisticas.enLimpieza
+                      small.text-muted Limpieza
+                
+                .progress.mb-2(style='height: 25px;')
+                  .progress-bar(
+                    class=sector.estadisticas.porcentajeOcupacion > 80 ? 'bg-danger' : (sector.estadisticas.porcentajeOcupacion > 60 ? 'bg-warning' : 'bg-success')
+                    role='progressbar'
+                    style=`width: ${sector.estadisticas.porcentajeOcupacion}%`
+                    aria-valuenow=sector.estadisticas.porcentajeOcupacion
+                    aria-valuemin='0'
+                    aria-valuemax='100'
+                  )= `${sector.estadisticas.porcentajeOcupacion}%`
+                
+                .text-center.mt-3
+                  strong Total: #{sector.estadisticas.total} camas
+                  p.text-muted.small.mb-0= sector.descripcion || ''
+              .card-footer.text-center.bg-light
+                small.text-primary
+                  i.fas.fa-mouse-pointer.me-1
+                  | Click para ver habitaciones
+
+    //- ========================================================================
+    //- NIVEL 2: VISTA POR HABITACIONES (cuando hay sector seleccionado)
+    //- ========================================================================
+    else if sectorSeleccionado && !habitacionSeleccionada
+      .row.mb-4
+        .col-md-12
+          .alert.alert-info
+            strong 
+              i.fas.fa-info-circle.me-2
+              | Sector: #{sectorSeleccionado.nombre}
+            p.mb-0 Seleccione una habitación para ver el detalle de las camas
+
+      .row
+        .col-md-12
+          .table-responsive
+            table.table.table-hover.table-bordered
+              thead.table-primary
+                tr
+                  th 
+                    i.fas.fa-door-open.me-2
+                    | Habitación
+                  th Tipo
+                  th Servicio
+                  th Sexo Permitido
+                  th.text-center
+                    i.fas.fa-bed.me-2
+                    | Total Camas
+                  th.text-center
+                    i.fas.fa-check-circle.me-2
+                    | Libres
+                  th.text-center
+                    i.fas.fa-user-injured.me-2
+                    | Ocupadas
+                  th.text-center
+                    i.fas.fa-broom.me-2
+                    | Limpieza
+                  th.text-center Ocupación
+                  th.text-center Acción
+              tbody
+                if habitaciones && habitaciones.length
+                  each hab in habitaciones
+                    tr(class=hab.estadisticas.libres === 0 ? 'table-danger' : '')
+                      td
+                        strong= hab.numero
+                      td
+                        span.badge(class=hab.tipo === 'Individual' ? 'bg-info' : (hab.tipo === 'Doble' ? 'bg-primary' : 'bg-secondary'))= hab.tipo
+                      td= hab.tipoServicio ? hab.tipoServicio.nombre : 'N/A'
+                      td
+                        if hab.sexo_permitido === 'Mixto'
+                          span.badge.bg-success Mixto
+                        else if hab.sexo_permitido === 'Masculino'
+                          span.badge.bg-primary
+                            i.fas.fa-mars.me-1
+                            | Masculino
+                        else
+                          span.badge.bg-danger
+                            i.fas.fa-venus.me-1
+                            | Femenino
+                      td.text-center
+                        strong= hab.estadisticas.total
+                      td.text-center
+                        span.badge.bg-success= hab.estadisticas.libres
+                      td.text-center
+                        span.badge.bg-danger= hab.estadisticas.ocupadas
+                      td.text-center
+                        span.badge.bg-warning= hab.estadisticas.enLimpieza
+                      td.text-center
+                        .progress(style='height: 20px; min-width: 100px;')
+                          .progress-bar(
+                            class=hab.estadisticas.porcentajeOcupacion > 80 ? 'bg-danger' : (hab.estadisticas.porcentajeOcupacion > 60 ? 'bg-warning' : 'bg-success')
+                            role='progressbar'
+                            style=`width: ${hab.estadisticas.porcentajeOcupacion}%`
+                          )= `${hab.estadisticas.porcentajeOcupacion}%`
+                      td.text-center
+                        a.btn.btn-sm.btn-primary(href=`/internacion/disponibilidad?sector_id=${sectorSeleccionado.id}&habitacion_id=${hab.id}`)
+                          i.fas.fa-search.me-1
+                          | Ver Camas
+                else
+                  tr
+                    td.text-center(colspan='10')
+                      i.fas.fa-info-circle.me-2
+                      | No hay habitaciones en este sector
+
+    //- ========================================================================
+    //- NIVEL 3: VISTA POR CAMAS (cuando hay habitación seleccionada)
+    //- ========================================================================
+    else if habitacionSeleccionada
+      .row.mb-4
+        .col-md-12
+          .card.border-info
+            .card-header.bg-info.text-white
+              h5.mb-0
+                i.fas.fa-door-open.me-2
+                | Habitación #{habitacionSeleccionada.numero} - #{habitacionSeleccionada.sector.nombre}
+            .card-body
+              .row
+                .col-md-3
+                  strong Tipo:
+                  p.mb-0= habitacionSeleccionada.tipo
+                .col-md-3
+                  strong Servicio:
+                  p.mb-0= habitacionSeleccionada.tipoServicio ? habitacionSeleccionada.tipoServicio.nombre : 'N/A'
+                .col-md-3
+                  strong Sexo Permitido:
+                  p.mb-0= habitacionSeleccionada.sexo_permitido
+                .col-md-3
+                  strong Total Camas:
+                  p.mb-0= camas ? camas.length : 0
+
+      .row
+        if camas && camas.length
+          each cama in camas
+            .col-md-6.mb-4
+              .card(class=cama.estado === 'Libre' ? 'border-success' : (cama.estado === 'Ocupada' ? 'border-danger' : 'border-warning'))
+                .card-header(class=cama.estado === 'Libre' ? 'bg-success text-white' : (cama.estado === 'Ocupada' ? 'bg-danger text-white' : 'bg-warning text-dark'))
+                  .d-flex.justify-content-between.align-items-center
+                    h5.mb-0
+                      i.fas.fa-bed.me-2
+                      | Cama #{cama.numero}
+                    span.badge(class=cama.estado === 'Libre' ? 'bg-light text-success' : (cama.estado === 'Ocupada' ? 'bg-light text-danger' : 'bg-light text-warning'))= cama.estado
+                
+                .card-body
+                  //- CAMA OCUPADA
+                  if cama.estado === 'Ocupada' && cama.internaciones && cama.internaciones.length > 0
+                    - const internacion = cama.internaciones[0]
+                    .row
+                      .col-md-12.mb-3
+                        .bg-light.p-3.rounded
+                          strong
+                            i.fas.fa-user.me-2
+                            | Paciente:
+                          p.mb-1= `${internacion.paciente.usuario.nombre} ${internacion.paciente.usuario.apellido}`
+                          small.text-muted DNI: #{internacion.paciente.usuario.dni}
+                      
+                      .col-md-6
+                        strong Médico:
+                        p.small.mb-0= `Dr/a. ${internacion.medico.usuario.nombre} ${internacion.medico.usuario.apellido}`
+                      
+                      .col-md-6
+                        strong Tipo:
+                        p.small.mb-0= internacion.tipoInternacion ? internacion.tipoInternacion.nombre : 'N/A'
+                      
+                      .col-md-6
+                        strong Ingreso:
+                        p.small.mb-0= new Date(internacion.fecha_inicio).toLocaleDateString('es-AR')
+                      
+                      .col-md-6
+                        strong Días:
+                        - const diasInternado = Math.floor((new Date() - new Date(internacion.fecha_inicio)) / (1000 * 60 * 60 * 24))
+                        p.small.mb-0
+                          span.badge.bg-info= `${diasInternado} días`
+                      
+                      .col-md-12.mt-2
+                        strong Estado:
+                        p.small.mb-0
+                          span.badge(class=internacion.estado_paciente === 'Estable' ? 'bg-success' : (internacion.estado_paciente === 'Grave' ? 'bg-warning' : 'bg-danger'))= internacion.estado_paciente
+                      
+                      if internacion.paciente.obraSocial
+                        .col-md-12.mt-2
+                          strong Obra Social:
+                          p.small.mb-0= internacion.paciente.obraSocial.nombre
+
+                  //- CAMA EN LIMPIEZA
+                  else if cama.estado === 'EnLimpieza'
+                    .alert.alert-warning.mb-0
+                      i.fas.fa-broom.me-2
+                      strong Cama en limpieza
+                      if cama.fecha_fin_limpieza
+                        p.mb-0.small
+                          | Estimado de finalización: 
+                          = new Date(cama.fecha_fin_limpieza).toLocaleString('es-AR')
+                      
+                      //- Mostrar último paciente si existe
+                      if cama.ultimaInternacion
+                        hr
+                        p.mb-1.small
+                          strong Último paciente:
+                          br
+                          = `${cama.ultimaInternacion.paciente.usuario.nombre} ${cama.ultimaInternacion.paciente.usuario.apellido}`
+                        if cama.ultimaInternacion.altasMedicas && cama.ultimaInternacion.altasMedicas.length > 0
+                          p.mb-0.small
+                            strong Alta: 
+                            = new Date(cama.ultimaInternacion.altasMedicas[0].fecha_alta).toLocaleString('es-AR')
+                            br
+                            strong Tipo: 
+                            = cama.ultimaInternacion.altasMedicas[0].tipo_alta
+
+                  //- CAMA LIBRE
+                  else
+                    .alert.alert-success.text-center.mb-0
+                      i.fas.fa-check-circle.fa-3x.mb-2
+                      p.mb-0
+                        strong Cama disponible
+                      if cama.sexo_ocupante
+                        p.small.text-muted.mb-0 Último ocupante: #{cama.sexo_ocupante}
+
+                .card-footer
+                  if cama.estado === 'EnLimpieza'
+                    button.btn.btn-sm.btn-success.w-100(
+                      onclick=`marcarCamaLibre(${cama.id})`
+                    )
+                      i.fas.fa-check.me-2
+                      | Marcar como Libre
+                  else if cama.estado === 'Libre'
+                    small.text-muted.text-center.d-block
+                      i.fas.fa-info-circle.me-1
+                      | Lista para asignar
+        else
+          .col-12
+            .alert.alert-warning
+              i.fas.fa-exclamation-triangle.me-2
+              | No hay camas registradas en esta habitación
+
+block scripts
+  script.
+    function marcarCamaLibre(camaId) {
+      if (!confirm('¿Marcar esta cama como libre?')) return;
+      
+      fetch(`/internacion/api/cama/${camaId}/marcar-libre`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' }
+      })
+      .then(res => res.json())
+      .then(data => {
+        if (data.success) {
+          alert('✅ Cama marcada como libre');
+          location.reload();
+        } else {
+          alert('❌ Error: ' + data.message);
+        }
+      })
+      .catch(err => {
+        console.error(err);
+        alert('❌ Error al marcar cama como libre');
+      });
+    }
+
+  style.
+    .hover-shadow:hover {
+      box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15) !important;
+      transform: translateY(-2px);
+      transition: all 0.3s ease;
+    }
+    .stat-box {
+      border-radius: 8px;
+    }

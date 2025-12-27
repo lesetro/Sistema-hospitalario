@@ -14,8 +14,10 @@ module.exports = (sequelize, DataTypes) => {
       timestamps: true,
       underscored: true,
       indexes: [
-        { fields: ['habitacion_id'] }]
-      
+          { fields: ['habitacion_id'] },
+          { fields: ['estado'] },  
+          { fields: ['estado', 'sexo_ocupante'] }
+        ]
       });
       
 

@@ -1,0 +1,262 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    #alerta-container
+    #loading.text-center.d-none.my-4
+      .spinner-border
+      p.mt-2 Cargando...
+
+    //- ENCABEZADO
+    .row.mb-4
+      .col-md-12
+        .d-flex.justify-content-between
+          h2
+            i.fas.fa-file-invoice-dollar.me-2
+            | Gestión de Facturación y Pagos
+          .btn-group
+            button#btnLimpiarFiltros.btn.btn-secondary
+              i.fas.fa-eraser.me-2
+              | Limpiar
+            button#btnNuevaFactura.btn.btn-success
+              i.fas.fa-plus.me-2
+              | Nueva Factura
+
+    //- FILTROS
+    .card.mb-4
+      .card-header
+        h5.mb-0
+          i.fas.fa-filter.me-2
+          | Filtros
+      .card-body
+        .row
+          .col-md-3
+            label.form-label Búsqueda
+            input#busqueda.form-control(placeholder='DNI, nombre...')
+          .col-md-2
+            label.form-label Estado
+            select#filtro-estado.form-select
+              option(value='') Todos
+              option(value='Pendiente') Pendiente
+              option(value='Pagada') Pagada
+              option(value='Cancelada') Cancelada
+          .col-md-2
+            label.form-label Tipo Pago
+            select#filtro-tipo-pago.form-select
+              option(value='') Todos
+              option(value='SISTEMA PUBLICO') Sistema Público
+              option(value='Obra Social') Obra Social
+              option(value='Efectivo') Efectivo
+              option(value='Tarjeta') Tarjeta
+          .col-md-2
+            label.form-label Desde
+            input#filtro-fecha-desde.form-control(type='date')
+          .col-md-2
+            label.form-label Hasta
+            input#filtro-fecha-hasta.form-control(type='date')
+
+    //- TABLA
+    .card
+      .card-header.bg-primary.text-white
+        h5.mb-0
+          i.fas.fa-table.me-2
+          | Listado de Facturas
+      .card-body
+        .table-responsive
+          table.table.table-hover.table-striped
+            thead
+              tr
+                th #
+                th Paciente
+                th Monto
+                th Obra Social
+                th Tipo Pago
+                th Estado
+                th Pagado
+                th Saldo
+                th Acciones
+            tbody#tabla-facturas-body
+              tr
+                td.text-center(colspan='9') Cargando...
+      .card-footer
+        #paginacion
+
+  //- MODAL DETALLES
+  #modalDetalles.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5.modal-title
+            i.fas.fa-file-invoice.me-2
+            | Detalles Factura 
+            span#detalle-id
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          .row.mb-3
+            .col-md-6
+              strong Paciente: 
+              span#detalle-paciente
+              br
+              small.text-muted DNI: 
+                span#detalle-dni
+            .col-md-6
+              strong Fecha: 
+              span#detalle-fecha
+              br
+              strong Estado: 
+              span#detalle-estado
+          .row.mb-3
+            .col-md-4
+              .card.bg-light
+                .card-body.text-center
+                  h5#detalle-monto $0
+                  small Monto Total
+            .col-md-4
+              .card.bg-success.text-white
+                .card-body.text-center
+                  h5#detalle-pagado $0
+                  small Pagado
+            .col-md-4
+              .card.bg-danger.text-white
+                .card-body.text-center
+                  h5#detalle-saldo $0
+                  small Saldo
+          .row
+            .col-md-6
+              strong Obra Social: 
+              span#detalle-obra-social
+            .col-md-6
+              strong Tipo: 
+              span#detalle-tipo-pago
+          .row.mt-3
+            .col-12
+              strong Descripción:
+              p#detalle-descripcion.mt-2
+          h6.mt-3 Historial de Pagos
+          .table-responsive
+            table.table.table-sm
+              thead
+                tr
+                  th Fecha
+                  th Monto
+                  th Método
+                  th Estado
+              tbody#historial-pagos
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+  //- MODAL NUEVA FACTURA
+  #modalNuevaFactura.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-plus.me-2
+            | Nueva Factura
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#form-nueva-factura
+            .row.mb-3
+              .col-md-6
+                label.form-label Paciente *
+                select#nueva-paciente.form-select(required)
+                  option(value='') Seleccione...
+                  if pacientes
+                    each p in pacientes
+                      option(value=p.id)= `${p.usuario.nombre} ${p.usuario.apellido} - DNI: ${p.usuario.dni}`
+              .col-md-6
+                label.form-label Admisión
+                select#nueva-admision.form-select
+                  option(value='') Primero seleccione paciente
+            .row.mb-3
+              .col-md-12
+                button#btnCalcularMonto.btn.btn-info.btn-sm(type='button')
+                  i.fas.fa-calculator.me-2
+                  | Calcular Monto Automático
+                .form-check.mt-2
+                  input#incluir-estudios.form-check-input(type='checkbox')
+                  label.form-check-label(for='incluir-estudios') Incluir estudios
+                .form-check
+                  input#incluir-medicamentos.form-check-input(type='checkbox')
+                  label.form-check-label(for='incluir-medicamentos') Incluir medicamentos
+            #detalles-calculo.mb-3
+            .row.mb-3
+              .col-md-6
+                label.form-label Monto Total *
+                input#monto-calculado.form-control(type='number' step='0.01' required)
+              .col-md-6
+                label.form-label Obra Social
+                select#nueva-obra-social.form-select
+                  option(value='') Sin obra social
+                  if obrasSociales
+                    each os in obrasSociales
+                      option(value=os.id)= os.nombre
+            .row.mb-3
+              .col-md-12
+                label.form-label % Cobertura Obra Social
+                input#porcentaje-obra-social.form-control(type='number' min='0' max='100' value='0')
+                small.text-muted El hospital cubre el resto automáticamente
+            #info-division.mb-3
+            .mb-3
+              label.form-label Descripción
+              textarea#nueva-descripcion.form-control(rows='3')
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button#btnCrearFactura.btn.btn-success(type='button')
+            i.fas.fa-save.me-2
+            | Crear Factura
+
+  //- MODAL PAGO
+  #modalPago.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-dollar-sign.me-2
+            | Registrar Pago
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          input#pago-factura-id(type='hidden')
+          p#info-saldo.alert.alert-info
+          .mb-3
+            label.form-label Monto *
+            input#pago-monto.form-control(type='number' step='0.01' required)
+          .mb-3
+            label.form-label Método *
+            select#pago-metodo.form-select(required)
+              option(value='') Seleccione...
+              option(value='Efectivo') Efectivo
+              option(value='Tarjeta') Tarjeta
+              option(value='Transferencia') Transferencia
+              option(value='Cheque') Cheque
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button#btnConfirmarPago.btn.btn-success
+            i.fas.fa-check.me-2
+            | Confirmar Pago
+
+  //- MODAL ANULAR
+  #modalAnular.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-danger.text-white
+          h5.modal-title
+            i.fas.fa-ban.me-2
+            | Anular Factura
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          input#anular-id(type='hidden')
+          .alert.alert-warning
+            i.fas.fa-exclamation-triangle.me-2
+            | Esta acción no se puede deshacer
+          .mb-3
+            label.form-label Motivo *
+            textarea#anular-motivo.form-control(rows='3' required)
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button#btnConfirmarAnular.btn.btn-danger
+            i.fas.fa-ban.me-2
+            | Anular Factura
+
+block scripts
+  script(src='/js/facturaPagos.js')
