@@ -97,27 +97,27 @@ app.locals.getRutaDashboard = function(rol) {
 };
 
 // ========================================
-// ROUTERS
+// ROUTERS Administrativo
 // ========================================
 const homeRoutes = require("./routes/homeRoutes");
 const authRoutes = require("./routes/authRoutes");
-const adminRoutes = require("./routes/adminRoutes");
-const admisionRoutes = require("./routes/admisionRoutes");
-const camasRoutes = require('./routes/camasRoutes');
-const internacionRoutes = require('./routes/internacionRoutes');
-const turnoRoutes = require('./routes/turnoRoutes');
-const pacienteRoutes = require('./routes/pacienteRoutes');
-const facturaRoutes = require('./routes/facturaRoutes');
-const procedimientoEstudioRoutes = require('./routes/procedimientoEstudioRoutes');
-const personalRoutes = require('./routes/personalRoutes');
-const reclamoDerivacionRoutes = require('./routes/reclamoDerivacionRoutes');
-const mensajeriaRoutes = require('./routes/mensajeriaRoutes');
-const searchRoutes = require('./routes/searchRoutes');
-const usuariosRoutes = require('./routes/usuariosRoutes');
-const configuracionNormalizadoresRoutes = require('./routes/configuracionNormalizadoresRoutes');
-const altasMedicasRoutes = require('./routes/altasMedicasRoutes');
-const noticiasRoutes = require('./routes/noticiasRoutes');
-const infraestructuraRoutes = require('./routes/infraestructuraRoutes'); 
+const adminRoutes = require("./routes/admin/adminRoutes");
+const admisionRoutes = require("./routes/admin/admisionRoutes");
+const camasRoutes = require('./routes/admin/camasRoutes');
+const internacionRoutes = require('./routes/admin/internacionRoutes');
+const turnoRoutes = require('./routes/admin/turnoRoutes');
+const pacienteRoutes = require('./routes/admin/pacienteRoutes');
+const facturaRoutes = require('./routes/admin/facturaRoutes');
+const procedimientoEstudioRoutes = require('./routes/admin/procedimientoEstudioRoutes');
+const personalRoutes = require('./routes/admin/personalRoutes');
+const reclamoDerivacionRoutes = require('./routes/admin/reclamoDerivacionRoutes');
+const mensajeriaRoutes = require('./routes/admin/mensajeriaRoutes');
+const searchRoutes = require('./routes/admin/searchRoutes');
+const usuariosRoutes = require('./routes/admin/usuariosRoutes');
+const configuracionNormalizadoresRoutes = require('./routes/admin/configuracionNormalizadoresRoutes');
+const altasMedicasRoutes = require('./routes/admin/altasMedicasRoutes');
+const noticiasRoutes = require('./routes/admin/noticiasRoutes');
+const infraestructuraRoutes = require('./routes/admin/infraestructuraRoutes'); 
 
 
 //  Rutas públicas (sin autenticación)
@@ -146,9 +146,127 @@ app.use('/altas-medicas', authMiddleware, requireRole(['ADMINISTRATIVO']), altas
 app.use('/noticias', authMiddleware, requireRole(['ADMINISTRATIVO']), noticiasRoutes);
 app.use('/configuracion/infraestructura', authMiddleware, requireRole(['ADMINISTRATIVO']), infraestructuraRoutes);
 
+// ========================================
+// ROUTERS Medico
+// ========================================
+const medicoRoutes = require("./routes/medico/medicoRouter");
+const pacienteMedicoRoutes = require("./routes/medico/pacientesMedicoRouter");
+const turnoMedicoRoutes = require("./routes/medico/turnosMedicoRouter");
+const evaluacionMedicaRoutes = require("./routes/medico/evaluacionesMedicasRouter");
+const diagnosticosMedicoRoutes = require("./routes/medico/diagnosticosRouter");
+const estudiosSolicitadosMedicoRoutes = require("./routes/medico/estudiosSolicitadosrouter");
+const altasMedicasMedicoRoutes = require("./routes/medico/altasMedicasRouter");
+const internacionesRoutes = require("./routes/medico/internacionesRouter");
+const recetasMedicoRoutes = require("./routes/medico/recetasCertificadosRouter");
+const intervencionesRoutes = require("./routes/medico/intervencionesRouter");
+const derivacionesRoutes = require("./routes/medico/derivacionesRouter");
+const buscarPacienteRoutes = require("./routes/medico/buscarPacienteRouter");
+const comunicacionesRoutes = require("./routes/medico/comunicacionesRouter");
+const historialClinicoRoutes = require("./routes/medico/historialClinicoRouter");
 
-// app.use("/medico", authMiddleware, requireRole(['MEDICO']), medicoRoutes);
-// app.use("/enfermero", authMiddleware, requireRole(['ENFERMERO']), enfermeroRoutes);
+
+app.use("/medico/buscar-paciente" ,authMiddleware,requireRole(['MEDICO']),buscarPacienteRoutes);
+app.use("/medico/historial-clinico" ,authMiddleware,requireRole(['MEDICO']),historialClinicoRoutes);
+app.use("/medico/comunicaciones" ,authMiddleware,requireRole(['MEDICO']),comunicacionesRoutes);
+app.use("/medico/derivaciones", authMiddleware,requireRole(['MEDICO']), derivacionesRoutes);
+app.use("/medico/internaciones", authMiddleware, requireRole(['MEDICO']), internacionesRoutes);
+app.use("/medico/recetas-certificados", authMiddleware, requireRole(['MEDICO']), recetasMedicoRoutes);
+app.use("/medico/intervenciones", authMiddleware, requireRole(['MEDICO']), intervencionesRoutes);
+app.use("/medico/altas-medicas", authMiddleware, requireRole(['MEDICO']), altasMedicasMedicoRoutes);
+app.use("/medico/diagnosticos", authMiddleware, requireRole(['MEDICO']), diagnosticosMedicoRoutes);
+app.use("/medico/estudios-solicitados", authMiddleware, requireRole(['MEDICO']), estudiosSolicitadosMedicoRoutes);
+app.use("/medico/evaluaciones", authMiddleware, requireRole(['MEDICO']), evaluacionMedicaRoutes);
+app.use("/medico/mis-turnos", authMiddleware, requireRole(['MEDICO']), turnoMedicoRoutes);
+app.use("/medico/pacientes", authMiddleware, requireRole(['MEDICO']), pacienteMedicoRoutes);
+app.use("/medico", authMiddleware, requireRole(['MEDICO']), medicoRoutes);
+
+// ========================================
+// ROUTERS Enfermero
+// ========================================
+
+const dashboardEnfermeroRoutes = require("./routes/enfermero/enfermeroRoutes");
+const triajeRoutes = require("./routes/enfermero/triajeRoutes");
+const evaluacionesEnfermeroRoutes = require("./routes/enfermero/evaluacionesEnfermeriaRoutes");
+const controlesEnfermeroRoutes = require("./routes/enfermero/controlesRoutes");
+const signosVitalesRoutes = require("./routes/enfermero/signosVitalesRoutes");
+const procedimientosEnfermeriaRoutes = require("./routes/enfermero/procedimientosEnfermeriaRoutes");
+const prequirurgicosRoutes = require("./routes/enfermero/prequirurgicosRoutes");
+const medicacionRoutes = require("./routes/enfermero/medicacionRoutes");
+const pacientesEnfermeroRoutes = require("./routes/enfermero/pacientesEnfermeroRoutes");
+const internadosRoutes = require("./routes/enfermero/internadosRoutes");
+const camasEnfermeroRoutes = require("./routes/enfermero/camasEnfermeroRoutes");
+const listaEsperaRoutes = require("./routes/enfermero/listaEsperaRoutes");
+const buscarPacienteEnfermeroRoutes = require("./routes/enfermero/buscarPacienteRoutes");
+const comunicacionesEnfermeroRoutes = require("./routes/enfermero/comunicacionesEnfermeroRoutes");
+const misTurnosRoutes = require("./routes/enfermero/misTurnosRoutes");
+//const perfilEnfermeroRoutes = require("./routes/enfermero/perfilEnfermeroRoutes");
+
+// Aplicar rutas con middleware de autenticación y rol
+//app.use("/enfermero/perfil", authMiddleware, requireRole(['ENFERMERO']), perfilEnfermeroRoutes);
+app.use("/enfermero/mis-turnos", authMiddleware, requireRole(['ENFERMERO']), misTurnosRoutes);
+app.use("/enfermero/comunicaciones", authMiddleware, requireRole(['ENFERMERO']), comunicacionesEnfermeroRoutes);
+app.use("/enfermero/buscar-paciente", authMiddleware, requireRole(['ENFERMERO']), buscarPacienteEnfermeroRoutes);
+app.use("/enfermero/lista-espera", authMiddleware, requireRole(['ENFERMERO']), listaEsperaRoutes);
+app.use("/enfermero/camas", authMiddleware, requireRole(['ENFERMERO']), camasEnfermeroRoutes);
+app.use("/enfermero/internados", authMiddleware, requireRole(['ENFERMERO']), internadosRoutes);
+app.use("/enfermero/pacientes", authMiddleware, requireRole(['ENFERMERO']), pacientesEnfermeroRoutes);
+app.use("/enfermero/medicacion", authMiddleware, requireRole(['ENFERMERO']), medicacionRoutes);
+app.use("/enfermero/prequirurgicos", authMiddleware, requireRole(['ENFERMERO']), prequirurgicosRoutes);
+app.use("/enfermero/procedimientos", authMiddleware, requireRole(['ENFERMERO']), procedimientosEnfermeriaRoutes);
+app.use("/enfermero/signos-vitales", authMiddleware, requireRole(['ENFERMERO']), signosVitalesRoutes);
+app.use("/enfermero/controles", authMiddleware, requireRole(['ENFERMERO']), controlesEnfermeroRoutes);
+app.use("/enfermero/evaluaciones", authMiddleware, requireRole(['ENFERMERO']), evaluacionesEnfermeroRoutes);
+app.use("/enfermero/triaje", authMiddleware, requireRole(['ENFERMERO']), triajeRoutes);
+app.use("/enfermero", authMiddleware, requireRole(['ENFERMERO']), dashboardEnfermeroRoutes);
+
+// ========================================
+// ROUTERS Paciente
+// ========================================
+const pacienteDashboardRouter = require('./routes/paciente/pacienteDashboardRouter');
+const pacienteTurnosRouter = require('./routes/paciente/pacienteTurnosRouter');
+const pacienteSolicitarTurnoRouter = require('./routes/paciente/pacienteSolicitarTurnoRouter');
+const pacienteListaEsperaRouter = require('./routes/paciente/pacienteListaEsperaRouter');
+const pacienteAdmisionesRouter = require('./routes/paciente/pacienteAdmisionesRouter');
+const pacienteHistorialMedicoRouter = require('./routes/paciente/pacienteHistorialMedicoRouter');
+const pacienteEstudiosRouter = require('./routes/paciente/pacienteEstudiosRouter');
+const pacienteRecetasRouter = require('./routes/paciente/pacienteRecetasRouter');
+const pacienteInternacionesRouter = require('./routes/paciente/pacienteInternacionesRouter');
+const pacienteFacturasRouter = require('./routes/paciente/pacienteFacturasRouter');
+const pacientePagosRouter = require('./routes/paciente/pacientePagosRouter');
+const pacienteNotificacionesRouter = require('./routes/paciente/pacienteNotificacionesRouter');
+const pacienteMensajesRouter = require('./routes/paciente/pacienteMensajesRouter');
+const pacienteReclamosRouter = require('./routes/paciente/pacienteReclamosRouter');
+const pacientePerfilRouter = require('./routes/paciente/pacientePerfilRouter');
+
+
+// Dashboard principal
+app.use("/paciente", authMiddleware, requireRole(['PACIENTE']), pacienteDashboardRouter);
+
+// Gestión de turnos
+app.use("/paciente/turnos", authMiddleware, requireRole(['PACIENTE']), pacienteTurnosRouter);
+app.use("/paciente/solicitar-turno", authMiddleware, requireRole(['PACIENTE']), pacienteSolicitarTurnoRouter);
+app.use("/paciente/lista-espera", authMiddleware, requireRole(['PACIENTE']), pacienteListaEsperaRouter);
+
+// Información médica
+app.use("/paciente/admisiones", authMiddleware, requireRole(['PACIENTE']), pacienteAdmisionesRouter);
+app.use("/paciente/historial-medico", authMiddleware, requireRole(['PACIENTE']), pacienteHistorialMedicoRouter);
+app.use("/paciente/estudios", authMiddleware, requireRole(['PACIENTE']), pacienteEstudiosRouter);
+app.use("/paciente/recetas", authMiddleware, requireRole(['PACIENTE']), pacienteRecetasRouter);
+app.use("/paciente/internaciones", authMiddleware, requireRole(['PACIENTE']), pacienteInternacionesRouter);
+
+// Facturación
+app.use("/paciente/facturas", authMiddleware, requireRole(['PACIENTE']), pacienteFacturasRouter);
+app.use("/paciente/pagos", authMiddleware, requireRole(['PACIENTE']), pacientePagosRouter);
+
+// Comunicación
+app.use("/paciente/notificaciones", authMiddleware, requireRole(['PACIENTE']), pacienteNotificacionesRouter);
+app.use("/paciente/mensajes", authMiddleware, requireRole(['PACIENTE']), pacienteMensajesRouter);
+app.use("/paciente/reclamos", authMiddleware, requireRole(['PACIENTE']), pacienteReclamosRouter);
+
+// Perfil
+app.use("/paciente/perfil", authMiddleware, requireRole(['PACIENTE']), pacientePerfilRouter);
+
+
 
 
 // ========================================

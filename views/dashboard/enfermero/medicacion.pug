@@ -1,0 +1,147 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-pills.me-2
+              | Administración de Medicación
+            p.text-muted.mb-0 Gestión de recetas y administración de medicamentos
+          div
+            button.btn.btn-outline-primary(onclick='buscarPaciente()')
+              i.fas.fa-search.me-2
+              | Buscar Paciente
+
+    // Estadísticas
+    .row.g-3.mb-4
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.text-center
+          .card-body
+            h3.mb-0= estadisticas.total
+            small.text-muted Total Recetas
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-warning.border-4.text-center
+          .card-body
+            h3.mb-0.text-warning= estadisticas.pendientes
+            small.text-muted Pendientes
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-success.border-4.text-center
+          .card-body
+            h3.mb-0.text-success= estadisticas.administradas
+            small.text-muted Administradas
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-info.border-4.text-center
+          .card-body
+            h3.mb-0.text-info= estadisticas.hoy
+            small.text-muted Hoy
+
+    // Filtros
+    .row.mb-3
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form#form-filtros.row.g-3(method='GET')
+              .col-md-3
+                label.form-label Fecha
+                input.form-control(type='date' name='fecha' value=filtros.fecha)
+              
+              .col-md-4
+                label.form-label Buscar Paciente
+                input.form-control(type='text' name='paciente' placeholder='Nombre, apellido o DNI' value=filtros.paciente)
+              
+              .col-md-3
+                label.form-label Estado
+                select.form-select(name='estado')
+                  option(value='' selected=!filtros.estado) Todas
+                  option(value='pendiente' selected=(filtros.estado === 'pendiente')) Pendientes
+                  option(value='administrada' selected=(filtros.estado === 'administrada')) Administradas
+              
+              .col-md-2.d-flex.align-items-end
+                button.btn.btn-primary.w-100(type='submit')
+                  i.fas.fa-filter.me-2
+                  | Filtrar
+
+    // Tabla de recetas
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Recetas Médicas
+          .card-body.p-0
+            if recetas.length > 0
+              .table-responsive
+                table.table.table-hover.mb-0#tabla-recetas
+                  thead.table-light
+                    tr
+                      th Estado
+                      th Paciente
+                      th DNI
+                      th Médico
+                      th Fecha Receta
+                      th Última Admin.
+                      th.text-center Acciones
+                  tbody
+                    each receta in recetas
+                      tr(class=receta.administrada ? '' : 'table-warning')
+                        td
+                          if receta.administrada
+                            span.badge.bg-success
+                              i.fas.fa-check.me-1
+                              | Administrada
+                          else
+                            span.badge.bg-warning.text-dark
+                              i.fas.fa-clock.me-1
+                              | Pendiente
+                        td
+                          strong= `${receta.paciente.usuario.nombre} ${receta.paciente.usuario.apellido}`
+                        td
+                          small.text-muted= receta.paciente.usuario.dni
+                        td
+                          small Dr. #{receta.medico.usuario.nombre} #{receta.medico.usuario.apellido}
+                        td
+                          small= new Date(receta.fecha).toLocaleDateString('es-AR')
+                        td
+                          if receta.ultima_administracion
+                            small= new Date(receta.ultima_administracion).toLocaleString('es-AR')
+                          else
+                            small.text-muted Nunca
+                        td.text-center
+                          .btn-group.btn-group-sm(role='group')
+                            a.btn.btn-outline-info(href=`/enfermero/medicacion/${receta.id}` title='Ver detalle')
+                              i.fas.fa-eye
+                            a.btn.btn-success(href=`/enfermero/medicacion/${receta.id}/administrar` title='Administrar')
+                              i.fas.fa-syringe
+            else
+              .p-5.text-center.text-muted
+                i.fas.fa-prescription.fa-4x.mb-3
+                h5 No hay recetas registradas
+                p.mb-0 Utilice los filtros para buscar
+
+    // Modal buscar paciente
+    #modalBuscarPaciente.modal.fade(tabindex='-1')
+      .modal-dialog
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-search.me-2
+              | Buscar Paciente
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            .input-group.mb-3
+              input.form-control(type='text' id='input-buscar-paciente' placeholder='Nombre, apellido o DNI')
+              button.btn.btn-primary(onclick='realizarBusqueda()')
+                i.fas.fa-search
+            
+            #resultados-pacientes
+
+block scripts
+  script(src='/js/enfermero/medicacion.js')

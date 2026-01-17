@@ -19,7 +19,7 @@ block content
               | #{success}
               button.btn-close(type="button" data-bs-dismiss="alert")
           
-          form(method="POST" action="/auth/recuperarContrasena")
+          form(method="POST" action="/auth/recuperar-contrasena")
             .mb-3
               label.form-label(for="email")
                 i.bi.bi-envelope.me-1
@@ -43,6 +43,11 @@ block content
                 placeholder="Mínimo 6 caracteres",
                 minlength="6"
               )
+            
+            .mb-3
+              small.form-text.text-muted
+                i.bi.bi-info-circle.me-1
+                | La contraseña debe tener al menos 6 caracteres
             
             .d-grid.mb-3
               button.btn.btn-custom(type="submit")

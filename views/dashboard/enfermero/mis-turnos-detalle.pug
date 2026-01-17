@@ -1,0 +1,101 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    .row.mb-3
+      .col-12
+        a.btn.btn-secondary(href='/enfermero/mis-turnos')
+          i.fas.fa-arrow-left.me-2
+          | Volver
+
+    .row
+      .col-lg-6
+        .card.border-0.shadow-sm
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-calendar-alt.me-2
+              | Detalle del Turno
+          .card-body
+            dl.row
+              dt.col-sm-4 Tipo:
+              dd.col-sm-8
+                case turno.tipo
+                  when 'Guardia Activa'
+                    span.badge.bg-danger.fs-6 Guardia Activa
+                  when 'Guardia Pasiva'
+                    span.badge.bg-warning.text-dark.fs-6 Guardia Pasiva
+                  when 'Atencion'
+                    span.badge.bg-primary.fs-6 Atención
+              
+              dt.col-sm-4 Días:
+              dd.col-sm-8
+                strong= turno.dias
+              
+              dt.col-sm-4 Horario:
+              dd.col-sm-8
+                strong= `${turno.hora_inicio.substring(0,5)} - ${turno.hora_fin.substring(0,5)}`
+              
+              dt.col-sm-4 Duración:
+              dd.col-sm-8
+                - const inicio = parseInt(turno.hora_inicio.split(':')[0]) * 60 + parseInt(turno.hora_inicio.split(':')[1])
+                - const fin = parseInt(turno.hora_fin.split(':')[0]) * 60 + parseInt(turno.hora_fin.split(':')[1])
+                - const duracion = fin - inicio
+                - const horas = Math.floor(duracion / 60)
+                - const minutos = duracion % 60
+                = `${horas}h ${minutos}m`
+              
+              dt.col-sm-4 Sector:
+              dd.col-sm-8= turno.sector.nombre
+
+      .col-lg-6
+        .card.border-0.shadow-sm
+          .card-header.bg-light
+            h5.mb-0
+              i.fas.fa-info-circle.me-2
+              | Información del Turno
+          .card-body
+            case turno.tipo
+              when 'Guardia Activa'
+                .alert.alert-danger
+                  h6
+                    i.fas.fa-exclamation-triangle.me-2
+                    | Guardia Activa
+                  p.mb-0 Debe permanecer en el hospital durante todo el turno. Disponibilidad inmediata para atención de emergencias.
+              when 'Guardia Pasiva'
+                .alert.alert-warning
+                  h6
+                    i.fas.fa-phone.me-2
+                    | Guardia Pasiva
+                  p.mb-0 Debe estar disponible telefónicamente. Puede ser convocado al hospital si es necesario.
+              when 'Atencion'
+                .alert.alert-primary
+                  h6
+                    i.fas.fa-user-nurse.me-2
+                    | Atención
+                  p.mb-0 Turno regular de atención en el sector asignado.
+
+    .row.mt-4
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-calendar-check.me-2
+              | Próximas Ocurrencias
+          .card-body.p-0
+            .table-responsive
+              table.table.table-hover.mb-0
+                thead.table-light
+                  tr
+                    th Fecha
+                    th Día
+                    th Horario
+                tbody
+                  each ocurrencia in proximasOcurrencias
+                    tr
+                      td= ocurrencia.fecha
+                      td.text-capitalize= ocurrencia.dia
+                      td= `${ocurrencia.hora_inicio.substring(0,5)} - ${ocurrencia.hora_fin.substring(0,5)}`
+
+block scripts
+  script.
+    // Scripts adicionales si es necesario

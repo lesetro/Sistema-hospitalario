@@ -1,0 +1,367 @@
+extends ../layouts/layout
+
+block content
+  .container-fluid.py-4
+    .row.justify-content-center
+      .col-lg-10
+        .page-header.mb-4
+          h2
+            i.fas.fa-user-circle.me-2
+            | Mi Perfil
+          p.text-muted Gestiona tu información personal
+
+        // Información Personal
+        .row.g-4
+          .col-lg-8
+            .card.shadow-sm.mb-4
+              .card-header.bg-primary.text-white
+                h5.mb-0
+                  i.fas.fa-user.me-2
+                  | Información Personal
+              .card-body
+                form#formActualizarPerfil
+                  .row.g-3
+                    .col-md-6
+                      label.form-label Nombre
+                      input.form-control(
+                        type='text'
+                        value=user.nombre
+                        disabled
+                      )
+                      small.text-muted No se puede modificar
+                    
+                    .col-md-6
+                      label.form-label Apellido
+                      input.form-control(
+                        type='text'
+                        value=user.apellido
+                        disabled
+                      )
+                      small.text-muted No se puede modificar
+                    
+                    .col-md-6
+                      label.form-label DNI
+                      input.form-control(
+                        type='text'
+                        value=user.dni
+                        disabled
+                      )
+                      small.text-muted No se puede modificar
+                    
+                    .col-md-6
+                      label.form-label Fecha de Nacimiento
+                      input.form-control(
+                        type='text'
+                        value=user.fecha_nacimiento ? new Date(user.fecha_nacimiento).toLocaleDateString('es-AR') : 'No registrada'
+                        disabled
+                      )
+                      if user.edad
+                        small.text-muted #{user.edad} años
+                    
+                    .col-md-6
+                      label.form-label Sexo
+                      input.form-control(
+                        type='text'
+                        value=user.sexo
+                        disabled
+                      )
+                    
+                    .col-md-6
+                      label.form-label Rol
+                      input.form-control(
+                        type='text'
+                        value=user.rol_principal.nombre
+                        disabled
+                      )
+                    
+                    .col-md-6
+                      label.form-label
+                        i.fas.fa-envelope.me-1
+                        | Email *
+                      input.form-control(
+                        type='email'
+                        id='email'
+                        name='email'
+                        value=user.email
+                        required
+                      )
+                    
+                    .col-md-6
+                      label.form-label
+                        i.fas.fa-phone.me-1
+                        | Teléfono
+                      input.form-control(
+                        type='tel'
+                        id='telefono'
+                        name='telefono'
+                        value=user.telefono || ''
+                        placeholder='Ej: +54 9 266 1234567'
+                      )
+                    
+                    .col-12
+                      button.btn.btn-primary(type='submit')
+                        i.fas.fa-save.me-2
+                        | Guardar Cambios
+
+            // Datos Profesionales/Específicos según el rol
+            if rol === 'MEDICO'
+              .card.shadow-sm.mb-4
+                .card-header.bg-success.text-white
+                  h5.mb-0
+                    i.fas.fa-user-md.me-2
+                    | Información Profesional
+                .card-body
+                  .row.g-3
+                    .col-md-6
+                      label.form-label Matrícula
+                      input.form-control(
+                        type='text'
+                        value=user.matricula
+                        disabled
+                      )
+                    .col-md-6
+                      label.form-label Especialidad
+                      input.form-control(
+                        type='text'
+                        value=user.especialidad || 'No asignada'
+                        disabled
+                      )
+                    .col-md-12
+                      label.form-label Sector
+                      input.form-control(
+                        type='text'
+                        value=user.sector || 'No asignado'
+                        disabled
+                      )
+
+            else if rol === 'ENFERMERO'
+              .card.shadow-sm.mb-4
+                .card-header.bg-info.text-white
+                  h5.mb-0
+                    i.fas.fa-user-nurse.me-2
+                    | Información Profesional
+                .card-body
+                  .row.g-3
+                    .col-md-6
+                      label.form-label Matrícula
+                      input.form-control(
+                        type='text'
+                        value=user.matricula
+                        disabled
+                      )
+                    .col-md-6
+                      label.form-label Nivel
+                      input.form-control(
+                        type='text'
+                        value=user.nivel
+                        disabled
+                      )
+                    .col-md-6
+                      label.form-label Sector
+                      input.form-control(
+                        type='text'
+                        value=user.sector || 'No asignado'
+                        disabled
+                      )
+                    .col-md-6
+                      label.form-label Fecha de Ingreso
+                      input.form-control(
+                        type='text'
+                        value=user.fecha_ingreso ? new Date(user.fecha_ingreso).toLocaleDateString('es-AR') : 'No registrada'
+                        disabled
+                      )
+
+            else if rol === 'ADMINISTRATIVO'
+              .card.shadow-sm.mb-4
+                .card-header.bg-warning
+                  h5.mb-0
+                    i.fas.fa-user-tie.me-2
+                    | Información Profesional
+                .card-body
+                  .row.g-3
+                    .col-md-6
+                      label.form-label Sector
+                      input.form-control(
+                        type='text'
+                        value=user.sector || 'No asignado'
+                        disabled
+                      )
+                    .col-md-6
+                      label.form-label Responsabilidad
+                      input.form-control(
+                        type='text'
+                        value=user.responsabilidad || 'General'
+                        disabled
+                      )
+
+            else if rol === 'PACIENTE'
+              .card.shadow-sm.mb-4
+                .card-header.bg-secondary.text-white
+                  h5.mb-0
+                    i.fas.fa-heartbeat.me-2
+                    | Información Médica
+                .card-body
+                  .row.g-3
+                    .col-md-6
+                      label.form-label Obra Social
+                      input.form-control(
+                        type='text'
+                        value=user.obra_social
+                        disabled
+                      )
+                    .col-md-6
+                      label.form-label Fecha de Ingreso
+                      input.form-control(
+                        type='text'
+                        value=user.fecha_ingreso ? new Date(user.fecha_ingreso).toLocaleDateString('es-AR') : 'No registrada'
+                        disabled
+                      )
+
+          // Sidebar
+          .col-lg-4
+            // Foto de Perfil (placeholder)
+            .card.shadow-sm.mb-4.text-center
+              .card-body
+                .mb-3
+                  i.fas.fa-user-circle.fa-5x.text-primary
+                h5 #{user.nombre} #{user.apellido}
+                p.text-muted.mb-2 #{user.rol_principal.nombre}
+                span.badge(class=user.estado === 'Activo' ? 'bg-success' : 'bg-warning')= user.estado
+
+            // Cambiar Contraseña
+            .card.shadow-sm.mb-4
+              .card-header.bg-danger.text-white
+                h5.mb-0
+                  i.fas.fa-key.me-2
+                  | Cambiar Contraseña
+              .card-body
+                form#formCambiarPassword
+                  .mb-3
+                    label.form-label Contraseña Actual *
+                    input.form-control(
+                      type='password'
+                      id='password_actual'
+                      name='password_actual'
+                      required
+                    )
+                  
+                  .mb-3
+                    label.form-label Contraseña Nueva *
+                    input.form-control(
+                      type='password'
+                      id='password_nueva'
+                      name='password_nueva'
+                      required
+                      minlength='8'
+                    )
+                    small.text-muted Mínimo 8 caracteres
+                  
+                  .mb-3
+                    label.form-label Confirmar Contraseña *
+                    input.form-control(
+                      type='password'
+                      id='password_confirmacion'
+                      name='password_confirmacion'
+                      required
+                    )
+                  
+                  button.btn.btn-danger.w-100(type='submit')
+                    i.fas.fa-lock.me-2
+                    | Cambiar Contraseña
+
+            // Estadísticas (opcional)
+            .card.shadow-sm
+              .card-header.bg-light
+                h6.mb-0
+                  i.fas.fa-info-circle.me-2
+                  | Información de Cuenta
+              .card-body
+                p.mb-2
+                  small.text-muted Estado: 
+                  strong= user.estado
+                p.mb-0
+                  small.text-muted Último acceso: 
+                  strong= new Date().toLocaleDateString('es-AR')
+
+block scripts
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      // Formulario actualizar perfil
+      document.getElementById('formActualizarPerfil').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
+        
+        try {
+          const response = await fetch('/auth/api/perfil', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            mostrarAlerta('success', result.message);
+          } else {
+            mostrarAlerta('error', result.message);
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          mostrarAlerta('error', 'Error al actualizar perfil');
+        }
+      });
+      
+      // Formulario cambiar contraseña
+      document.getElementById('formCambiarPassword').addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = Object.fromEntries(formData.entries());
+        
+        // Validar que las contraseñas coincidan
+        if (data.password_nueva !== data.password_confirmacion) {
+          mostrarAlerta('error', 'Las contraseñas no coinciden');
+          return;
+        }
+        
+        try {
+          const response = await fetch('/auth/api/cambiar-password', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            mostrarAlerta('success', result.message);
+            this.reset();
+          } else {
+            mostrarAlerta('error', result.message);
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          mostrarAlerta('error', 'Error al cambiar contraseña');
+        }
+      });
+    });
+    
+    // Función para mostrar alertas
+    function mostrarAlerta(tipo, mensaje) {
+      const alertContainer = document.createElement('div');
+      alertContainer.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+      alertContainer.style.zIndex = '9999';
+      alertContainer.innerHTML = `
+        <i class="fas fa-${tipo === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
+        ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      
+      document.body.appendChild(alertContainer);
+      
+      setTimeout(() => {
+        alertContainer.remove();
+      }, 5000);
+    }

@@ -1,0 +1,125 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-chart-line.me-2
+              | Signos Vitales
+            p.text-muted.mb-0 Monitoreo y registro de parámetros clínicos
+          div
+            button.btn.btn-outline-secondary.me-2(onclick='actualizarLista()')
+              i.fas.fa-sync-alt.me-2
+              | Actualizar
+
+    // Filtros
+    .row.mb-3
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form#form-filtros.row.g-3(method='GET')
+              .col-md-4
+                label.form-label Tipo de Paciente
+                select.form-select(name='tipo_paciente' id='tipo-paciente')
+                  option(value='' selected=!filtros.tipo_paciente) Todos
+                  option(value='internados' selected=(filtros.tipo_paciente === 'internados')) Internados
+                  option(value='evaluaciones' selected=(filtros.tipo_paciente === 'evaluaciones')) En Evaluación
+              
+              .col-md-6
+                label.form-label Buscar Paciente
+                input.form-control(type='text' name='busqueda' placeholder='Nombre, apellido o DNI' value=filtros.busqueda)
+              
+              .col-md-2.d-flex.align-items-end
+                button.btn.btn-primary.w-100(type='submit')
+                  i.fas.fa-filter.me-2
+                  | Filtrar
+
+    // Lista de pacientes
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-users.me-2
+              | Pacientes para Monitoreo
+          .card-body.p-0
+            if pacientes.length > 0
+              .table-responsive
+                table.table.table-hover.mb-0#tabla-pacientes
+                  thead.table-light
+                    tr
+                      th Paciente
+                      th DNI
+                      th Edad/Sexo
+                      th Ubicación
+                      th Últimos Signos Vitales
+                      th Última Medición
+                      th.text-center Acciones
+                  tbody
+                    each item in pacientes
+                      - const edad = Math.floor((new Date() - new Date(item.paciente.usuario.fecha_nacimiento)) / (1000 * 60 * 60 * 24 * 365))
+                      tr
+                        td
+                          strong= `${item.paciente.usuario.nombre} ${item.paciente.usuario.apellido}`
+                          if item.tipo === 'internado'
+                            br
+                            span.badge.bg-primary
+                              i.fas.fa-bed.me-1
+                              | Internado
+                          else
+                            br
+                            span.badge.bg-info
+                              i.fas.fa-clipboard-check.me-1
+                              | En Evaluación
+                        td
+                          small.text-muted= item.paciente.usuario.dni
+                        td
+                          small= `${edad} años - ${item.paciente.usuario.sexo}`
+                        td
+                          small= item.ubicacion
+                        td
+                          if item.ultimos_signos
+                            small.text-muted= item.ultimos_signos.signos
+                          else
+                            small.text-muted.fst-italic Sin registro previo
+                        td
+                          if item.ultimos_signos
+                            small= new Date(item.ultimos_signos.fecha).toLocaleString('es-AR')
+                          else
+                            small.text-muted -
+                        td.text-center
+                          .btn-group.btn-group-sm(role='group')
+                            a.btn.btn-success(href=`/enfermero/signos-vitales/registro?paciente_id=${item.paciente.id}` title='Registrar')
+                              i.fas.fa-plus.me-1
+                              | Registrar
+                            a.btn.btn-outline-info(href=`/enfermero/signos-vitales/historial/${item.paciente.id}` title='Ver historial')
+                              i.fas.fa-history
+                            button.btn.btn-outline-primary(onclick=`verUltimosSignos(${item.paciente.id})` title='Ver últimos signos')
+                              i.fas.fa-eye
+            else
+              .p-5.text-center.text-muted
+                i.fas.fa-users-slash.fa-4x.mb-3
+                h5 No hay pacientes disponibles
+                p.mb-0 No se encontraron pacientes que requieran monitoreo de signos vitales
+
+    // Modal para ver últimos signos
+    #modalUltimosSignos.modal.fade(tabindex='-1')
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-heartbeat.me-2
+              | Últimos Signos Vitales
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            #contenido-signos
+              .text-center
+                .spinner-border.text-primary(role='status')
+                  span.visually-hidden Cargando...
+
+block scripts
+  script(src='/js/enfermero/signos-vitales.js')

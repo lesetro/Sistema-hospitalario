@@ -1,0 +1,180 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header con bienvenida
+    .row.mb-4
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body.bg-gradient-primary.text-white
+            .d-flex.justify-content-between.align-items-center
+              div
+                h2.mb-1
+                  i.fas.fa-user-nurse.me-2
+                  | Bienvenido, Enf. #{user.nombre} #{user.apellido}
+                p.mb-0
+                  i.fas.fa-id-badge.me-2
+                  | #{user.nivel} - #{enfermero.sector.nombre}
+                small.text-white-50 Matrícula: #{enfermero.matricula}
+              div
+                .text-end
+                  h5.mb-0= new Date().toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })
+                  small Turno actual
+
+    // Tarjetas de estadísticas
+    .row.g-3.mb-4
+      .col-xl-2.col-md-4.col-sm-6
+        .card.border-0.shadow-sm.h-100
+          .card-body.text-center
+            .stat-icon.bg-info.text-white.mb-3
+              i.fas.fa-clipboard-check.fa-2x
+            h3.mb-0= estadisticas.evaluacionesHoy
+            p.text-muted.mb-0.small Evaluaciones Hoy
+            a.btn.btn-sm.btn-outline-info.mt-2(href='/enfermero/evaluaciones')
+              | Ver detalles
+              i.fas.fa-arrow-right.ms-1
+
+      .col-xl-2.col-md-4.col-sm-6
+        .card.border-0.shadow-sm.h-100.border-start.border-danger.border-3
+          .card-body.text-center
+            .stat-icon.bg-danger.text-white.mb-3
+              i.fas.fa-heartbeat.fa-2x
+            h3.mb-0= estadisticas.pacientesTriaje
+            p.text-muted.mb-0.small Pacientes en Triaje
+            a.btn.btn-sm.btn-outline-danger.mt-2(href='/enfermero/triaje')
+              | Atender
+              i.fas.fa-arrow-right.ms-1
+
+      .col-xl-2.col-md-4.col-sm-6
+        .card.border-0.shadow-sm.h-100
+          .card-body.text-center
+            .stat-icon.bg-warning.text-white.mb-3
+              i.fas.fa-syringe.fa-2x
+            h3.mb-0= estadisticas.procedimientosPendientes
+            p.text-muted.mb-0.small Procedimientos Pendientes
+            a.btn.btn-sm.btn-outline-warning.mt-2(href='/enfermero/procedimientos')
+              | Ver lista
+              i.fas.fa-arrow-right.ms-1
+
+      .col-xl-2.col-md-4.col-sm-6
+        .card.border-0.shadow-sm.h-100
+          .card-body.text-center
+            .stat-icon.bg-primary.text-white.mb-3
+              i.fas.fa-bed.fa-2x
+            h3.mb-0= estadisticas.pacientesInternados
+            p.text-muted.mb-0.small Pacientes Internados
+            a.btn.btn-sm.btn-outline-primary.mt-2(href='/enfermero/internados')
+              | Ver lista
+              i.fas.fa-arrow-right.ms-1
+
+      .col-xl-2.col-md-4.col-sm-6
+        .card.border-0.shadow-sm.h-100
+          .card-body.text-center
+            .stat-icon.bg-success.text-white.mb-3
+              i.fas.fa-hospital-user.fa-2x
+            h3.mb-0= estadisticas.camasDisponibles
+            p.text-muted.mb-0.small Camas Disponibles
+            a.btn.btn-sm.btn-outline-success.mt-2(href='/enfermero/camas')
+              | Gestionar
+              i.fas.fa-arrow-right.ms-1
+
+      .col-xl-2.col-md-4.col-sm-6
+        .card.border-0.shadow-sm.h-100
+          .card-body.text-center
+            .stat-icon.bg-secondary.text-white.mb-3
+              i.fas.fa-list-ol.fa-2x
+            h3.mb-0= estadisticas.listaEsperaPendiente
+            p.text-muted.mb-0.small Lista de Espera
+            a.btn.btn-sm.btn-outline-secondary.mt-2(href='/enfermero/lista-espera')
+              | Ver lista
+              i.fas.fa-arrow-right.ms-1
+
+    .row.g-4
+      // Pacientes críticos
+      .col-lg-6
+        .card.border-0.shadow-sm.h-100
+          .card-header.bg-danger.text-white
+            h5.mb-0
+              i.fas.fa-exclamation-triangle.me-2
+              | Pacientes Críticos en Triaje
+          .card-body.p-0
+            if pacientesCriticos.length > 0
+              .table-responsive
+                table.table.table-hover.mb-0
+                  thead.table-light
+                    tr
+                      th DNI
+                      th Paciente
+                      th Nivel
+                      th Hora
+                      th Acciones
+                  tbody
+                    each evaluacion in pacientesCriticos
+                      tr
+                        td
+                          small.text-muted= evaluacion.paciente.usuario.dni
+                        td
+                          strong= `${evaluacion.paciente.usuario.nombre} ${evaluacion.paciente.usuario.apellido}`
+                        td
+                          span.badge.bg-danger= evaluacion.nivel_triaje
+                        td
+                          small= new Date(evaluacion.fecha).toLocaleTimeString('es-AR')
+                        td
+                          a.btn.btn-sm.btn-danger(href=`/enfermero/triaje/${evaluacion.id}`)
+                            i.fas.fa-eye.me-1
+                            | Atender
+            else
+              .p-4.text-center.text-muted
+                i.fas.fa-check-circle.fa-3x.mb-3.text-success
+                p.mb-0 No hay pacientes críticos en este momento
+
+      // Últimas evaluaciones
+      .col-lg-6
+        .card.border-0.shadow-sm.h-100
+          .card-header.bg-info.text-white
+            h5.mb-0
+              i.fas.fa-history.me-2
+              | Últimas Evaluaciones
+          .card-body.p-0
+            if ultimasEvaluaciones.length > 0
+              .table-responsive
+                table.table.table-hover.mb-0
+                  thead.table-light
+                    tr
+                      th Paciente
+                      th Fecha/Hora
+                      th Estado
+                      th Acciones
+                  tbody
+                    each evaluacion in ultimasEvaluaciones
+                      tr
+                        td
+                          strong= `${evaluacion.paciente.usuario.nombre} ${evaluacion.paciente.usuario.apellido}`
+                          br
+                          small.text-muted DNI: #{evaluacion.paciente.usuario.dni}
+                        td
+                          small= new Date(evaluacion.fecha).toLocaleString('es-AR')
+                        td
+                          case evaluacion.tipo_egreso
+                            when 'PROCEDIMIENTO_COMPLETADO'
+                              span.badge.bg-success Completado
+                            when 'DERIVACION_MEDICO'
+                              span.badge.bg-primary Derivado a Médico
+                            when 'DERIVACION_URGENCIA'
+                              span.badge.bg-danger Derivado Urgencia
+                            default
+                              span.badge.bg-warning Pendiente
+                        td
+                          a.btn.btn-sm.btn-outline-info(href=`/enfermero/evaluaciones/${evaluacion.id}`)
+                            i.fas.fa-eye.me-1
+                            | Ver
+            else
+              .p-4.text-center.text-muted
+                i.fas.fa-clipboard.fa-3x.mb-3
+                p.mb-0 No hay evaluaciones registradas
+
+    // Notificaciones dinámicas
+    .row.mt-4#notificaciones-container
+
+block scripts
+  script(src='/js/enfermero/dashboard.js')

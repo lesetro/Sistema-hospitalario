@@ -1,0 +1,167 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-heartbeat.me-2
+              | Sistema de Triaje
+            p.text-muted.mb-0 Clasificación y priorización de pacientes
+          div
+            a.btn.btn-primary(href='/enfermero/triaje/nuevo')
+              i.fas.fa-plus.me-2
+              | Nuevo Triaje
+
+    // Estadísticas en tarjetas
+    .row.g-3.mb-4
+      .col-md-2.col-sm-4.col-6
+        .card.border-0.shadow-sm.text-center
+          .card-body
+            h3.mb-0#stat-total= estadisticas.total
+            small.text-muted Total Hoy
+      
+      .col-md-2.col-sm-4.col-6
+        .card.border-0.shadow-sm.border-start.border-danger.border-4.text-center
+          .card-body
+            h3.mb-0.text-danger#stat-rojo= estadisticas.rojo
+            small.text-muted Nivel Rojo
+      
+      .col-md-2.col-sm-4.col-6
+        .card.border-0.shadow-sm.border-start.border-warning.border-4.text-center
+          .card-body
+            h3.mb-0.text-warning#stat-amarillo= estadisticas.amarillo
+            small.text-muted Nivel Amarillo
+      
+      .col-md-2.col-sm-4.col-6
+        .card.border-0.shadow-sm.border-start.border-success.border-4.text-center
+          .card-body
+            h3.mb-0.text-success#stat-verde= estadisticas.verde
+            small.text-muted Nivel Verde
+      
+      .col-md-2.col-sm-4.col-6
+        .card.border-0.shadow-sm.border-start.border-dark.border-4.text-center
+          .card-body
+            h3.mb-0.text-dark#stat-negro= estadisticas.negro
+            small.text-muted Nivel Negro
+      
+      .col-md-2.col-sm-4.col-6
+        .card.border-0.shadow-sm.text-center
+          .card-body
+            h3.mb-0.text-info#stat-pendientes= estadisticas.total
+            small.text-muted Pendientes
+
+    // Filtros
+    .row.mb-3
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form#form-filtros.row.g-3(method='GET')
+              .col-md-3
+                label.form-label Nivel de Triaje
+                select.form-select(name='nivel' id='filtro-nivel')
+                  option(value='' selected) Todos
+                  option(value='Rojo' selected=(filtros.nivel === 'Rojo')) Rojo - Emergencia
+                  option(value='Amarillo' selected=(filtros.nivel === 'Amarillo')) Amarillo - Urgente
+                  option(value='Verde' selected=(filtros.nivel === 'Verde')) Verde - No Urgente
+                  option(value='Negro' selected=(filtros.nivel === 'Negro')) Negro - Expectante
+              
+              .col-md-3
+                label.form-label Estado
+                select.form-select(name='estado' id='filtro-estado')
+                  option(value='PENDIENTE_EVALUACION' selected) Pendientes
+                  option(value='DERIVACION_MEDICO') Derivados a Médico
+                  option(value='DERIVACION_URGENCIA') Derivados Urgencia
+                  option(value='') Todos
+              
+              .col-md-3
+                label.form-label Fecha
+                input.form-control(type='date' name='fecha' id='filtro-fecha' value=filtros.fecha)
+              
+              .col-md-3.d-flex.align-items-end
+                button.btn.btn-primary.me-2(type='submit')
+                  i.fas.fa-filter.me-2
+                  | Filtrar
+                button.btn.btn-secondary(type='button' onclick='limpiarFiltros()')
+                  i.fas.fa-times.me-2
+                  | Limpiar
+
+    // Tabla de pacientes
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Pacientes en Triaje
+          .card-body.p-0
+            if pacientesTriaje.length > 0
+              .table-responsive
+                table.table.table-hover.mb-0#tabla-triaje
+                  thead.table-light
+                    tr
+                      th
+                        i.fas.fa-circle.me-1
+                        | Nivel
+                      th DNI
+                      th Paciente
+                      th Edad/Sexo
+                      th Signos Vitales
+                      th Hora Registro
+                      th Enfermero
+                      th Estado
+                      th.text-center Acciones
+                  tbody
+                    each evaluacion in pacientesTriaje
+                      - const edad = Math.floor((new Date() - new Date(evaluacion.paciente.usuario.fecha_nacimiento)) / (1000 * 60 * 60 * 24 * 365))
+                      tr(class=`triaje-${evaluacion.nivel_triaje.toLowerCase()}`)
+                        td
+                          case evaluacion.nivel_triaje
+                            when 'Rojo'
+                              span.badge.bg-danger.fs-6 #{evaluacion.nivel_triaje}
+                            when 'Amarillo'
+                              span.badge.bg-warning.text-dark.fs-6 #{evaluacion.nivel_triaje}
+                            when 'Verde'
+                              span.badge.bg-success.fs-6 #{evaluacion.nivel_triaje}
+                            when 'Negro'
+                              span.badge.bg-dark.fs-6 #{evaluacion.nivel_triaje}
+                        td
+                          small.text-muted= evaluacion.paciente.usuario.dni
+                        td
+                          strong= `${evaluacion.paciente.usuario.nombre} ${evaluacion.paciente.usuario.apellido}`
+                        td
+                          small= `${edad} años - ${evaluacion.paciente.usuario.sexo}`
+                        td
+                          small= evaluacion.signos_vitales || 'N/A'
+                        td
+                          small= new Date(evaluacion.fecha).toLocaleTimeString('es-AR')
+                        td
+                          small= `${evaluacion.enfermero.usuario.nombre} ${evaluacion.enfermero.usuario.apellido}`
+                        td
+                          case evaluacion.tipo_egreso
+                            when 'PENDIENTE_EVALUACION'
+                              span.badge.bg-warning Pendiente
+                            when 'DERIVACION_MEDICO'
+                              span.badge.bg-primary Derivado
+                            when 'DERIVACION_URGENCIA'
+                              span.badge.bg-danger Urgencia
+                            default
+                              span.badge.bg-secondary #{evaluacion.tipo_egreso}
+                        td.text-center
+                          .btn-group.btn-group-sm(role='group')
+                            a.btn.btn-outline-info(href=`/enfermero/triaje/${evaluacion.id}` title='Ver detalle')
+                              i.fas.fa-eye
+                            if evaluacion.tipo_egreso === 'PENDIENTE_EVALUACION'
+                              button.btn.btn-outline-success(onclick=`atenderPaciente(${evaluacion.id})` title='Atender')
+                                i.fas.fa-user-nurse
+            else
+              .p-5.text-center.text-muted
+                i.fas.fa-clipboard-check.fa-4x.mb-3.text-success
+                h5 No hay pacientes en triaje
+                p.mb-0 Todos los pacientes han sido atendidos o no hay registros con los filtros aplicados
+
+block scripts
+  script(src='/js/enfermero/triaje.js')

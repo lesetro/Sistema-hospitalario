@@ -3,33 +3,49 @@ const router = express.Router();
 const authController = require('../controllers/authController');
 const authMiddleware = require('../middleware/authMiddleware');
 
-// Vista de login
-router.get('/login', authController.getLogin);
+// ==========================================
+// RUTAS PÚBLICAS (sin autenticación)
+// ==========================================
 
-// Procesar login
+// Login
+router.get('/login', authController.getLogin);
 router.post('/login', authController.login);
 
-// Vista de registro
+// Registro
 router.get('/register', authController.getRegister);
-
-// Procesar registro
 router.post('/register', authController.register);
 
-// Vista de recuperar contraseña
+// Recuperar contraseña
 router.get('/recuperar-contrasena', authController.getRecuperarContrasena);
-
-
-
-// Procesar solicitud de recuperación
 router.post('/recuperar-contrasena', authController.postRecuperarContrasena);
 
-// Verificar token (API)
-router.get('/verify', authMiddleware, authController.verifyToken);
-
-// Logout
+// Logout (puede ser GET o POST)
 router.get('/logout', authController.logout);
 router.post('/logout', authController.logout);
 
+// ==========================================
+// RUTAS PROTEGIDAS (requieren autenticación)
+// ==========================================
 
+router.use(authMiddleware);
+
+// Verificar token
+router.get('/verify', authController.verifyToken);
+
+// ========================================
+// PERFIL DEL USUARIO (CENTRALIZADO)
+// ========================================
+// Se renderiza con el layout correcto según el rol del usuario
+
+// Vista principal del perfil (GET)
+// El layout se asigna automáticamente en el controller según el rol
+router.get('/perfil', authController.renderPerfil);
+
+// APIs de perfil
+router.get('/api/perfil', authController.obtenerPerfil);
+router.put('/api/perfil', authController.actualizarPerfil);
+
+// Cambiar contraseña
+router.put('/api/cambiar-password', authController.cambiarPassword);
 
 module.exports = router;

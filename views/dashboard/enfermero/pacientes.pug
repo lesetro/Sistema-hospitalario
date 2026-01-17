@@ -1,0 +1,163 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-users.me-2
+              | Mis Pacientes
+            p.text-muted.mb-0 Pacientes que he atendido
+          div
+            .input-group(style='width: 300px')
+              input.form-control(type='text' id='busqueda-rapida' placeholder='Buscar paciente...')
+              button.btn.btn-outline-secondary(onclick='buscarRapido()')
+                i.fas.fa-search
+
+    // Estadísticas
+    .row.g-3.mb-4
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.text-center
+          .card-body
+            h3.mb-0= estadisticas.total
+            small.text-muted Total Pacientes
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-primary.border-4.text-center
+          .card-body
+            h3.mb-0.text-primary= estadisticas.internados
+            small.text-muted Internados
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-success.border-4.text-center
+          .card-body
+            h3.mb-0.text-success= estadisticas.activos
+            small.text-muted Activos
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-info.border-4.text-center
+          .card-body
+            h3.mb-0.text-info= estadisticas.evaluaciones_total
+            small.text-muted Evaluaciones Total
+
+    // Filtros
+    .row.mb-3
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form#form-filtros.row.g-3(method='GET')
+              .col-md-3
+                label.form-label Fecha Desde
+                input.form-control(type='date' name='fecha_desde' value=filtros.fecha_desde)
+              
+              .col-md-3
+                label.form-label Fecha Hasta
+                input.form-control(type='date' name='fecha_hasta' value=filtros.fecha_hasta)
+              
+              .col-md-4
+                label.form-label Buscar
+                input.form-control(type='text' name='busqueda' placeholder='Nombre, apellido o DNI' value=filtros.busqueda)
+              
+              .col-md-2
+                label.form-label Estado
+                select.form-select(name='estado')
+                  option(value='' selected=!filtros.estado) Todos
+                  option(value='Activo' selected=(filtros.estado === 'Activo')) Activos
+                  option(value='Inactivo' selected=(filtros.estado === 'Inactivo')) Inactivos
+              
+              .col-12.d-flex.justify-content-end
+                button.btn.btn-primary.me-2(type='submit')
+                  i.fas.fa-filter.me-2
+                  | Filtrar
+                button.btn.btn-secondary(type='button' onclick='limpiarFiltros()')
+                  i.fas.fa-times.me-2
+                  | Limpiar
+
+    // Lista de pacientes
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Listado de Pacientes
+          .card-body.p-0
+            if pacientes.length > 0
+              .table-responsive
+                table.table.table-hover.mb-0#tabla-pacientes
+                  thead.table-light
+                    tr
+                      th Paciente
+                      th DNI
+                      th Edad/Sexo
+                      th Estado
+                      th Ubicación
+                      th Última Evaluación
+                      th Total Eval.
+                      th.text-center Acciones
+                  tbody
+                    each item in pacientes
+                      - const edad = Math.floor((new Date() - new Date(item.paciente.usuario.fecha_nacimiento)) / (1000 * 60 * 60 * 24 * 365))
+                      tr
+                        td
+                          strong= `${item.paciente.usuario.nombre} ${item.paciente.usuario.apellido}`
+                          if item.internacion
+                            br
+                            span.badge.bg-primary
+                              i.fas.fa-bed.me-1
+                              | Internado
+                        td
+                          small.text-muted= item.paciente.usuario.dni
+                        td
+                          small= `${edad} años - ${item.paciente.usuario.sexo}`
+                        td
+                          case item.paciente.estado
+                            when 'Activo'
+                              span.badge.bg-success Activo
+                            when 'Inactivo'
+                              span.badge.bg-secondary Inactivo
+                            when 'Baja'
+                              span.badge.bg-danger Baja
+                        td
+                          if item.internacion
+                            small Hab. #{item.internacion.cama.habitacion.numero} - Cama #{item.internacion.cama.numero}
+                          else
+                            small.text-muted Ambulatorio
+                        td
+                          small= new Date(item.ultima_evaluacion.fecha).toLocaleString('es-AR')
+                        td
+                          span.badge.bg-info= item.total_evaluaciones
+                        td.text-center
+                          .btn-group.btn-group-sm(role='group')
+                            a.btn.btn-outline-info(href=`/enfermero/pacientes/${item.paciente.id}` title='Ver ficha')
+                              i.fas.fa-eye
+                            button.btn.btn-outline-primary(onclick=`verResumen(${item.paciente.id})` title='Resumen')
+                              i.fas.fa-file-medical
+                            a.btn.btn-outline-secondary(href=`/enfermero/pacientes/${item.paciente.id}/historial` title='Historial')
+                              i.fas.fa-history
+            else
+              .p-5.text-center.text-muted
+                i.fas.fa-users-slash.fa-4x.mb-3
+                h5 No hay pacientes registrados
+                p.mb-0 Aún no ha atendido pacientes o no coinciden con los filtros
+
+    // Modal resumen
+    #modalResumen.modal.fade(tabindex='-1')
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-file-medical.me-2
+              | Resumen del Paciente
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            #contenido-resumen
+              .text-center
+                .spinner-border.text-primary(role='status')
+                  span.visually-hidden Cargando...
+
+block scripts
+  script(src='/js/enfermero/pacientes.js')

@@ -1,0 +1,181 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    .row.mb-3
+      .col-12
+        a.btn.btn-secondary(href='/enfermero/pacientes')
+          i.fas.fa-arrow-left.me-2
+          | Volver
+
+    .row
+      // Información del paciente
+      .col-lg-4.mb-4
+        .card.border-0.shadow-sm
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-user.me-2
+              | Datos del Paciente
+          .card-body
+            .text-center.mb-3
+              .avatar.bg-primary.text-white.rounded-circle.mx-auto(style='width: 80px; height: 80px; line-height: 80px; font-size: 2rem')
+                = paciente.usuario.nombre.charAt(0) + paciente.usuario.apellido.charAt(0)
+            
+            dl.row.mb-0
+              dt.col-sm-5 Nombre completo:
+              dd.col-sm-7= `${paciente.usuario.nombre} ${paciente.usuario.apellido}`
+              
+              dt.col-sm-5 DNI:
+              dd.col-sm-7= paciente.usuario.dni
+              
+              dt.col-sm-5 Edad:
+              dd.col-sm-7
+                - const edad = Math.floor((new Date() - new Date(paciente.usuario.fecha_nacimiento)) / (1000 * 60 * 60 * 24 * 365))
+                = `${edad} años`
+              
+              dt.col-sm-5 Sexo:
+              dd.col-sm-7= paciente.usuario.sexo
+              
+              if paciente.usuario.telefono
+                dt.col-sm-5 Teléfono:
+                dd.col-sm-7= paciente.usuario.telefono
+              
+              if paciente.usuario.email
+                dt.col-sm-5 Email:
+                dd.col-sm-7= paciente.usuario.email
+              
+              dt.col-sm-5 Estado:
+              dd.col-sm-7
+                case paciente.estado
+                  when 'Activo'
+                    span.badge.bg-success Activo
+                  when 'Inactivo'
+                    span.badge.bg-secondary Inactivo
+                  when 'Baja'
+                    span.badge.bg-danger Baja
+              
+              if paciente.obraSocial
+                dt.col-sm-5 Obra Social:
+                dd.col-sm-7= paciente.obraSocial.nombre
+
+        if internacion
+          .card.border-0.shadow-sm.mt-3
+            .card-header.bg-info.text-white
+              h5.mb-0
+                i.fas.fa-bed.me-2
+                | Internación Actual
+            .card-body
+              dl.row.mb-0
+                dt.col-sm-5 Habitación:
+                dd.col-sm-7= internacion.cama.habitacion.numero
+                
+                dt.col-sm-5 Cama:
+                dd.col-sm-7= internacion.cama.numero
+                
+                dt.col-sm-5 Desde:
+                dd.col-sm-7= new Date(internacion.fecha_inicio).toLocaleDateString('es-AR')
+                
+                dt.col-sm-5 Estado:
+                dd.col-sm-7
+                  span.badge.bg-warning.text-dark= internacion.estado_paciente
+
+      // Historial
+      .col-lg-8.mb-4
+        // Evaluaciones recientes
+        .card.border-0.shadow-sm.mb-3
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-clipboard-check.me-2
+              | Mis Últimas Evaluaciones
+            a.btn.btn-sm.btn-outline-primary(href=`/enfermero/pacientes/${paciente.id}/historial`)
+              i.fas.fa-history.me-2
+              | Ver Todas
+          .card-body.p-0
+            if evaluaciones.length > 0
+              .list-group.list-group-flush
+                each evaluacion in evaluaciones
+                  .list-group-item
+                    .d-flex.justify-content-between.align-items-start
+                      div
+                        strong= new Date(evaluacion.fecha).toLocaleString('es-AR')
+                        if evaluacion.nivel_triaje
+                          case evaluacion.nivel_triaje
+                            when 'Rojo'
+                              span.badge.bg-danger.ms-2= evaluacion.nivel_triaje
+                            when 'Amarillo'
+                              span.badge.bg-warning.text-dark.ms-2= evaluacion.nivel_triaje
+                            when 'Verde'
+                              span.badge.bg-success.ms-2= evaluacion.nivel_triaje
+                        br
+                        small.text-muted= evaluacion.signos_vitales || 'Sin signos vitales'
+                        if evaluacion.observaciones
+                          br
+                          small.text-muted= evaluacion.observaciones.substring(0, 100) + '...'
+                      div
+                        case evaluacion.tipo_egreso
+                          when 'PROCEDIMIENTO_COMPLETADO'
+                            span.badge.bg-success Completado
+                          when 'DERIVACION_MEDICO'
+                            span.badge.bg-primary Derivado
+                          when 'DERIVACION_URGENCIA'
+                            span.badge.bg-danger Urgencia
+                          default
+                            span.badge.bg-warning Pendiente
+            else
+              .p-3.text-center.text-muted
+                p.mb-0 No hay evaluaciones registradas
+
+        // Controles de enfermería
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-temperature-high.me-2
+              | Últimos Controles
+          .card-body.p-0
+            if controles.length > 0
+              .table-responsive
+                table.table.table-sm.mb-0
+                  thead.table-light
+                    tr
+                      th Fecha
+                      th Peso
+                      th P.A.
+                      th Temp.
+                      th Grupo
+                  tbody
+                    each control in controles
+                      tr
+                        td
+                          small= new Date(control.created_at).toLocaleDateString('es-AR')
+                        td
+                          small= control.peso ? `${control.peso} kg` : 'N/A'
+                        td
+                          small= control.presion_arterial || 'N/A'
+                        td
+                          small= control.temperatura ? `${control.temperatura}°C` : 'N/A'
+                        td
+                          if control.grupo_sanguineo
+                            span.badge.bg-danger= `${control.grupo_sanguineo} ${control.factor_rh || ''}`
+                          else
+                            small.text-muted N/A
+            else
+              .p-3.text-center.text-muted
+                p.mb-0 No hay controles registrados
+
+    // Acciones rápidas
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            a.btn.btn-primary.me-2(href=`/enfermero/evaluaciones/nueva?paciente_id=${paciente.id}`)
+              i.fas.fa-plus.me-2
+              | Nueva Evaluación
+            a.btn.btn-success.me-2(href=`/enfermero/signos-vitales/registro?paciente_id=${paciente.id}`)
+              i.fas.fa-heartbeat.me-2
+              | Registrar Signos Vitales
+            a.btn.btn-info.me-2(href=`/enfermero/controles/nuevo?paciente_id=${paciente.id}`)
+              i.fas.fa-temperature-high.me-2
+              | Nuevo Control
+
+block scripts
+  script(src='/js/enfermero/pacientes-detalle.js')

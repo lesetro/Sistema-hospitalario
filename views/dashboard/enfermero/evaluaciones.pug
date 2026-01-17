@@ -1,0 +1,207 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-clipboard-check.me-2
+              | Evaluaciones de Enfermería
+            p.text-muted.mb-0 Historial de evaluaciones realizadas
+          div
+            a.btn.btn-primary(href='/enfermero/evaluaciones/nueva')
+              i.fas.fa-plus.me-2
+              | Nueva Evaluación
+
+    // Estadísticas
+    .row.g-3.mb-4
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.text-center
+          .card-body
+            h3.mb-0= estadisticas.total
+            small.text-muted Total
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-warning.border-4.text-center
+          .card-body
+            h3.mb-0.text-warning= estadisticas.pendientes
+            small.text-muted Pendientes
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-success.border-4.text-center
+          .card-body
+            h3.mb-0.text-success= estadisticas.completadas
+            small.text-muted Completadas
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-primary.border-4.text-center
+          .card-body
+            h3.mb-0.text-primary= estadisticas.derivadas_medico + estadisticas.derivadas_urgencia
+            small.text-muted Derivadas
+
+    // Filtros
+    .row.mb-3
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form#form-filtros.row.g-3(method='GET')
+              .col-md-3
+                label.form-label Fecha Inicio
+                input.form-control(type='date' name='fecha_inicio' value=filtros.fecha_inicio)
+              
+              .col-md-3
+                label.form-label Fecha Fin
+                input.form-control(type='date' name='fecha_fin' value=filtros.fecha_fin)
+              
+              .col-md-3
+                label.form-label Buscar Paciente
+                input.form-control(type='text' name='paciente' placeholder='Nombre, apellido o DNI' value=filtros.paciente)
+              
+              .col-md-3
+                label.form-label Estado
+                select.form-select(name='estado')
+                  option(value='' selected=!filtros.estado) Todos
+                  option(value='PENDIENTE_EVALUACION' selected=(filtros.estado === 'PENDIENTE_EVALUACION')) Pendientes
+                  option(value='PROCEDIMIENTO_COMPLETADO' selected=(filtros.estado === 'PROCEDIMIENTO_COMPLETADO')) Completadas
+                  option(value='DERIVACION_MEDICO' selected=(filtros.estado === 'DERIVACION_MEDICO')) Derivadas a Médico
+                  option(value='DERIVACION_URGENCIA' selected=(filtros.estado === 'DERIVACION_URGENCIA')) Derivadas Urgencia
+              
+              .col-12
+                .form-check
+                  input.form-check-input(type='checkbox' name='solo_mias' id='solo-mias' value='true')
+                  label.form-check-label(for='solo-mias') Ver solo mis evaluaciones
+              
+              .col-12.d-flex.justify-content-end
+                button.btn.btn-primary.me-2(type='submit')
+                  i.fas.fa-filter.me-2
+                  | Filtrar
+                button.btn.btn-secondary(type='button' onclick='limpiarFiltros()')
+                  i.fas.fa-times.me-2
+                  | Limpiar
+
+    // Tabla de evaluaciones
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Listado de Evaluaciones
+            button.btn.btn-sm.btn-outline-primary(onclick='exportarSeleccionados()' disabled id='btn-exportar')
+              i.fas.fa-file-pdf.me-2
+              | Exportar PDF
+          
+          .card-body.p-0
+            if evaluaciones.length > 0
+              .table-responsive
+                table.table.table-hover.mb-0#tabla-evaluaciones
+                  thead.table-light
+                    tr
+                      th
+                        input.form-check-input(type='checkbox' id='select-all' onclick='toggleSelectAll()')
+                      th Fecha/Hora
+                      th Paciente
+                      th DNI
+                      th Enfermero
+                      th Triaje
+                      th Estado
+                      th Acciones
+                  tbody
+                    each evaluacion in evaluaciones
+                      tr
+                        td
+                          input.form-check-input.checkbox-evaluacion(type='checkbox' data-id=evaluacion.id)
+                        td
+                          small= new Date(evaluacion.fecha).toLocaleString('es-AR')
+                        td
+                          strong= `${evaluacion.paciente.usuario.nombre} ${evaluacion.paciente.usuario.apellido}`
+                        td
+                          small.text-muted= evaluacion.paciente.usuario.dni
+                        td
+                          small= `${evaluacion.enfermero.usuario.nombre} ${evaluacion.enfermero.usuario.apellido}`
+                        td
+                          if evaluacion.nivel_triaje
+                            case evaluacion.nivel_triaje
+                              when 'Rojo'
+                                span.badge.bg-danger= evaluacion.nivel_triaje
+                              when 'Amarillo'
+                                span.badge.bg-warning.text-dark= evaluacion.nivel_triaje
+                              when 'Verde'
+                                span.badge.bg-success= evaluacion.nivel_triaje
+                              when 'Negro'
+                                span.badge.bg-dark= evaluacion.nivel_triaje
+                          else
+                            span.badge.bg-secondary N/A
+                        td
+                          case evaluacion.tipo_egreso
+                            when 'PENDIENTE_EVALUACION'
+                              span.badge.bg-warning Pendiente
+                            when 'PROCEDIMIENTO_COMPLETADO'
+                              span.badge.bg-success Completada
+                            when 'DERIVACION_MEDICO'
+                              span.badge.bg-primary Derivada
+                            when 'DERIVACION_URGENCIA'
+                              span.badge.bg-danger Urgencia
+                            default
+                              span.badge.bg-secondary= evaluacion.tipo_egreso
+                        td
+                          .btn-group.btn-group-sm(role='group')
+                            a.btn.btn-outline-info(href=`/enfermero/evaluaciones/${evaluacion.id}` title='Ver detalle')
+                              i.fas.fa-eye
+                            if evaluacion.tipo_egreso === 'PENDIENTE_EVALUACION'
+                              button.btn.btn-outline-success(onclick=`editarEvaluacion(${evaluacion.id})` title='Editar')
+                                i.fas.fa-edit
+            else
+              .p-5.text-center.text-muted
+                i.fas.fa-clipboard.fa-4x.mb-3
+                h5 No hay evaluaciones registradas
+                p.mb-0 Utilice los filtros para buscar o registre una nueva evaluación
+
+    // Modal para editar evaluación
+    #modalEditarEvaluacion.modal.fade(tabindex='-1')
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-edit.me-2
+              | Editar Evaluación
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            form#form-editar-evaluacion
+              input(type='hidden' id='edit-evaluacion-id')
+              
+              .mb-3
+                label.form-label Signos Vitales
+                textarea.form-control(id='edit-signos-vitales' rows='2')
+              
+              .mb-3
+                label.form-label Observaciones
+                textarea.form-control(id='edit-observaciones' rows='4')
+              
+              .mb-3
+                label.form-label Estado
+                select.form-select(id='edit-tipo-egreso')
+                  option(value='PENDIENTE_EVALUACION') Pendiente
+                  option(value='PROCEDIMIENTO_COMPLETADO') Completada
+                  option(value='DERIVACION_MEDICO') Derivar a Médico
+                  option(value='DERIVACION_URGENCIA') Derivar Urgencia
+              
+              #seccion-derivacion(style='display:none')
+                .mb-3
+                  label.form-label Médico (opcional)
+                  select.form-select(id='edit-medico-id')
+                    option(value='') Sin especificar
+                
+                .mb-3
+                  label.form-label Motivo de Derivación
+                  textarea.form-control(id='edit-motivo-derivacion' rows='3')
+          
+          .modal-footer
+            button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+            button.btn.btn-primary(onclick='guardarEdicion()') Guardar Cambios
+
+block scripts
+  script(src='/js/enfermero/evaluaciones.js')

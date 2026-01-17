@@ -23,6 +23,11 @@ module.exports = (sequelize, DataTypes) => {
   ProcedimientoEnfermeria.associate = function(models) {
     ProcedimientoEnfermeria.belongsTo(models.Tratamiento, { foreignKey: 'tratamiento_id', as: 'tratamiento' });
     ProcedimientoEnfermeria.belongsTo(models.EvaluacionMedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacion_medica' });
+    ProcedimientoEnfermeria.hasMany(models.EvaluacionEnfermeria, { 
+     foreignKey: 'procedimiento_enfermeria_id', 
+     as: 'evaluaciones_enfermeria'
+   });
+
   };
 
   return ProcedimientoEnfermeria;

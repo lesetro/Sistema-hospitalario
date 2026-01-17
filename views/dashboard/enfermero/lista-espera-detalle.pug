@@ -1,0 +1,136 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    .row.mb-3
+      .col-12
+        a.btn.btn-secondary(href='/enfermero/lista-espera')
+          i.fas.fa-arrow-left.me-2
+          | Volver
+
+    .row
+      .col-lg-6
+        .card.border-0.shadow-sm
+          .card-header(class=registro.prioridad === 'ALTA' ? 'bg-danger text-white' : 'bg-primary text-white')
+            h5.mb-0
+              i.fas.fa-list-ol.me-2
+              | Registro en Lista de Espera
+          .card-body
+            dl.row
+              dt.col-sm-5 Estado:
+              dd.col-sm-7
+                case registro.estado
+                  when 'PENDIENTE'
+                    span.badge.bg-warning.text-dark.fs-6 Pendiente
+                  when 'ASIGNADO'
+                    span.badge.bg-primary.fs-6 Asignado
+                  when 'COMPLETADO'
+                    span.badge.bg-success.fs-6 Completado
+                  when 'CANCELADO'
+                    span.badge.bg-danger.fs-6 Cancelado
+              
+              dt.col-sm-5 Prioridad:
+              dd.col-sm-7
+                case registro.prioridad
+                  when 'ALTA'
+                    span.badge.bg-danger.fs-6
+                      i.fas.fa-exclamation-triangle.me-1
+                      | ALTA
+                  when 'MEDIA'
+                    span.badge.bg-warning.text-dark.fs-6 MEDIA
+                  when 'BAJA'
+                    span.badge.bg-secondary.fs-6 BAJA
+              
+              dt.col-sm-5 Tipo de Turno:
+              dd.col-sm-7= registro.tipo_turno.nombre
+              
+              if registro.tipo_estudio
+                dt.col-sm-5 Tipo de Estudio:
+                dd.col-sm-7= registro.tipo_estudio.nombre
+              
+              if registro.especialidad
+                dt.col-sm-5 Especialidad:
+                dd.col-sm-7= registro.especialidad.nombre
+              
+              if registro.habitacion
+                dt.col-sm-5 Habitación:
+                dd.col-sm-7= `${registro.habitacion.numero} - ${registro.habitacion.sector.nombre}`
+              
+              dt.col-sm-5 Fecha Registro:
+              dd.col-sm-7= new Date(registro.fecha_registro).toLocaleString('es-AR')
+              
+              dt.col-sm-5 Tiempo de Espera:
+              dd.col-sm-7
+                strong.text-primary= `${tiempoEsperaHoras}h ${tiempoEsperaMinutosRestantes}m`
+              
+              dt.col-sm-5 Creado Por:
+              dd.col-sm-7
+                if registro.administrativo_creador
+                  | Administrativo: #{registro.administrativo_creador.usuario.nombre} #{registro.administrativo_creador.usuario.apellido}
+                else if registro.enfermero_creador
+                  | Enfermero: #{registro.enfermero_creador.usuario.nombre} #{registro.enfermero_creador.usuario.apellido}
+                else if registro.medico_creador
+                  | Médico: #{registro.medico_creador.usuario.nombre} #{registro.medico_creador.usuario.apellido}
+
+      .col-lg-6
+        .card.border-0.shadow-sm
+          .card-header.bg-light
+            h5.mb-0
+              i.fas.fa-user.me-2
+              | Datos del Paciente
+          .card-body
+            .text-center.mb-3
+              .avatar.bg-primary.text-white.rounded-circle.mx-auto(style='width: 60px; height: 60px; line-height: 60px; font-size: 1.5rem')
+                = registro.paciente.usuario.nombre.charAt(0) + registro.paciente.usuario.apellido.charAt(0)
+            
+            dl.row
+              dt.col-sm-5 Nombre:
+              dd.col-sm-7
+                strong= `${registro.paciente.usuario.nombre} ${registro.paciente.usuario.apellido}`
+              
+              dt.col-sm-5 DNI:
+              dd.col-sm-7= registro.paciente.usuario.dni
+              
+              dt.col-sm-5 Edad:
+              dd.col-sm-7
+                - const edad = Math.floor((new Date() - new Date(registro.paciente.usuario.fecha_nacimiento)) / (1000 * 60 * 60 * 24 * 365))
+                = `${edad} años`
+              
+              dt.col-sm-5 Sexo:
+              dd.col-sm-7= registro.paciente.usuario.sexo
+              
+              if registro.paciente.usuario.telefono
+                dt.col-sm-5 Teléfono:
+                dd.col-sm-7
+                  a(href=`tel:${registro.paciente.usuario.telefono}`)
+                    i.fas.fa-phone.me-1
+                    = registro.paciente.usuario.telefono
+              
+              if registro.paciente.usuario.email
+                dt.col-sm-5 Email:
+                dd.col-sm-7
+                  a(href=`mailto:${registro.paciente.usuario.email}`)= registro.paciente.usuario.email
+
+    .row.mt-3
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            if registro.estado === 'PENDIENTE'
+              button.btn.btn-success.btn-lg(onclick=`llamarPaciente(${registro.id}, '${registro.paciente.usuario.nombre} ${registro.paciente.usuario.apellido}')`)
+                i.fas.fa-bell.me-2
+                | Llamar Paciente
+              .alert.alert-info.mt-3.mb-0
+                i.fas.fa-info-circle.me-2
+                | Para asignar el turno o modificar este registro, contacte al área administrativa.
+            else
+              .alert.alert-secondary.mb-0
+                i.fas.fa-info-circle.me-2
+                | Este registro ya no está pendiente.
+
+block scripts
+  script.
+    function llamarPaciente(registroId, nombrePaciente) {
+      document.getElementById('nombre-paciente-llamar').textContent = nombrePaciente;
+      const modal = new bootstrap.Modal(document.getElementById('modalLlamarPaciente'));
+      modal.show();
+    }

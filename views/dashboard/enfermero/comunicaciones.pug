@@ -1,0 +1,133 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-comments.me-2
+              | Comunicaciones
+            p.text-muted.mb-0 Notificaciones y mensajes internos
+          div
+            button.btn.btn-primary(onclick='nuevoMensaje()')
+              i.fas.fa-paper-plane.me-2
+              | Nuevo Mensaje
+
+    // Estadísticas
+    .row.g-3.mb-4
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.text-center
+          .card-body
+            h3.mb-0= estadisticas.total
+            small.text-muted Total
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-warning.border-4.text-center
+          .card-body
+            h3.mb-0.text-warning= estadisticas.no_leidas
+            small.text-muted No Leídas
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-success.border-4.text-center
+          .card-body
+            h3.mb-0.text-success= estadisticas.leidas
+            small.text-muted Leídas
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-info.border-4.text-center
+          .card-body
+            h3.mb-0.text-info= estadisticas.hoy
+            small.text-muted Hoy
+
+    // Acciones rápidas
+    .row.mb-3
+      .col-12
+        .btn-group(role='group')
+          button.btn.btn-outline-primary(onclick='filtrarLeidas(false)')
+            i.fas.fa-envelope.me-2
+            | No Leídas
+          button.btn.btn-outline-success(onclick='filtrarLeidas(true)')
+            i.fas.fa-envelope-open.me-2
+            | Leídas
+          button.btn.btn-outline-secondary(onclick='mostrarTodas()')
+            i.fas.fa-list.me-2
+            | Todas
+        
+        if estadisticas.no_leidas > 0
+          button.btn.btn-success.ms-2(onclick='marcarTodasLeidas()')
+            i.fas.fa-check-double.me-2
+            | Marcar Todas como Leídas
+
+    // Lista de notificaciones
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-bell.me-2
+              | Notificaciones
+          .card-body.p-0
+            if notificaciones.length > 0
+              .list-group.list-group-flush
+                each notif in notificaciones
+                  - const itemClass = notif.leida ? '' : 'list-group-item-warning'
+                  .list-group-item(class=itemClass)
+                    .d-flex.justify-content-between.align-items-start
+                      div(style='flex: 1')
+                        if !notif.leida
+                          span.badge.bg-warning.text-dark.me-2 Nueva
+                        p.mb-1= notif.mensaje
+                        small.text-muted
+                          i.fas.fa-clock.me-1
+                          = new Date(notif.created_at).toLocaleString('es-AR')
+                      .btn-group.btn-group-sm(role='group')
+                        if !notif.leida
+                          button.btn.btn-outline-success(onclick=`marcarLeida(${notif.id})` title='Marcar como leída')
+                            i.fas.fa-check
+                        button.btn.btn-outline-danger(onclick=`eliminarNotificacion(${notif.id})` title='Eliminar')
+                          i.fas.fa-trash
+            else
+              .p-5.text-center.text-muted
+                i.fas.fa-inbox.fa-4x.mb-3
+                h5 No hay notificaciones
+                p.mb-0 No tiene notificaciones en este momento
+
+    // Modal nuevo mensaje
+    #modalNuevoMensaje.modal.fade(tabindex='-1')
+      .modal-dialog
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-paper-plane.me-2
+              | Nuevo Mensaje Interno
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            form#form-mensaje
+              .mb-3
+                label.form-label Buscar Destinatario
+                .input-group
+                  input.form-control(type='text' id='buscar-destinatario' placeholder='Nombre del médico, enfermero o administrativo...')
+                  button.btn.btn-outline-secondary(type='button' onclick='buscarDestinatario()')
+                    i.fas.fa-search
+              
+              .mb-3#resultado-busqueda(style='display:none')
+                label.form-label Seleccionar Destinatario
+                select.form-select(id='select-destinatario' size='5')
+              
+              .mb-3
+                label.form-label Mensaje *
+                textarea.form-control(id='mensaje-texto' rows='5' required placeholder='Escriba su mensaje...')
+              
+              .alert.alert-info
+                i.fas.fa-info-circle.me-2
+                small Esta comunicación es para mensajes internos entre el personal del hospital.
+          
+          .modal-footer
+            button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+            button.btn.btn-primary(onclick='enviarMensaje()') Enviar Mensaje
+
+block scripts
+  script(src='/js/enfermero/comunicaciones.js')

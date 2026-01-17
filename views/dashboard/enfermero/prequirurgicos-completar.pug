@@ -1,0 +1,219 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    .row.mb-3
+      .col-12
+        a.btn.btn-secondary(href='/enfermero/prequirurgicos')
+          i.fas.fa-arrow-left.me-2
+          | Volver
+
+    .row
+      .col-lg-8
+        .card.border-0.shadow-sm
+          .card-header.bg-danger.text-white
+            h4.mb-0
+              i.fas.fa-notes-medical.me-2
+              | Completar Preparación Pre-quirúrgica
+          .card-body
+            // Información del paciente
+            .alert.alert-info
+              h5.alert-heading
+                i.fas.fa-user.me-2
+                | Paciente
+              hr
+              .row
+                .col-md-6
+                  p.mb-1
+                    strong Nombre:
+                    span.ms-2= `${procedimiento.evaluacion_medica.paciente.usuario.nombre} ${procedimiento.evaluacion_medica.paciente.usuario.apellido}`
+                .col-md-6
+                  p.mb-1
+                    strong DNI:
+                    span.ms-2= procedimiento.evaluacion_medica.paciente.usuario.dni
+                .col-md-6
+                  p.mb-1
+                    strong Edad:
+                    - const edad = Math.floor((new Date() - new Date(procedimiento.evaluacion_medica.paciente.usuario.fecha_nacimiento)) / (1000 * 60 * 60 * 24 * 365))
+                    span.ms-2= `${edad} años`
+                .col-md-6
+                  p.mb-1
+                    strong Sexo:
+                    span.ms-2= procedimiento.evaluacion_medica.paciente.usuario.sexo
+
+            // Información del procedimiento
+            .alert.alert-warning
+              h5.alert-heading
+                i.fas.fa-info-circle.me-2
+                | Procedimiento Quirúrgico
+              hr
+              p
+                strong= procedimiento.nombre
+              if procedimiento.descripcion
+                p.text-muted.mb-0= procedimiento.descripcion
+
+            // Formulario de checklist
+            form#form-completar
+              // Checklist de preparación
+              .card.mb-4
+                .card-header.bg-light
+                  h5.mb-0
+                    i.fas.fa-check-double.me-2
+                    | Checklist de Preparación
+                .card-body
+                  .row.g-3
+                    .col-md-6
+                      .form-check
+                        input.form-check-input(type='checkbox' name='higiene_realizada' value='true' id='check-higiene' required)
+                        label.form-check-label(for='check-higiene')
+                          strong Higiene corporal completa
+                    
+                    .col-md-6
+                      .form-check
+                        input.form-check-input(type='checkbox' name='retiro_joyas' value='true' id='check-joyas' required)
+                        label.form-check-label(for='check-joyas')
+                          strong Retiro de joyas y accesorios
+                    
+                    .col-md-6
+                      .form-check
+                        input.form-check-input(type='checkbox' name='retiro_protesis' value='true' id='check-protesis')
+                        label.form-check-label(for='check-protesis')
+                          | Retiro de prótesis dentales
+                    
+                    .col-md-6
+                      .form-check
+                        input.form-check-input(type='checkbox' name='retiro_lentes' value='true' id='check-lentes')
+                        label.form-check-label(for='check-lentes')
+                          | Retiro de lentes de contacto
+                    
+                    .col-md-6
+                      .form-check
+                        input.form-check-input(type='checkbox' name='retiro_esmalte' value='true' id='check-esmalte' required)
+                        label.form-check-label(for='check-esmalte')
+                          strong Retiro de esmalte de uñas
+                    
+                    .col-md-6
+                      .form-check
+                        input.form-check-input(type='checkbox' name='consentimiento_firmado' value='true' id='check-consentimiento' required)
+                        label.form-check-label(for='check-consentimiento')
+                          strong.text-danger Consentimiento informado firmado
+                    
+                    .col-md-6
+                      .form-check
+                        input.form-check-input(type='checkbox' name='estudios_completos' value='true' id='check-estudios' required)
+                        label.form-check-label(for='check-estudios')
+                          strong Estudios pre-operatorios completos
+                    
+                    .col-md-6
+                      .form-check
+                        input.form-check-input(type='checkbox' name='alergias_verificadas' value='true' id='check-alergias' required)
+                        label.form-check-label(for='check-alergias')
+                          strong Alergias verificadas
+                    
+                    .col-md-6
+                      label.form-label
+                        strong Ayuno (horas)
+                      input.form-control(type='number' name='ayuno_horas' min='0' max='24' required placeholder='8-12 horas')
+
+              // Procedimientos realizados
+              .card.mb-4
+                .card-header.bg-light
+                  h5.mb-0
+                    i.fas.fa-syringe.me-2
+                    | Procedimientos Realizados
+                .card-body
+                  .row.g-3
+                    .col-md-6
+                      .form-check
+                        input.form-check-input(type='checkbox' name='via_venosa' value='true' id='check-via')
+                        label.form-check-label(for='check-via')
+                          | Vía venosa permeable
+                    
+                    .col-md-6
+                      .form-check
+                        input.form-check-input(type='checkbox' name='profilaxis_antibiotica' value='true' id='check-profilaxis')
+                        label.form-check-label(for='check-profilaxis')
+                          | Profilaxis antibiótica administrada
+                    
+                    .col-md-12
+                      .form-check
+                        input.form-check-input(type='checkbox' name='medicacion_preanestesica' value='true' id='check-preanestesia')
+                        label.form-check-label(for='check-preanestesia')
+                          | Medicación preanestésica administrada
+
+              // Signos vitales
+              .mb-4
+                label.form-label
+                  i.fas.fa-heartbeat.me-2
+                  strong Signos Vitales Finales *
+                textarea.form-control(name='signos_vitales' rows='2' required placeholder='PA: 120/80, FC: 70 lpm, T: 36.5°C, SpO2: 98%')
+              
+              // Observaciones
+              .mb-4
+                label.form-label
+                  i.fas.fa-notes-medical.me-2
+                  | Observaciones
+                textarea.form-control(name='observaciones' rows='3' placeholder='Observaciones adicionales sobre la preparación...')
+              
+              // Complicaciones
+              .mb-4
+                label.form-label
+                  i.fas.fa-exclamation-triangle.me-2.text-danger
+                  | Complicaciones (Si las hubo)
+                textarea.form-control(name='complicaciones' rows='3' placeholder='Describa cualquier complicación o contraindicación detectada...')
+
+              // Botones
+              .d-flex.justify-content-between
+                button.btn.btn-secondary(type='button' onclick='window.history.back()')
+                  i.fas.fa-times.me-2
+                  | Cancelar
+                button.btn.btn-success.btn-lg(type='submit')
+                  i.fas.fa-check.me-2
+                  | Completar Preparación
+
+      // Panel lateral
+      .col-lg-4
+        .card.border-0.shadow-sm.mb-3
+          .card-header.bg-danger.text-white
+            h5.mb-0
+              i.fas.fa-clipboard-list.me-2
+              | Recordatorios Importantes
+          .card-body
+            ul.list-unstyled.mb-0
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Verificar ayuno mínimo 8 horas
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Confirmar consentimiento firmado
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Revisar alergias documentadas
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Verificar estudios completos
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Asegurar retiro completo de joyas
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Registrar signos vitales finales
+
+        .card.border-0.shadow-sm
+          .card-header.bg-warning.text-dark
+            h5.mb-0
+              i.fas.fa-exclamation-triangle.me-2
+              | Contraindicaciones
+          .card-body
+            p.small.mb-2
+              strong Si detecta alguna de estas condiciones, reporte inmediatamente:
+            ul.small.mb-0
+              li Fiebre o signos de infección
+              li No cumplimiento de ayuno
+              li Estudios faltantes o anormales
+              li Consentimiento no firmado
+              li Condición médica nueva
+              li Signos vitales anormales
+
+block scripts
+  script(src='/js/enfermero/prequirurgicos-completar.js')

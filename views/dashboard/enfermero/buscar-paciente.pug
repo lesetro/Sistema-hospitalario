@@ -1,0 +1,121 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        h2.mb-1
+          i.fas.fa-search.me-2
+          | Buscar Paciente
+        p.text-muted.mb-0 Búsqueda rápida de pacientes
+
+    // Búsqueda simple
+    .row.mb-4
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            .row
+              .col-md-8
+                .input-group.input-group-lg
+                  input.form-control(type='text' id='busqueda-simple' placeholder='Buscar por nombre, apellido o DNI...' autofocus)
+                  button.btn.btn-primary(onclick='buscarSimple()')
+                    i.fas.fa-search.me-2
+                    | Buscar
+              .col-md-4.d-flex.align-items-center
+                button.btn.btn-outline-secondary.w-100(onclick='mostrarBusquedaAvanzada()')
+                  i.fas.fa-filter.me-2
+                  | Búsqueda Avanzada
+
+    // Búsqueda avanzada (oculta por defecto)
+    .row.mb-4#seccion-avanzada(style='display:none')
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-light
+            h5.mb-0
+              i.fas.fa-filter.me-2
+              | Búsqueda Avanzada
+          .card-body
+            .row.g-3
+              .col-md-3
+                label.form-label Nombre
+                input.form-control(type='text' id='av-nombre' placeholder='Nombre')
+              
+              .col-md-3
+                label.form-label Apellido
+                input.form-control(type='text' id='av-apellido' placeholder='Apellido')
+              
+              .col-md-3
+                label.form-label DNI
+                input.form-control(type='text' id='av-dni' placeholder='DNI')
+              
+              .col-md-3
+                label.form-label Sexo
+                select.form-select(id='av-sexo')
+                  option(value='') Todos
+                  option(value='Masculino') Masculino
+                  option(value='Femenino') Femenino
+                  option(value='Otro') Otro
+              
+              .col-md-3
+                label.form-label Edad Mínima
+                input.form-control(type='number' id='av-edad-min' placeholder='Ej: 18')
+              
+              .col-md-3
+                label.form-label Edad Máxima
+                input.form-control(type='number' id='av-edad-max' placeholder='Ej: 65')
+              
+              .col-md-3
+                label.form-label Estado
+                select.form-select(id='av-estado')
+                  option(value='') Todos
+                  option(value='Activo') Activo
+                  option(value='Inactivo') Inactivo
+              
+              .col-md-3
+                label.form-label Internado
+                select.form-select(id='av-internado')
+                  option(value='') Todos
+                  option(value='true') Solo Internados
+                  option(value='false') Solo No Internados
+              
+              .col-12.text-end
+                button.btn.btn-secondary.me-2(onclick='limpiarAvanzada()')
+                  i.fas.fa-times.me-2
+                  | Limpiar
+                button.btn.btn-primary(onclick='buscarAvanzada()')
+                  i.fas.fa-search.me-2
+                  | Buscar
+
+    // Resultados
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Resultados de Búsqueda
+          .card-body
+            #resultados-busqueda
+              .text-center.text-muted.p-5
+                i.fas.fa-search.fa-4x.mb-3
+                h5 Ingrese un criterio de búsqueda
+                p.mb-0 Los resultados aparecerán aquí
+
+    // Modal ficha rápida
+    #modalFichaRapida.modal.fade(tabindex='-1')
+      .modal-dialog.modal-xl
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-id-card.me-2
+              | Ficha Rápida del Paciente
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            #contenido-ficha
+              .text-center
+                .spinner-border.text-primary(role='status')
+                  span.visually-hidden Cargando...
+
+block scripts
+  script(src='/js/enfermero/buscar-paciente.js')

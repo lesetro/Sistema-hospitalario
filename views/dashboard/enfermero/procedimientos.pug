@@ -1,0 +1,203 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-syringe.me-2
+              | Procedimientos de Enfermería
+            p.text-muted.mb-0 Gestión y ejecución de procedimientos
+          div
+            button.btn.btn-outline-primary(onclick='verPendientes()')
+              i.fas.fa-clock.me-2
+              | Ver Pendientes
+
+    // Estadísticas
+    .row.g-3.mb-4
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.text-center
+          .card-body
+            h3.mb-0= estadisticas.total
+            small.text-muted Total
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-warning.border-4.text-center
+          .card-body
+            h3.mb-0.text-warning= estadisticas.pendientes
+            small.text-muted Pendientes
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-success.border-4.text-center
+          .card-body
+            h3.mb-0.text-success= estadisticas.completados
+            small.text-muted Completados
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-info.border-4.text-center
+          .card-body
+            h3.mb-0.text-info= estadisticas.requiere_preparacion
+            small.text-muted Con Preparación
+
+    // Filtros
+    .row.mb-3
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form#form-filtros.row.g-3(method='GET')
+              .col-md-3
+                label.form-label Fecha Inicio
+                input.form-control(type='date' name='fecha_inicio' value=filtros.fecha_inicio)
+              
+              .col-md-3
+                label.form-label Fecha Fin
+                input.form-control(type='date' name='fecha_fin' value=filtros.fecha_fin)
+              
+              .col-md-3
+                label.form-label Buscar Paciente
+                input.form-control(type='text' name='paciente' placeholder='Nombre, apellido o DNI' value=filtros.paciente)
+              
+              .col-md-3
+                label.form-label Estado
+                select.form-select(name='estado')
+                  option(value='' selected=!filtros.estado) Todos
+                  option(value='PENDIENTE_EVALUACION' selected=(filtros.estado === 'PENDIENTE_EVALUACION')) Pendientes
+                  option(value='PROCEDIMIENTO_COMPLETADO' selected=(filtros.estado === 'PROCEDIMIENTO_COMPLETADO')) Completados
+              
+              .col-12.d-flex.justify-content-end
+                button.btn.btn-primary.me-2(type='submit')
+                  i.fas.fa-filter.me-2
+                  | Filtrar
+                button.btn.btn-secondary(type='button' onclick='limpiarFiltros()')
+                  i.fas.fa-times.me-2
+                  | Limpiar
+
+    // Tabla de procedimientos
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Listado de Procedimientos
+          .card-body.p-0
+            if procedimientos.length > 0
+              .table-responsive
+                table.table.table-hover.mb-0#tabla-procedimientos
+                  thead.table-light
+                    tr
+                      th Paciente
+                      th Procedimiento
+                      th Médico Solicitante
+                      th Duración Est.
+                      th Preparación
+                      th Estado
+                      th Acciones
+                  tbody
+                    each proc in procedimientos
+                      tr
+                        td
+                          strong= `${proc.evaluacion_medica.paciente.usuario.nombre} ${proc.evaluacion_medica.paciente.usuario.apellido}`
+                          br
+                          small.text-muted DNI: #{proc.evaluacion_medica.paciente.usuario.dni}
+                        td
+                          strong= proc.nombre
+                          if proc.descripcion
+                            br
+                            small.text-muted= proc.descripcion.substring(0, 50) + '...'
+                        td
+                          small Dr. #{proc.evaluacion_medica.medico.usuario.nombre} #{proc.evaluacion_medica.medico.usuario.apellido}
+                        td
+                          if proc.duracion_estimada
+                            span.badge.bg-info= `${proc.duracion_estimada} min`
+                          else
+                            small.text-muted N/A
+                        td
+                          if proc.requiere_preparacion
+                            span.badge.bg-warning.text-dark
+                              i.fas.fa-exclamation-triangle.me-1
+                              | Requiere
+                          else
+                            span.badge.bg-secondary No requiere
+                        td
+                          if !proc.evaluacion_enfermeria
+                            span.badge.bg-warning Pendiente
+                          else
+                            case proc.evaluacion_enfermeria.tipo_egreso
+                              when 'PROCEDIMIENTO_COMPLETADO'
+                                span.badge.bg-success Completado
+                              when 'DERIVACION_MEDICO'
+                                span.badge.bg-primary Revisión Médica
+                              default
+                                span.badge.bg-info En proceso
+                        td
+                          .btn-group.btn-group-sm(role='group')
+                            a.btn.btn-outline-info(href=`/enfermero/procedimientos/${proc.id}` title='Ver detalle')
+                              i.fas.fa-eye
+                            if !proc.evaluacion_enfermeria
+                              a.btn.btn-success(href=`/enfermero/procedimientos/${proc.id}/ejecutar` title='Ejecutar')
+                                i.fas.fa-play
+                            else if proc.evaluacion_enfermeria.tipo_egreso !== 'PROCEDIMIENTO_COMPLETADO'
+                              button.btn.btn-outline-danger(onclick=`registrarComplicacion(${proc.id})` title='Registrar complicación')
+                                i.fas.fa-exclamation-circle
+            else
+              .p-5.text-center.text-muted
+                i.fas.fa-clipboard-check.fa-4x.mb-3
+                h5 No hay procedimientos registrados
+                p.mb-0 Utilice los filtros para buscar procedimientos
+
+    // Modal para procedimientos pendientes
+    #modalPendientes.modal.fade(tabindex='-1')
+      .modal-dialog.modal-xl
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-clock.me-2
+              | Procedimientos Pendientes
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            #contenido-pendientes
+              .text-center
+                .spinner-border.text-primary(role='status')
+                  span.visually-hidden Cargando...
+
+    // Modal para registrar complicación
+    #modalComplicacion.modal.fade(tabindex='-1')
+      .modal-dialog
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-exclamation-triangle.me-2
+              | Registrar Complicación
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            form#form-complicacion
+              input(type='hidden' id='complicacion-proc-id')
+              
+              .mb-3
+                label.form-label Tipo de Complicación
+                select.form-select(id='tipo-complicacion' required)
+                  option(value='') Seleccionar
+                  option(value='Reacción adversa') Reacción adversa
+                  option(value='Sangrado') Sangrado
+                  option(value='Infección') Infección
+                  option(value='Dolor intenso') Dolor intenso
+                  option(value='Otro') Otro
+              
+              .mb-3
+                label.form-label Descripción
+                textarea.form-control(id='desc-complicacion' rows='3' required)
+              
+              .mb-3
+                label.form-label Acción Tomada
+                textarea.form-control(id='accion-tomada' rows='3' required)
+          
+          .modal-footer
+            button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+            button.btn.btn-danger(onclick='guardarComplicacion()') Registrar
+
+block scripts
+  script(src='/js/enfermero/procedimientos.js')

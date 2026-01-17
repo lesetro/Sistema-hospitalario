@@ -53,7 +53,7 @@ window.fetch = async function(...args) {
         const response = await originalFetch(url, options);
         
         // Solo manejamos errores 401 desde RUTAS PROTEGIDAS
-        // NO desde /auth/login (eso lo maneja auth-handle.js)
+        // NO desde /auth/ (eso lo maneja auth-handle.js)
         if (response.status === 401 && !url.includes('/auth/')) {
             try {
                 const data = await response.clone().json();

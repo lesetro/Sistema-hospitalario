@@ -1,0 +1,167 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-temperature-high.me-2
+              | Controles de Enfermería
+            p.text-muted.mb-0 Registro de signos vitales y parámetros clínicos
+          div
+            a.btn.btn-primary(href='/enfermero/controles/nuevo')
+              i.fas.fa-plus.me-2
+              | Nuevo Control
+
+    // Estadísticas
+    .row.g-3.mb-4
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.text-center
+          .card-body
+            h3.mb-0= estadisticas.total
+            small.text-muted Total Registrados
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-warning.border-4.text-center
+          .card-body
+            h3.mb-0.text-warning= estadisticas.con_alergias
+            small.text-muted Con Alergias
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-danger.border-4.text-center
+          .card-body
+            h3.mb-0.text-danger= estadisticas.con_grupo_sanguineo
+            small.text-muted Grupo Sanguíneo
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-primary.border-4.text-center
+          .card-body
+            h3.mb-0.text-primary= estadisticas.con_evaluacion_medica
+            small.text-muted Con Eval. Médica
+
+    // Filtros
+    .row.mb-3
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form#form-filtros.row.g-3(method='GET')
+              .col-md-3
+                label.form-label Fecha Inicio
+                input.form-control(type='date' name='fecha_inicio' value=filtros.fecha_inicio)
+              
+              .col-md-3
+                label.form-label Fecha Fin
+                input.form-control(type='date' name='fecha_fin' value=filtros.fecha_fin)
+              
+              .col-md-4
+                label.form-label Buscar Paciente
+                input.form-control(type='text' name='paciente' placeholder='Nombre, apellido o DNI' value=filtros.paciente)
+              
+              .col-md-2
+                label.form-label &nbsp;
+                .form-check
+                  input.form-check-input(type='checkbox' name='con_evaluacion' id='con-evaluacion' value='true' checked=filtros.con_evaluacion)
+                  label.form-check-label(for='con-evaluacion') Con eval. médica
+              
+              .col-12.d-flex.justify-content-end
+                button.btn.btn-primary.me-2(type='submit')
+                  i.fas.fa-filter.me-2
+                  | Filtrar
+                button.btn.btn-secondary(type='button' onclick='limpiarFiltros()')
+                  i.fas.fa-times.me-2
+                  | Limpiar
+
+    // Tabla de controles
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Listado de Controles
+          .card-body.p-0
+            if controles.length > 0
+              .table-responsive
+                table.table.table-hover.mb-0#tabla-controles
+                  thead.table-light
+                    tr
+                      th Fecha
+                      th Paciente
+                      th DNI
+                      th Enfermero
+                      th Peso/Altura
+                      th P.A.
+                      th Temp.
+                      th Grupo Sang.
+                      th Acciones
+                  tbody
+                    each control in controles
+                      tr
+                        td
+                          small= new Date(control.created_at).toLocaleString('es-AR')
+                        td
+                          strong= `${control.evaluacion.paciente.usuario.nombre} ${control.evaluacion.paciente.usuario.apellido}`
+                          if control.alergias && control.alergias.trim() !== ''
+                            br
+                            span.badge.bg-warning.text-dark
+                              i.fas.fa-exclamation-triangle.me-1
+                              | Alergias
+                        td
+                          small.text-muted= control.evaluacion.paciente.usuario.dni
+                        td
+                          small= `${control.evaluacion.enfermero.usuario.nombre} ${control.evaluacion.enfermero.usuario.apellido}`
+                        td
+                          if control.peso && control.altura
+                            small
+                              = `${control.peso} kg / ${control.altura} cm`
+                              - const imc = (control.peso / Math.pow(control.altura / 100, 2)).toFixed(1)
+                              br
+                              span.text-muted IMC: #{imc}
+                          else
+                            small.text-muted N/A
+                        td
+                          small= control.presion_arterial || 'N/A'
+                        td
+                          if control.temperatura
+                            small= `${control.temperatura}°C`
+                          else
+                            small.text-muted N/A
+                        td
+                          if control.grupo_sanguineo
+                            span.badge.bg-danger= `${control.grupo_sanguineo} ${control.factor_rh || ''}`
+                          else
+                            small.text-muted N/A
+                        td
+                          .btn-group.btn-group-sm(role='group')
+                            a.btn.btn-outline-info(href=`/enfermero/controles/${control.id}` title='Ver detalle')
+                              i.fas.fa-eye
+                            button.btn.btn-outline-primary(onclick=`editarControl(${control.id})` title='Editar')
+                              i.fas.fa-edit
+                            button.btn.btn-outline-secondary(onclick=`verHistorial(${control.evaluacion.paciente.id})` title='Historial')
+                              i.fas.fa-history
+            else
+              .p-5.text-center.text-muted
+                i.fas.fa-clipboard.fa-4x.mb-3
+                h5 No hay controles registrados
+                p.mb-0 Utilice los filtros para buscar o registre un nuevo control
+
+    // Modal para historial del paciente
+    #modalHistorial.modal.fade(tabindex='-1')
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-history.me-2
+              | Historial de Controles
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            #contenido-historial
+              .text-center
+                .spinner-border.text-primary(role='status')
+                  span.visually-hidden Cargando...
+
+block scripts
+  script(src='/js/enfermero/controles.js')

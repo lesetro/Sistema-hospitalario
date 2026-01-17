@@ -1,0 +1,263 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-hospital-user.me-2
+              | Gestión de Camas
+            p.text-muted.mb-0 Control de disponibilidad y estado de camas
+          div
+            button.btn.btn-outline-warning(onclick='verCamasPorLimpiar()')
+              i.fas.fa-broom.me-2
+              | Por Limpiar
+            button.btn.btn-outline-success.ms-2(onclick='verDisponibles()')
+              i.fas.fa-bed.me-2
+              | Disponibles
+
+    // Estadísticas
+    .row.g-3.mb-4
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.text-center
+          .card-body
+            h3.mb-0= estadisticas.total
+            small.text-muted Total Camas
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-success.border-4.text-center
+          .card-body
+            h3.mb-0.text-success= estadisticas.libres
+            small.text-muted Libres
+            br
+            small.text-muted= `${Math.round((estadisticas.libres / estadisticas.total) * 100)}%`
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-danger.border-4.text-center
+          .card-body
+            h3.mb-0.text-danger= estadisticas.ocupadas
+            small.text-muted Ocupadas
+            br
+            small.text-muted= `${estadisticas.porcentaje_ocupacion}%`
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-warning.border-4.text-center
+          .card-body
+            h3.mb-0.text-warning= estadisticas.en_limpieza
+            small.text-muted En Limpieza
+
+    // Filtros
+    .row.mb-3
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form#form-filtros.row.g-3(method='GET')
+              .col-md-3
+                label.form-label Sector
+                select.form-select(name='sector')
+                  option(value='' selected=!filtros.sector) Todos
+                  each sector in sectores
+                    option(value=sector.id selected=(filtros.sector == sector.id))= sector.nombre
+              
+              .col-md-3
+                label.form-label Estado
+                select.form-select(name='estado')
+                  option(value='' selected=!filtros.estado) Todos
+                  option(value='Libre' selected=(filtros.estado === 'Libre')) Libre
+                  option(value='Ocupada' selected=(filtros.estado === 'Ocupada')) Ocupada
+                  option(value='EnLimpieza' selected=(filtros.estado === 'EnLimpieza')) En Limpieza
+              
+              .col-md-3
+                label.form-label Tipo de Servicio
+                select.form-select(name='tipo_servicio')
+                  option(value='' selected=!filtros.tipo_servicio) Todos
+                  each tipo in tiposServicio
+                    option(value=tipo.id selected=(filtros.tipo_servicio == tipo.id))= tipo.nombre
+              
+              .col-md-3
+                label.form-label Habitación
+                select.form-select(name='habitacion')
+                  option(value='' selected=!filtros.habitacion) Todas
+                  each hab in habitaciones
+                    option(value=hab.id selected=(filtros.habitacion == hab.id))= `${hab.numero} (${hab.sector.nombre})`
+              
+              .col-12.d-flex.justify-content-end
+                button.btn.btn-primary.me-2(type='submit')
+                  i.fas.fa-filter.me-2
+                  | Filtrar
+                button.btn.btn-secondary(type='button' onclick='limpiarFiltros()')
+                  i.fas.fa-times.me-2
+                  | Limpiar
+
+    // Vista de camas
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Estado de Camas
+            .btn-group.btn-group-sm(role='group')
+              button.btn.btn-outline-secondary(onclick='vistaTabla()' id='btn-tabla')
+                i.fas.fa-table
+              button.btn.btn-outline-secondary.active(onclick='vistaCards()' id='btn-cards')
+                i.fas.fa-th
+          
+          .card-body.p-0
+            // Vista en cards (por defecto)
+            #vista-cards
+              if camas.length > 0
+                .row.g-3.p-3
+                  each cama in camas
+                    .col-xl-2.col-lg-3.col-md-4.col-sm-6
+                      - const cardClass = cama.estado === 'Libre' ? 'border-success' : cama.estado === 'Ocupada' ? 'border-danger' : 'border-warning'
+                      .card.h-100(class=cardClass)
+                        .card-body.text-center.p-2
+                          if cama.estado === 'Libre'
+                            i.fas.fa-bed.fa-2x.text-success.mb-2
+                          else if cama.estado === 'Ocupada'
+                            i.fas.fa-bed.fa-2x.text-danger.mb-2
+                          else
+                            i.fas.fa-broom.fa-2x.text-warning.mb-2
+                          
+                          h6.mb-1 Hab. #{cama.habitacion.numero}
+                          h5.mb-1 Cama #{cama.numero}
+                          
+                          small.text-muted.d-block.mb-2= cama.habitacion.sector.nombre
+                          
+                          case cama.estado
+                            when 'Libre'
+                              span.badge.bg-success.w-100.mb-2 Libre
+                            when 'Ocupada'
+                              span.badge.bg-danger.w-100.mb-2 Ocupada
+                              if cama.internaciones && cama.internaciones.length > 0
+                                - const internacion = cama.internaciones[0]
+                                small.text-muted.d-block= `${internacion.paciente.usuario.nombre.substring(0,1)}. ${internacion.paciente.usuario.apellido}`
+                            when 'EnLimpieza'
+                              span.badge.bg-warning.text-dark.w-100.mb-2 En Limpieza
+                              if cama.fecha_fin_limpieza
+                                - const minutos = Math.max(0, Math.floor((new Date(cama.fecha_fin_limpieza) - new Date()) / (1000 * 60)))
+                                small.text-muted.d-block= `${minutos} min restantes`
+                          
+                          .btn-group.btn-group-sm.w-100.mt-2(role='group')
+                            a.btn.btn-outline-info(href=`/enfermero/camas/${cama.id}` title='Ver')
+                              i.fas.fa-eye
+                            if cama.estado === 'EnLimpieza'
+                              button.btn.btn-outline-success(onclick=`liberarCama(${cama.id})` title='Liberar')
+                                i.fas.fa-check
+                            else if cama.estado === 'Libre'
+                              button.btn.btn-outline-warning(onclick=`cambiarEstado(${cama.id})` title='Estado')
+                                i.fas.fa-edit
+              else
+                .p-5.text-center.text-muted
+                  i.fas.fa-bed.fa-4x.mb-3
+                  h5 No hay camas
+                  p.mb-0 No se encontraron camas con los filtros aplicados
+
+            // Vista en tabla (oculta por defecto)
+            #vista-tabla(style='display:none')
+              .table-responsive
+                table.table.table-hover.mb-0
+                  thead.table-light
+                    tr
+                      th Estado
+                      th Habitación
+                      th Cama
+                      th Sector
+                      th Tipo Servicio
+                      th Sexo Permitido
+                      th Paciente
+                      th Acciones
+                  tbody
+                    each cama in camas
+                      tr
+                        td
+                          case cama.estado
+                            when 'Libre'
+                              span.badge.bg-success Libre
+                            when 'Ocupada'
+                              span.badge.bg-danger Ocupada
+                            when 'EnLimpieza'
+                              span.badge.bg-warning.text-dark En Limpieza
+                        td= cama.habitacion.numero
+                        td= cama.numero
+                        td
+                          small= cama.habitacion.sector.nombre
+                        td
+                          small= cama.habitacion.tipoServicio.nombre
+                        td
+                          small= cama.habitacion.sexo_permitido
+                        td
+                          if cama.internaciones && cama.internaciones.length > 0
+                            - const internacion = cama.internaciones[0]
+                            small= `${internacion.paciente.usuario.nombre} ${internacion.paciente.usuario.apellido}`
+                          else
+                            small.text-muted -
+                        td
+                          .btn-group.btn-group-sm(role='group')
+                            a.btn.btn-outline-info(href=`/enfermero/camas/${cama.id}`)
+                              i.fas.fa-eye
+
+    // Modal cambiar estado
+    #modalCambiarEstado.modal.fade(tabindex='-1')
+      .modal-dialog
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-edit.me-2
+              | Cambiar Estado de Cama
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            form#form-cambiar-estado
+              input(type='hidden' id='estado-cama-id')
+              
+              .mb-3
+                label.form-label Nuevo Estado
+                select.form-select(id='nuevo-estado' required)
+                  option(value='') Seleccionar
+                  option(value='EnLimpieza') En Limpieza
+                  option(value='Libre') Libre
+              
+              .mb-3
+                label.form-label Motivo
+                textarea.form-control(id='estado-motivo' rows='3' placeholder='Motivo del cambio...')
+          
+          .modal-footer
+            button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+            button.btn.btn-primary(onclick='guardarEstado()') Guardar
+
+    // Modal camas disponibles
+    #modalDisponibles.modal.fade(tabindex='-1')
+      .modal-dialog.modal-xl
+        .modal-content
+          .modal-header.bg-success.text-white
+            h5.modal-title
+              i.fas.fa-bed.me-2
+              | Camas Disponibles
+            button.btn-close.btn-close-white(data-bs-dismiss='modal')
+          .modal-body
+            #contenido-disponibles
+              .text-center
+                .spinner-border.text-primary(role='status')
+                  span.visually-hidden Cargando...
+
+    // Modal camas por limpiar
+    #modalPorLimpiar.modal.fade(tabindex='-1')
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header.bg-warning
+            h5.modal-title
+              i.fas.fa-broom.me-2
+              | Camas Por Limpiar
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            #contenido-por-limpiar
+              .text-center
+                .spinner-border.text-primary(role='status')
+                  span.visually-hidden Cargando...
+
+block scripts
+  script(src='/js/enfermero/camas.js')

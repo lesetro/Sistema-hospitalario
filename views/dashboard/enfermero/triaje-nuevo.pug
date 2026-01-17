@@ -1,0 +1,163 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    .row.justify-content-center
+      .col-lg-8
+        .card.border-0.shadow-sm
+          .card-header.bg-primary.text-white
+            h4.mb-0
+              i.fas.fa-heartbeat.me-2
+              | Registro de Triaje
+          .card-body
+            // Búsqueda de paciente
+            .row.mb-4
+              .col-12
+                .card.bg-light
+                  .card-body
+                    h5.card-title
+                      i.fas.fa-search.me-2
+                      | Buscar Paciente
+                    .input-group
+                      input.form-control(type='text' id='input-dni' placeholder='Ingrese DNI del paciente' maxlength='8')
+                      button.btn.btn-primary(type='button' onclick='buscarPaciente()')
+                        i.fas.fa-search.me-2
+                        | Buscar
+                    small.text-muted.mt-2.d-block Si el paciente no existe, será redirigido al módulo de registro
+
+            // Información del paciente
+            #info-paciente(style='display:none')
+              .alert.alert-info
+                h5.alert-heading
+                  i.fas.fa-user.me-2
+                  | Datos del Paciente
+                hr
+                .row
+                  .col-md-6
+                    p.mb-1
+                      strong Nombre:
+                      span#paciente-nombre.ms-2
+                  .col-md-6
+                    p.mb-1
+                      strong DNI:
+                      span#paciente-dni.ms-2
+                  .col-md-6
+                    p.mb-1
+                      strong Edad:
+                      span#paciente-edad.ms-2
+                  .col-md-6
+                    p.mb-1
+                      strong Sexo:
+                      span#paciente-sexo.ms-2
+
+            // Formulario de triaje
+            form#form-triaje(style='display:none')
+              input(type='hidden' id='paciente-id' name='paciente_id')
+              
+              // Motivo de consulta
+              .mb-4
+                label.form-label.fw-bold
+                  i.fas.fa-comment-medical.me-2
+                  | Motivo de Consulta
+                textarea.form-control(name='motivo_consulta' rows='3' required)
+
+              // Signos Vitales
+              .card.mb-4
+                .card-header.bg-light
+                  h5.mb-0
+                    i.fas.fa-heartbeat.me-2
+                    | Signos Vitales
+                .card-body
+                  .row.g-3
+                    .col-md-4
+                      label.form-label Presión Arterial
+                      .input-group
+                        input.form-control(type='text' name='presion_arterial' placeholder='120/80')
+                        span.input-group-text mmHg
+                    
+                    .col-md-4
+                      label.form-label Frecuencia Cardíaca
+                      .input-group
+                        input.form-control(type='number' name='frecuencia_cardiaca' placeholder='70')
+                        span.input-group-text lpm
+                    
+                    .col-md-4
+                      label.form-label Temperatura
+                      .input-group
+                        input.form-control(type='number' step='0.1' name='temperatura' placeholder='36.5')
+                        span.input-group-text °C
+                    
+                    .col-md-6
+                      label.form-label Saturación de Oxígeno
+                      .input-group
+                        input.form-control(type='number' name='saturacion_oxigeno' placeholder='98')
+                        span.input-group-text %
+                    
+                    .col-md-6
+                      label.form-label Frecuencia Respiratoria
+                      .input-group
+                        input.form-control(type='number' name='frecuencia_respiratoria' placeholder='16')
+                        span.input-group-text rpm
+
+              // Nivel de Triaje
+              .mb-4
+                label.form-label.fw-bold
+                  i.fas.fa-exclamation-triangle.me-2
+                  | Nivel de Triaje *
+                .row.g-3
+                  .col-md-6.col-lg-3
+                    .card.border-danger.selectable-card(onclick='seleccionarNivel("Rojo")' data-nivel='Rojo')
+                      .card-body.text-center
+                        .triaje-icon.bg-danger.text-white.mb-2
+                          i.fas.fa-ambulance.fa-2x
+                        h5.card-title.text-danger ROJO
+                        p.card-text.small Emergencia
+                        small.text-muted Atención inmediata
+                  
+                  .col-md-6.col-lg-3
+                    .card.border-warning.selectable-card(onclick='seleccionarNivel("Amarillo")' data-nivel='Amarillo')
+                      .card-body.text-center
+                        .triaje-icon.bg-warning.text-white.mb-2
+                          i.fas.fa-exclamation-circle.fa-2x
+                        h5.card-title.text-warning AMARILLO
+                        p.card-text.small Urgente
+                        small.text-muted Atención en minutos
+                  
+                  .col-md-6.col-lg-3
+                    .card.border-success.selectable-card(onclick='seleccionarNivel("Verde")' data-nivel='Verde')
+                      .card-body.text-center
+                        .triaje-icon.bg-success.text-white.mb-2
+                          i.fas.fa-check-circle.fa-2x
+                        h5.card-title.text-success VERDE
+                        p.card-text.small No Urgente
+                        small.text-muted Puede esperar
+                  
+                  .col-md-6.col-lg-3
+                    .card.border-dark.selectable-card(onclick='seleccionarNivel("Negro")' data-nivel='Negro')
+                      .card-body.text-center
+                        .triaje-icon.bg-dark.text-white.mb-2
+                          i.fas.fa-times-circle.fa-2x
+                        h5.card-title.text-dark NEGRO
+                        p.card-text.small Expectante
+                        small.text-muted Sin posibilidad
+                
+                input(type='hidden' id='nivel-triaje' name='nivel_triaje' required)
+
+              // Observaciones
+              .mb-4
+                label.form-label.fw-bold
+                  i.fas.fa-notes-medical.me-2
+                  | Observaciones Adicionales
+                textarea.form-control(name='observaciones' rows='4' placeholder='Detalles adicionales del paciente...')
+
+              // Botones
+              .d-flex.justify-content-between
+                a.btn.btn-secondary(href='/enfermero/triaje')
+                  i.fas.fa-arrow-left.me-2
+                  | Volver
+                button.btn.btn-primary.btn-lg(type='submit')
+                  i.fas.fa-save.me-2
+                  | Registrar Triaje
+
+block scripts
+  script(src='/js/enfermero/triaje-nuevo.js')

@@ -1,0 +1,152 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    .row.mb-3
+      .col-12
+        a.btn.btn-secondary(href='/enfermero/procedimientos')
+          i.fas.fa-arrow-left.me-2
+          | Volver
+
+    .row
+      .col-lg-8
+        .card.border-0.shadow-sm
+          .card-header.bg-success.text-white
+            h4.mb-0
+              i.fas.fa-syringe.me-2
+              | Ejecutar Procedimiento
+          .card-body
+            // Información del procedimiento
+            .alert.alert-info
+              h5.alert-heading
+                i.fas.fa-info-circle.me-2
+                | Información del Procedimiento
+              hr
+              dl.row.mb-0
+                dt.col-sm-4 Procedimiento:
+                dd.col-sm-8= procedimiento.nombre
+                
+                if procedimiento.descripcion
+                  dt.col-sm-4 Descripción:
+                  dd.col-sm-8= procedimiento.descripcion
+                
+                if procedimiento.duracion_estimada
+                  dt.col-sm-4 Duración Estimada:
+                  dd.col-sm-8= `${procedimiento.duracion_estimada} minutos`
+                
+                if procedimiento.requiere_preparacion
+                  dt.col-sm-4 Preparación:
+                  dd.col-sm-8
+                    span.badge.bg-warning.text-dark
+                      i.fas.fa-exclamation-triangle.me-1
+                      | Requiere preparación especial
+
+            // Información del paciente
+            .alert.alert-light
+              h5.alert-heading
+                i.fas.fa-user.me-2
+                | Paciente
+              hr
+              .row
+                .col-md-6
+                  p.mb-1
+                    strong Nombre:
+                    span.ms-2= `${procedimiento.evaluacion_medica.paciente.usuario.nombre} ${procedimiento.evaluacion_medica.paciente.usuario.apellido}`
+                .col-md-6
+                  p.mb-1
+                    strong DNI:
+                    span.ms-2= procedimiento.evaluacion_medica.paciente.usuario.dni
+                .col-md-6
+                  p.mb-1
+                    strong Edad:
+                    - const edad = Math.floor((new Date() - new Date(procedimiento.evaluacion_medica.paciente.usuario.fecha_nacimiento)) / (1000 * 60 * 60 * 24 * 365))
+                    span.ms-2= `${edad} años`
+                .col-md-6
+                  p.mb-1
+                    strong Sexo:
+                    span.ms-2= procedimiento.evaluacion_medica.paciente.usuario.sexo
+
+            // Formulario de ejecución
+            form#form-ejecutar
+              .mb-4
+                label.form-label
+                  i.fas.fa-heartbeat.me-2
+                  | Signos Vitales (Opcional)
+                textarea.form-control(name='signos_vitales' rows='2' placeholder='PA: 120/80, FC: 70 lpm, T: 36.5°C, SpO2: 98%')
+              
+              .mb-4
+                label.form-label
+                  i.fas.fa-clipboard.me-2
+                  strong Observaciones de la Ejecución *
+                textarea.form-control(name='observaciones' rows='4' required placeholder='Describa el desarrollo del procedimiento...')
+              
+              .mb-4
+                label.form-label
+                  i.fas.fa-exclamation-triangle.me-2
+                  | Complicaciones (Si las hubo)
+                textarea.form-control(name='complicaciones' rows='3' placeholder='Describa cualquier complicación o evento adverso...')
+              
+              .mb-4
+                label.form-label
+                  i.fas.fa-box.me-2
+                  | Materiales Utilizados
+                textarea.form-control(name='materiales_utilizados' rows='3' placeholder='Liste los materiales e insumos utilizados...')
+              
+              .mb-4
+                label.form-label
+                  i.fas.fa-check-circle.me-2
+                  | Resultado del Procedimiento
+                select.form-select(name='resultado')
+                  option(value='Exitoso') Exitoso
+                  option(value='Exitoso con complicaciones menores') Exitoso con complicaciones menores
+                  option(value='Suspendido por complicaciones') Suspendido por complicaciones
+                  option(value='Completado parcialmente') Completado parcialmente
+
+              // Botones
+              .d-flex.justify-content-between
+                button.btn.btn-secondary(type='button' onclick='cancelarProcedimiento()')
+                  i.fas.fa-times.me-2
+                  | Cancelar Procedimiento
+                button.btn.btn-success.btn-lg(type='submit')
+                  i.fas.fa-check.me-2
+                  | Completar Procedimiento
+
+      // Información adicional
+      .col-lg-4
+        .card.border-0.shadow-sm.mb-3
+          .card-header.bg-light
+            h5.mb-0
+              i.fas.fa-user-md.me-2
+              | Médico Solicitante
+          .card-body
+            p.mb-0 Dr. #{procedimiento.evaluacion_medica.medico.usuario.nombre} #{procedimiento.evaluacion_medica.medico.usuario.apellido}
+
+        if procedimiento.tratamiento
+          .card.border-0.shadow-sm.mb-3
+            .card-header.bg-light
+              h5.mb-0
+                i.fas.fa-pills.me-2
+                | Tratamiento Asociado
+            .card-body
+              p.mb-1
+                strong= procedimiento.tratamiento.nombre
+              if procedimiento.tratamiento.descripcion
+                p.text-muted.small.mb-0= procedimiento.tratamiento.descripcion
+
+        .card.border-0.shadow-sm
+          .card-header.bg-warning.text-dark
+            h5.mb-0
+              i.fas.fa-info-circle.me-2
+              | Recordatorios
+          .card-body
+            ul.mb-0
+              li Verificar signos vitales antes de iniciar
+              li Explicar el procedimiento al paciente
+              li Mantener asepsia
+              li Registrar cualquier evento adverso
+              if procedimiento.requiere_preparacion
+                li
+                  strong Verificar preparación especial del paciente
+
+block scripts
+  script(src='/js/enfermero/procedimientos-ejecutar.js')

@@ -1,0 +1,182 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    .row.mb-3
+      .col-12
+        a.btn.btn-secondary.mb-3(href='/enfermero/evaluaciones')
+          i.fas.fa-arrow-left.me-2
+          | Volver
+
+    .row
+      // Información del paciente
+      .col-lg-4.mb-4
+        .card.border-0.shadow-sm
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-user.me-2
+              | Datos del Paciente
+          .card-body
+            dl.row.mb-0
+              dt.col-sm-4 Nombre:
+              dd.col-sm-8= `${evaluacion.paciente.usuario.nombre} ${evaluacion.paciente.usuario.apellido}`
+              
+              dt.col-sm-4 DNI:
+              dd.col-sm-8= evaluacion.paciente.usuario.dni
+              
+              dt.col-sm-4 Edad:
+              dd.col-sm-8
+                - const edad = Math.floor((new Date() - new Date(evaluacion.paciente.usuario.fecha_nacimiento)) / (1000 * 60 * 60 * 24 * 365))
+                = `${edad} años`
+              
+              dt.col-sm-4 Sexo:
+              dd.col-sm-8= evaluacion.paciente.usuario.sexo
+              
+              if evaluacion.paciente.usuario.telefono
+                dt.col-sm-4 Teléfono:
+                dd.col-sm-8= evaluacion.paciente.usuario.telefono
+
+      // Detalles de la evaluación
+      .col-lg-8.mb-4
+        .card.border-0.shadow-sm
+          .card-header.bg-info.text-white
+            h5.mb-0
+              i.fas.fa-clipboard-check.me-2
+              | Detalles de la Evaluación
+          .card-body
+            dl.row
+              dt.col-sm-3 Fecha/Hora:
+              dd.col-sm-9= new Date(evaluacion.fecha).toLocaleString('es-AR')
+              
+              dt.col-sm-3 Enfermero:
+              dd.col-sm-9= `${evaluacion.enfermero.usuario.nombre} ${evaluacion.enfermero.usuario.apellido}`
+              
+              if evaluacion.nivel_triaje
+                dt.col-sm-3 Nivel Triaje:
+                dd.col-sm-9
+                  case evaluacion.nivel_triaje
+                    when 'Rojo'
+                      span.badge.bg-danger.fs-6= evaluacion.nivel_triaje
+                    when 'Amarillo'
+                      span.badge.bg-warning.text-dark.fs-6= evaluacion.nivel_triaje
+                    when 'Verde'
+                      span.badge.bg-success.fs-6= evaluacion.nivel_triaje
+                    when 'Negro'
+                      span.badge.bg-dark.fs-6= evaluacion.nivel_triaje
+              
+              dt.col-sm-3 Signos Vitales:
+              dd.col-sm-9= evaluacion.signos_vitales || 'No registrados'
+              
+              dt.col-sm-3 Estado:
+              dd.col-sm-9
+                case evaluacion.tipo_egreso
+                  when 'PENDIENTE_EVALUACION'
+                    span.badge.bg-warning.fs-6 Pendiente
+                  when 'PROCEDIMIENTO_COMPLETADO'
+                    span.badge.bg-success.fs-6 Completada
+                  when 'DERIVACION_MEDICO'
+                    span.badge.bg-primary.fs-6 Derivada a Médico
+                  when 'DERIVACION_URGENCIA'
+                    span.badge.bg-danger.fs-6 Derivada Urgencia
+              
+              if evaluacion.medico
+                dt.col-sm-3 Médico Asignado:
+                dd.col-sm-9= `Dr. ${evaluacion.medico.usuario.nombre} ${evaluacion.medico.usuario.apellido}`
+              
+              if evaluacion.observaciones
+                dt.col-sm-12.mt-3
+                  strong Observaciones:
+                dd.col-sm-12
+                  .alert.alert-light
+                    pre.mb-0(style='white-space: pre-wrap; font-family: inherit')= evaluacion.observaciones
+
+    // Procedimientos asociados
+    if evaluacion.procedimiento_enfermeria
+      .row.mb-4
+        .col-12
+          .card.border-0.shadow-sm
+            .card-header.bg-warning
+              h5.mb-0
+                i.fas.fa-syringe.me-2
+                | Procedimiento de Enfermería
+            .card-body
+              p
+                strong Nombre:
+                = ` ${evaluacion.procedimiento_enfermeria.nombre}`
+              if evaluacion.procedimiento_enfermeria.descripcion
+                p
+                  strong Descripción:
+                  = ` ${evaluacion.procedimiento_enfermeria.descripcion}`
+
+    if evaluacion.procedimiento_pre_quirurgico
+      .row.mb-4
+        .col-12
+          .card.border-0.shadow-sm
+            .card-header.bg-danger.text-white
+              h5.mb-0
+                i.fas.fa-notes-medical.me-2
+                | Procedimiento Pre-quirúrgico
+            .card-body
+              p
+                strong Nombre:
+                = ` ${evaluacion.procedimiento_pre_quirurgico.nombre}`
+              if evaluacion.procedimiento_pre_quirurgico.descripcion
+                p
+                  strong Descripción:
+                  = ` ${evaluacion.procedimiento_pre_quirurgico.descripcion}`
+              p
+                strong Estado:
+                case evaluacion.procedimiento_pre_quirurgico.estado
+                  when 'Pendiente'
+                    span.badge.bg-warning Pendiente
+                  when 'Completado'
+                    span.badge.bg-success Completado
+
+    // Control de enfermería
+    if evaluacion.control_enfermeria
+      .row.mb-4
+        .col-12
+          .card.border-0.shadow-sm
+            .card-header.bg-success.text-white
+              h5.mb-0
+                i.fas.fa-temperature-high.me-2
+                | Control de Enfermería
+            .card-body
+              .row
+                if evaluacion.control_enfermeria.grupo_sanguineo
+                  .col-md-6
+                    p
+                      strong Grupo Sanguíneo:
+                      = ` ${evaluacion.control_enfermeria.grupo_sanguineo} ${evaluacion.control_enfermeria.factor_rh || ''}`
+                
+                if evaluacion.control_enfermeria.peso
+                  .col-md-6
+                    p
+                      strong Peso:
+                      = ` ${evaluacion.control_enfermeria.peso} kg`
+                
+                if evaluacion.control_enfermeria.altura
+                  .col-md-6
+                    p
+                      strong Altura:
+                      = ` ${evaluacion.control_enfermeria.altura} cm`
+
+    // Acciones
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            if evaluacion.tipo_egreso === 'PENDIENTE_EVALUACION'
+              button.btn.btn-success.me-2(onclick=`completarEvaluacion(${evaluacion.id})`)
+                i.fas.fa-check.me-2
+                | Completar Evaluación
+              button.btn.btn-primary.me-2(onclick=`derivarMedico(${evaluacion.id})`)
+                i.fas.fa-user-md.me-2
+                | Derivar a Médico
+            
+            button.btn.btn-outline-secondary(onclick='window.print()')
+              i.fas.fa-print.me-2
+              | Imprimir
+
+block scripts
+  script(src='/js/enfermero/evaluaciones-detalle.js')

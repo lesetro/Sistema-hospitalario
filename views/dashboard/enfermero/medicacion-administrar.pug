@@ -1,0 +1,157 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    .row.mb-3
+      .col-12
+        a.btn.btn-secondary(href='/enfermero/medicacion')
+          i.fas.fa-arrow-left.me-2
+          | Volver
+
+    .row
+      .col-lg-8
+        .card.border-0.shadow-sm
+          .card-header.bg-primary.text-white
+            h4.mb-0
+              i.fas.fa-syringe.me-2
+              | Administrar Medicación
+          .card-body
+            // Información del paciente
+            .alert.alert-info
+              h5.alert-heading
+                i.fas.fa-user.me-2
+                | Paciente
+              hr
+              .row
+                .col-md-6
+                  p.mb-1
+                    strong Nombre:
+                    span.ms-2= `${receta.paciente.usuario.nombre} ${receta.paciente.usuario.apellido}`
+                .col-md-6
+                  p.mb-1
+                    strong DNI:
+                    span.ms-2= receta.paciente.usuario.dni
+
+            // Receta médica
+            .alert.alert-light
+              h5.alert-heading
+                i.fas.fa-prescription.me-2
+                | Receta Médica
+              hr
+              p
+                strong Médico:
+                span.ms-2 Dr. #{receta.medico.usuario.nombre} #{receta.medico.usuario.apellido}
+              p
+                strong Fecha:
+                span.ms-2= new Date(receta.fecha).toLocaleDateString('es-AR')
+              .card.bg-white.mt-2
+                .card-body
+                  pre.mb-0(style='white-space: pre-wrap; font-family: inherit')= receta.contenido
+
+            // Formulario de administración
+            form#form-administrar
+              .mb-4
+                label.form-label
+                  i.fas.fa-pills.me-2
+                  strong Medicamentos Administrados *
+                textarea.form-control(name='medicamentos_administrados' rows='4' required placeholder='Liste los medicamentos administrados con dosis y presentación...')
+                small.form-text.text-muted Ejemplo: Paracetamol 500mg - 1 comprimido
+              
+              .row.g-3.mb-4
+                .col-md-6
+                  label.form-label Vía de Administración *
+                  select.form-select(name='via_administracion' required)
+                    option(value='') Seleccionar
+                    option(value='Oral') Oral
+                    option(value='Intravenosa') Intravenosa
+                    option(value='Intramuscular') Intramuscular
+                    option(value='Subcutánea') Subcutánea
+                    option(value='Tópica') Tópica
+                    option(value='Sublingual') Sublingual
+                    option(value='Rectal') Rectal
+                    option(value='Otra') Otra
+                
+                .col-md-6
+                  label.form-label Dosis Administrada *
+                  input.form-control(name='dosis_administrada' required placeholder='Ej: 500mg, 10ml, 1 comprimido')
+                
+                .col-md-6
+                  label.form-label Hora de Administración *
+                  input.form-control(type='time' name='hora_administracion' required value=new Date().toTimeString().slice(0,5))
+
+              .mb-4
+                label.form-label
+                  i.fas.fa-heartbeat.me-2
+                  | Signos Vitales Pre-administración *
+                textarea.form-control(name='signos_vitales_pre' rows='2' required placeholder='PA: 120/80, FC: 70 lpm, T: 36.5°C')
+              
+              .mb-4
+                label.form-label
+                  i.fas.fa-heartbeat.me-2
+                  | Signos Vitales Post-administración (30 min)
+                textarea.form-control(name='signos_vitales_post' rows='2' placeholder='Registrar después de 30 minutos...')
+              
+              .mb-4
+                label.form-label
+                  i.fas.fa-exclamation-triangle.me-2.text-danger
+                  | Reacciones Adversas
+                textarea.form-control(name='reacciones_adversas' rows='3' placeholder='Registre cualquier reacción adversa observada...')
+                small.form-text.text-danger Si hay reacciones adversas, se notificará al médico automáticamente
+              
+              .mb-4
+                label.form-label
+                  i.fas.fa-notes-medical.me-2
+                  | Observaciones
+                textarea.form-control(name='observaciones' rows='3' placeholder='Observaciones adicionales...')
+
+              // Botones
+              .d-flex.justify-content-between
+                button.btn.btn-secondary(type='button' onclick='window.history.back()')
+                  i.fas.fa-times.me-2
+                  | Cancelar
+                button.btn.btn-primary.btn-lg(type='submit')
+                  i.fas.fa-check.me-2
+                  | Registrar Administración
+
+      // Panel lateral
+      .col-lg-4
+        .card.border-0.shadow-sm.mb-3
+          .card-header.bg-warning.text-dark
+            h5.mb-0
+              i.fas.fa-info-circle.me-2
+              | Recordatorios
+          .card-body
+            ul.list-unstyled.mb-0
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Verificar identidad del paciente
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Confirmar alergias conocidas
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Verificar vía de administración
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Registrar signos vitales previos
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Observar 30 min post-administración
+
+        .card.border-0.shadow-sm
+          .card-header.bg-danger.text-white
+            h5.mb-0
+              i.fas.fa-exclamation-triangle.me-2
+              | Precauciones
+          .card-body
+            p.small.mb-2
+              strong Reportar inmediatamente:
+            ul.small.mb-0
+              li Reacciones alérgicas
+              li Cambios en signos vitales
+              li Efectos adversos inesperados
+              li Dificultad para administrar
+              li Rechazo del paciente
+
+block scripts
+  script(src='/js/enfermero/medicacion-administrar.js')

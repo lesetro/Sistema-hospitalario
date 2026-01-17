@@ -1,0 +1,181 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-calendar-alt.me-2
+              | Mis Turnos
+            p.text-muted.mb-0 Horarios de trabajo asignados
+          div
+            a.btn.btn-outline-primary(href='/enfermero/mis-turnos/api/exportar-calendario')
+              i.fas.fa-download.me-2
+              | Exportar Calendario
+
+    // Turno actual y próximo
+    .row.g-3.mb-4
+      if turnoActual
+        .col-md-6
+          .card.border-0.shadow-sm.border-start.border-success.border-4
+            .card-body
+              h5.mb-3
+                i.fas.fa-clock.me-2.text-success
+                | Turno Actual
+              dl.row.mb-0
+                dt.col-sm-4 Tipo:
+                dd.col-sm-8
+                  span.badge.bg-success= turnoActual.tipo
+                
+                dt.col-sm-4 Horario:
+                dd.col-sm-8= `${turnoActual.hora_inicio.substring(0,5)} - ${turnoActual.hora_fin.substring(0,5)}`
+                
+                dt.col-sm-4 Sector:
+                dd.col-sm-8= turnoActual.sector.nombre
+      
+      if proximoTurno
+        .col-md-6
+          .card.border-0.shadow-sm.border-start.border-info.border-4
+            .card-body
+              h5.mb-3
+                i.fas.fa-calendar-day.me-2.text-info
+                | Próximo Turno
+              dl.row.mb-0
+                dt.col-sm-4 Tipo:
+                dd.col-sm-8
+                  span.badge.bg-info= proximoTurno.tipo
+                
+                dt.col-sm-4 Horario:
+                dd.col-sm-8= `${proximoTurno.hora_inicio.substring(0,5)} - ${proximoTurno.hora_fin.substring(0,5)}`
+                
+                dt.col-sm-4 Sector:
+                dd.col-sm-8= proximoTurno.sector.nombre
+                
+                dt.col-sm-4 Días:
+                dd.col-sm-8= proximoTurno.dias
+
+    // Estadísticas
+    .row.g-3.mb-4
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.text-center
+          .card-body
+            h3.mb-0= estadisticas.total_turnos
+            small.text-muted Total Turnos
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-danger.border-4.text-center
+          .card-body
+            h3.mb-0.text-danger= estadisticas.guardias_activas
+            small.text-muted Guardias Activas
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-warning.border-4.text-center
+          .card-body
+            h3.mb-0.text-warning= estadisticas.guardias_pasivas
+            small.text-muted Guardias Pasivas
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-primary.border-4.text-center
+          .card-body
+            h3.mb-0.text-primary= estadisticas.atencion
+            small.text-muted Atención
+
+    // Navegación de mes
+    .row.mb-3
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              a.btn.btn-outline-primary(href=`/enfermero/mis-turnos?mes=${mesActual === 1 ? 12 : mesActual - 1}&anio=${mesActual === 1 ? anioActual - 1 : anioActual}`)
+                i.fas.fa-chevron-left.me-2
+                | Mes Anterior
+              
+              h4.mb-0.text-capitalize= nombreMes
+              
+              a.btn.btn-outline-primary(href=`/enfermero/mis-turnos?mes=${mesActual === 12 ? 1 : mesActual + 1}&anio=${mesActual === 12 ? anioActual + 1 : anioActual}`)
+                | Mes Siguiente
+                i.fas.fa-chevron-right.ms-2
+
+    // Calendario
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-calendar.me-2
+              | Calendario de Turnos
+          .card-body.p-0
+            .table-responsive
+              table.table.table-bordered.mb-0#calendario-turnos
+                thead.table-light
+                  tr
+                    th.text-center Lun
+                    th.text-center Mar
+                    th.text-center Mié
+                    th.text-center Jue
+                    th.text-center Vie
+                    th.text-center Sáb
+                    th.text-center Dom
+                tbody
+                  each semana in calendario
+                    tr
+                      each dia in semana
+                        if dia.dia
+                          td.p-2(class=dia.esHoy ? 'table-primary' : '' style='min-height: 100px; vertical-align: top')
+                            .fw-bold.mb-1= dia.dia
+                            if dia.turnos.length > 0
+                              each turno in dia.turnos
+                                .badge.bg-primary.w-100.mb-1.text-start(style='font-size: 0.7rem')
+                                  div= turno.tipo
+                                  small= `${turno.hora_inicio.substring(0,5)} - ${turno.hora_fin.substring(0,5)}`
+                        else
+                          td.bg-light
+
+    // Lista de turnos
+    .row.mt-4
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Mis Turnos Asignados
+          .card-body.p-0
+            if turnos.length > 0
+              .table-responsive
+                table.table.table-hover.mb-0
+                  thead.table-light
+                    tr
+                      th Tipo
+                      th Días
+                      th Horario
+                      th Sector
+                      th.text-center Acciones
+                  tbody
+                    each turno in turnos
+                      tr
+                        td
+                          case turno.tipo
+                            when 'Guardia Activa'
+                              span.badge.bg-danger Guardia Activa
+                            when 'Guardia Pasiva'
+                              span.badge.bg-warning.text-dark Guardia Pasiva
+                            when 'Atencion'
+                              span.badge.bg-primary Atención
+                        td= turno.dias
+                        td= `${turno.hora_inicio.substring(0,5)} - ${turno.hora_fin.substring(0,5)}`
+                        td= turno.sector.nombre
+                        td.text-center
+                          a.btn.btn-sm.btn-outline-info(href=`/enfermero/mis-turnos/${turno.id}`)
+                            i.fas.fa-eye.me-1
+                            | Ver Detalle
+            else
+              .p-5.text-center.text-muted
+                i.fas.fa-calendar-times.fa-4x.mb-3
+                h5 No tiene turnos asignados
+                p.mb-0 Contacte con el área de recursos humanos
+
+block scripts
+  script(src='/js/enfermero/mis-turnos.js')

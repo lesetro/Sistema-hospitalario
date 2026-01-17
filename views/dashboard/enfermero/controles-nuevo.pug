@@ -1,0 +1,235 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    .row.justify-content-center
+      .col-lg-10
+        .card.border-0.shadow-sm
+          .card-header.bg-success.text-white
+            h4.mb-0
+              i.fas.fa-temperature-high.me-2
+              | Nuevo Control de Enfermería
+          
+          .card-body
+            // Búsqueda de evaluación
+            .row.mb-4
+              .col-12
+                .card.bg-light
+                  .card-body
+                    h5.card-title
+                      i.fas.fa-search.me-2
+                      | Buscar Evaluación de Enfermería
+                    p.text-muted.small Busque la evaluación del paciente para registrar el control
+                    .input-group
+                      input.form-control(type='text' id='input-busqueda' placeholder='Buscar por nombre, apellido o DNI del paciente')
+                      button.btn.btn-primary(type='button' onclick='buscarEvaluacion()')
+                        i.fas.fa-search.me-2
+                        | Buscar
+                    
+                    #resultados-busqueda.mt-3(style='display:none')
+
+            // Información del paciente
+            #info-paciente(style='display:none')
+              .alert.alert-info
+                h5.alert-heading
+                  i.fas.fa-user.me-2
+                  | Paciente Seleccionado
+                hr
+                .row
+                  .col-md-6
+                    p.mb-1
+                      strong Nombre:
+                      span#paciente-nombre.ms-2
+                  .col-md-6
+                    p.mb-1
+                      strong DNI:
+                      span#paciente-dni.ms-2
+                  .col-md-6
+                    p.mb-1
+                      strong Edad:
+                      span#paciente-edad.ms-2
+                  .col-md-6
+                    p.mb-1
+                      strong Sexo:
+                      span#paciente-sexo.ms-2
+
+            // Formulario de control
+            form#form-control(style='display:none')
+              input(type='hidden' id='evaluacion-id' name='evaluacion_enfermeria_id')
+              
+              // Datos Generales
+              .card.mb-4
+                .card-header.bg-light
+                  h5.mb-0
+                    i.fas.fa-user-circle.me-2
+                    | Datos Generales
+                .card-body
+                  .row.g-3
+                    .col-md-6
+                      label.form-label Alergias
+                      textarea.form-control(name='alergias' rows='2' placeholder='Medicamentos, alimentos, otros...')
+                    
+                    .col-md-6
+                      label.form-label Antecedentes Personales
+                      textarea.form-control(name='antecedentes_personales' rows='2' placeholder='Enfermedades previas, cirugías...')
+                    
+                    .col-md-12
+                      label.form-label Antecedentes Familiares
+                      textarea.form-control(name='antecedentes_familiares' rows='2' placeholder='Enfermedades hereditarias...')
+                    
+                    .col-md-6
+                      label.form-label Grupo Sanguíneo
+                      select.form-select(name='grupo_sanguineo')
+                        option(value='') Seleccionar
+                        option(value='A') A
+                        option(value='B') B
+                        option(value='AB') AB
+                        option(value='O') O
+                    
+                    .col-md-6
+                      label.form-label Factor RH
+                      select.form-select(name='factor_rh')
+                        option(value='') Seleccionar
+                        option(value='Positivo') Positivo
+                        option(value='Negativo') Negativo
+
+              // Medidas Antropométricas
+              .card.mb-4
+                .card-header.bg-light
+                  h5.mb-0
+                    i.fas.fa-weight.me-2
+                    | Medidas Antropométricas
+                .card-body
+                  .row.g-3
+                    .col-md-4
+                      label.form-label Peso (kg)
+                      input.form-control(type='number' step='0.1' name='peso' id='input-peso' placeholder='70.5')
+                    
+                    .col-md-4
+                      label.form-label Altura (cm)
+                      input.form-control(type='number' name='altura' id='input-altura' placeholder='175')
+                    
+                    .col-md-4
+                      label.form-label IMC (Calculado)
+                      .input-group
+                        input.form-control(type='text' id='resultado-imc' readonly placeholder='Calcular')
+                        button.btn.btn-outline-secondary(type='button' onclick='calcularIMC()')
+                          i.fas.fa-calculator
+                    
+                    .col-12
+                      #categoria-imc.alert.alert-info(style='display:none')
+
+              // Signos Vitales
+              .card.mb-4
+                .card-header.bg-light
+                  h5.mb-0
+                    i.fas.fa-heartbeat.me-2
+                    | Signos Vitales
+                .card-body
+                  .row.g-3
+                    .col-md-4
+                      label.form-label Presión Arterial
+                      .input-group
+                        input.form-control(type='text' name='presion_arterial' placeholder='120/80')
+                        span.input-group-text mmHg
+                    
+                    .col-md-4
+                      label.form-label Frecuencia Cardíaca
+                      .input-group
+                        input.form-control(type='number' name='frecuencia_cardiaca' placeholder='70')
+                        span.input-group-text lpm
+                    
+                    .col-md-4
+                      label.form-label Frecuencia Respiratoria
+                      .input-group
+                        input.form-control(type='number' name='frecuencia_respiratoria' placeholder='16')
+                        span.input-group-text rpm
+                    
+                    .col-md-4
+                      label.form-label Temperatura
+                      .input-group
+                        input.form-control(type='number' step='0.1' name='temperatura' placeholder='36.5')
+                        span.input-group-text °C
+                    
+                    .col-md-4
+                      label.form-label Saturación de Oxígeno
+                      .input-group
+                        input.form-control(type='number' name='nivel_oxigeno' placeholder='98')
+                        span.input-group-text %
+
+              // Laboratorio - Valores Sanguíneos
+              .card.mb-4
+                .card-header.bg-light.d-flex.justify-content-between.align-items-center
+                  h5.mb-0
+                    i.fas.fa-vial.me-2
+                    | Valores de Laboratorio
+                  small.text-muted (Opcional)
+                .card-body
+                  .row.g-3
+                    .col-md-4
+                      label.form-label Glucosa (mg/dL)
+                      input.form-control(type='number' step='0.1' name='nivel_glucosa' placeholder='90')
+                    
+                    .col-md-4
+                      label.form-label Colesterol (mg/dL)
+                      input.form-control(type='text' name='nivel_colesterol' placeholder='180')
+                    
+                    .col-md-4
+                      label.form-label Triglicéridos (mg/dL)
+                      input.form-control(type='text' name='nivel_trigliceridos' placeholder='150')
+                    
+                    .col-md-4
+                      label.form-label Creatinina (mg/dL)
+                      input.form-control(type='text' name='nivel_creatinina' placeholder='0.9')
+                    
+                    .col-md-4
+                      label.form-label Urea (mg/dL)
+                      input.form-control(type='text' name='nivel_urea' placeholder='30')
+                    
+                    .col-md-4
+                      label.form-label Ácido Úrico (mg/dL)
+                      input.form-control(type='text' name='nivel_acido_urico' placeholder='5.5')
+                    
+                    .col-md-4
+                      label.form-label Hemoglobina (g/dL)
+                      input.form-control(type='text' name='nivel_hb' placeholder='14')
+                    
+                    .col-md-4
+                      label.form-label Hematocrito (%)
+                      input.form-control(type='text' name='nivel_hct' placeholder='42')
+                    
+                    .col-md-4
+                      label.form-label Leucocitos (mm³)
+                      input.form-control(type='text' name='nivel_leucocitos' placeholder='7000')
+                    
+                    .col-md-4
+                      label.form-label Plaquetas (mm³)
+                      input.form-control(type='text' name='nivel_plaquetas' placeholder='250000')
+                    
+                    .col-md-4
+                      label.form-label Proteínas Totales (g/dL)
+                      input.form-control(type='text' name='nivel_proteinas' placeholder='7')
+                    
+                    .col-md-4
+                      label.form-label Albúmina (g/dL)
+                      input.form-control(type='text' name='nivel_albumina' placeholder='4')
+                    
+                    .col-md-4
+                      label.form-label Globulina (g/dL)
+                      input.form-control(type='text' name='nivel_globulina' placeholder='3')
+                    
+                    .col-md-4
+                      label.form-label Fosfatasa Alcalina (U/L)
+                      input.form-control(type='text' name='nivel_fosfatasa' placeholder='100')
+
+              // Botones
+              .d-flex.justify-content-between
+                a.btn.btn-secondary(href='/enfermero/controles')
+                  i.fas.fa-arrow-left.me-2
+                  | Volver
+                button.btn.btn-success.btn-lg(type='submit')
+                  i.fas.fa-save.me-2
+                  | Guardar Control
+
+block scripts
+  script(src='/js/enfermero/controles-nuevo.js')

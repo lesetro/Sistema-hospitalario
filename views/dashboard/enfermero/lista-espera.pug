@@ -1,0 +1,244 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-list-ol.me-2
+              | Lista de Espera
+            p.text-muted.mb-0 Consulta de pacientes en espera
+          div
+            button.btn.btn-success(onclick='llamarSiguiente()')
+              i.fas.fa-bell.me-2
+              | Llamar Siguiente
+            button.btn.btn-outline-primary.ms-2(onclick='verMayorEspera()')
+              i.fas.fa-clock.me-2
+              | Mayor Espera
+
+    // Estadísticas
+    .row.g-3.mb-4
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.text-center
+          .card-body
+            h3.mb-0= estadisticas.total
+            small.text-muted Total en Lista
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-warning.border-4.text-center
+          .card-body
+            h3.mb-0.text-warning= estadisticas.pendientes
+            small.text-muted Pendientes
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-danger.border-4.text-center
+          .card-body
+            h3.mb-0.text-danger= estadisticas.urgentes
+            small.text-muted Urgentes
+      
+      .col-md-3.col-sm-6
+        .card.border-0.shadow-sm.border-start.border-primary.border-4.text-center
+          .card-body
+            h3.mb-0.text-primary= estadisticas.asignados
+            small.text-muted Asignados
+
+    // Alerta informativa
+    .row.mb-3
+      .col-12
+        .alert.alert-info.d-flex.align-items-center
+          i.fas.fa-info-circle.fa-2x.me-3
+          div
+            strong Nota:
+            |  Esta vista es solo de consulta. Para gestionar la lista de espera (asignar turnos, modificar prioridades), contacte al área administrativa.
+
+    // Filtros
+    .row.mb-3
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form#form-filtros.row.g-3(method='GET')
+              .col-md-3
+                label.form-label Tipo de Turno
+                select.form-select(name='tipo_turno')
+                  option(value='' selected=!filtros.tipo_turno) Todos
+                  each tipo in tiposTurno
+                    option(value=tipo.id selected=(filtros.tipo_turno == tipo.id))= tipo.nombre
+              
+              .col-md-3
+                label.form-label Prioridad
+                select.form-select(name='prioridad')
+                  option(value='' selected=!filtros.prioridad) Todas
+                  option(value='ALTA' selected=(filtros.prioridad === 'ALTA')) Alta
+                  option(value='MEDIA' selected=(filtros.prioridad === 'MEDIA')) Media
+                  option(value='BAJA' selected=(filtros.prioridad === 'BAJA')) Baja
+              
+              .col-md-3
+                label.form-label Estado
+                select.form-select(name='estado')
+                  option(value='' selected=!filtros.estado) Pendientes + Asignados
+                  option(value='PENDIENTE' selected=(filtros.estado === 'PENDIENTE')) Solo Pendientes
+                  option(value='ASIGNADO' selected=(filtros.estado === 'ASIGNADO')) Solo Asignados
+                  option(value='COMPLETADO' selected=(filtros.estado === 'COMPLETADO')) Completados
+                  option(value='CANCELADO' selected=(filtros.estado === 'CANCELADO')) Cancelados
+              
+              .col-md-3
+                label.form-label Sector
+                select.form-select(name='sector')
+                  option(value='' selected=!filtros.sector) Todos
+                  each sector in sectores
+                    option(value=sector.id selected=(filtros.sector == sector.id))= sector.nombre
+              
+              .col-12.d-flex.justify-content-between
+                .input-group(style='max-width: 400px')
+                  input.form-control(type='text' id='buscar-paciente' placeholder='Buscar paciente...')
+                  button.btn.btn-outline-primary(type='button' onclick='buscarPaciente()')
+                    i.fas.fa-search
+                div
+                  button.btn.btn-primary.me-2(type='submit')
+                    i.fas.fa-filter.me-2
+                    | Filtrar
+                  button.btn.btn-secondary(type='button' onclick='limpiarFiltros()')
+                    i.fas.fa-times.me-2
+                    | Limpiar
+
+    // Lista de espera
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Pacientes en Espera
+          .card-body.p-0
+            if listaEspera.length > 0
+              .table-responsive
+                table.table.table-hover.mb-0#tabla-lista-espera
+                  thead.table-light
+                    tr
+                      th Prioridad
+                      th Paciente
+                      th DNI
+                      th Tipo Turno
+                      th Detalles
+                      th Creado Por
+                      th Tiempo Espera
+                      th Estado
+                      th.text-center Acciones
+                  tbody
+                    each registro in listaEspera
+                      - const rowClass = registro.prioridad === 'ALTA' ? 'table-danger' : ''
+                      - const tiempoEsperaMins = Math.floor((new Date() - new Date(registro.fecha_registro)) / (1000 * 60))
+                      - const horas = Math.floor(tiempoEsperaMins / 60)
+                      - const minutos = tiempoEsperaMins % 60
+                      tr(class=rowClass)
+                        td
+                          case registro.prioridad
+                            when 'ALTA'
+                              span.badge.bg-danger
+                                i.fas.fa-exclamation-triangle.me-1
+                                | ALTA
+                            when 'MEDIA'
+                              span.badge.bg-warning.text-dark MEDIA
+                            when 'BAJA'
+                              span.badge.bg-secondary BAJA
+                        td
+                          strong= `${registro.paciente.usuario.nombre} ${registro.paciente.usuario.apellido}`
+                          if registro.paciente.usuario.telefono
+                            br
+                            small.text-muted
+                              i.fas.fa-phone.me-1
+                              = registro.paciente.usuario.telefono
+                        td
+                          small.text-muted= registro.paciente.usuario.dni
+                        td= registro.tipo_turno.nombre
+                        td
+                          if registro.tipo_estudio
+                            small.text-muted Estudio: #{registro.tipo_estudio.nombre}
+                          if registro.especialidad
+                            small.text-muted Especialidad: #{registro.especialidad.nombre}
+                          if registro.habitacion
+                            small.text-muted Hab. #{registro.habitacion.numero}
+                        td
+                          if registro.administrativo_creador
+                            small Adm. #{registro.administrativo_creador.usuario.apellido}
+                          else if registro.enfermero_creador
+                            small Enf. #{registro.enfermero_creador.usuario.apellido}
+                          else if registro.medico_creador
+                            small Dr. #{registro.medico_creador.usuario.apellido}
+                        td
+                          span.badge.bg-info= `${horas}h ${minutos}m`
+                        td
+                          case registro.estado
+                            when 'PENDIENTE'
+                              span.badge.bg-warning.text-dark Pendiente
+                            when 'ASIGNADO'
+                              span.badge.bg-primary Asignado
+                            when 'COMPLETADO'
+                              span.badge.bg-success Completado
+                            when 'CANCELADO'
+                              span.badge.bg-danger Cancelado
+                        td.text-center
+                          .btn-group.btn-group-sm(role='group')
+                            a.btn.btn-outline-info(href=`/enfermero/lista-espera/${registro.id}` title='Ver detalle')
+                              i.fas.fa-eye
+                            if registro.estado === 'PENDIENTE'
+                              button.btn.btn-outline-success(onclick=`llamarPaciente(${registro.id}, '${registro.paciente.usuario.nombre} ${registro.paciente.usuario.apellido}')` title='Llamar')
+                                i.fas.fa-bell
+            else
+              .p-5.text-center.text-muted
+                i.fas.fa-clipboard-check.fa-4x.mb-3
+                h5 No hay pacientes en espera
+                p.mb-0 La lista de espera está vacía con los filtros aplicados
+
+    // Modal llamar siguiente
+    #modalLlamarSiguiente.modal.fade(tabindex='-1')
+      .modal-dialog
+        .modal-content
+          .modal-header.bg-success.text-white
+            h5.modal-title
+              i.fas.fa-bell.me-2
+              | Llamar Siguiente Paciente
+            button.btn-close.btn-close-white(data-bs-dismiss='modal')
+          .modal-body
+            #contenido-siguiente
+              .text-center
+                .spinner-border.text-primary(role='status')
+                  span.visually-hidden Cargando...
+
+    // Modal paciente específico
+    #modalLlamarPaciente.modal.fade(tabindex='-1')
+      .modal-dialog
+        .modal-content
+          .modal-header.bg-primary.text-white
+            h5.modal-title
+              i.fas.fa-user.me-2
+              | Llamar Paciente
+            button.btn-close.btn-close-white(data-bs-dismiss='modal')
+          .modal-body
+            .text-center
+              h4#nombre-paciente-llamar.mb-3
+              p.text-muted Por favor, llame al paciente y diríjalo al área correspondiente.
+              .alert.alert-info.mt-3
+                i.fas.fa-info-circle.me-2
+                | La asignación del turno debe ser realizada por el área administrativa.
+
+    // Modal mayor tiempo de espera
+    #modalMayorEspera.modal.fade(tabindex='-1')
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header.bg-warning
+            h5.modal-title
+              i.fas.fa-clock.me-2
+              | Pacientes con Mayor Tiempo de Espera
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            #contenido-mayor-espera
+              .text-center
+                .spinner-border.text-primary(role='status')
+                  span.visually-hidden Cargando...
+
+block scripts
+  script(src='/js/enfermero/lista-espera.js')
