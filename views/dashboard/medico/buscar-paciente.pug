@@ -1,0 +1,169 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          h2
+            i.fas.fa-search.me-2
+            | Buscar Paciente
+          p.text-muted Busca pacientes por nombre, apellido, DNI o email
+
+    // Formulario de Búsqueda
+    .row
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-search.me-2
+              | Búsqueda de Pacientes
+          .card-body
+            form#formBusqueda
+              .row.g-3
+                .col-md-4
+                  label.form-label
+                    i.fas.fa-keyboard.me-1
+                    | Buscar por nombre, apellido, DNI o email
+                  input.form-control.form-control-lg(
+                    type='text'
+                    id='campoBusqueda'
+                    name='busqueda'
+                    placeholder='Ingrese al menos 2 caracteres...'
+                    required
+                  )
+                
+                .col-md-3
+                  label.form-label
+                    i.fas.fa-list.me-1
+                    | Estado
+                  select.form-select(id='filtroEstado' name='estado')
+                    option(value='TODOS') Todos
+                    option(value='Activo' selected) Activo
+                    option(value='Inactivo') Inactivo
+                    option(value='Baja') Baja
+                
+                .col-md-3
+                  label.form-label
+                    i.fas.fa-hospital.me-1
+                    | Obra Social
+                  select.form-select(id='filtroObraSocial' name='obraSocial')
+                    option(value='TODOS') Todas
+                
+                .col-md-2.d-flex.align-items-end
+                  button.btn.btn-primary.btn-lg.w-100(type='submit')
+                    i.fas.fa-search.me-2
+                    | Buscar
+
+      .col-12.mt-4
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-users.me-2
+              | Resultados de Búsqueda
+          
+          .card-body
+            #mensaje-inicial.text-center.py-5
+              i.fas.fa-search.fa-4x.text-muted.mb-3
+              h5.text-muted Ingrese un criterio de búsqueda
+              p.text-muted Puede buscar por nombre, apellido, DNI o email del paciente
+            
+            #loading-resultados.text-center.py-5.d-none
+              .spinner-border.text-primary(style='width: 3rem; height: 3rem;')
+              p.mt-3.text-muted Buscando pacientes...
+            
+            #resultados-busqueda.d-none
+              .alert.alert-info.mb-3
+                i.fas.fa-info-circle.me-2
+                span#total-resultados
+              
+              .table-responsive
+                table.table.table-hover.align-middle
+                  thead
+                    tr
+                      th Paciente
+                      th DNI
+                      th Estado
+                      th Obra Social
+                      th Acciones
+                  tbody#tbody-resultados
+              
+              // Paginación
+              nav.mt-3
+                ul.pagination.justify-content-center#paginacion
+            
+            #sin-resultados.text-center.py-5.d-none
+              i.fas.fa-user-slash.fa-4x.text-muted.mb-3
+              h5.text-muted No se encontraron pacientes
+              p.text-muted Intente con otro criterio de búsqueda
+
+  // Modal Detalle Paciente
+  #modalDetallePaciente.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-user-circle.me-2
+            | Información del Paciente
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          // Información básica
+          #info-basica-paciente.mb-4
+          
+          // Tabs
+          ul.nav.nav-tabs#tabsPaciente(role='tablist')
+            li.nav-item(role='presentation')
+              button.nav-link.active(
+                id='tab-resumen'
+                data-bs-toggle='tab'
+                data-bs-target='#resumen'
+                type='button'
+              ) Resumen
+            li.nav-item(role='presentation')
+              button.nav-link(
+                id='tab-evaluaciones'
+                data-bs-toggle='tab'
+                data-bs-target='#evaluaciones'
+                type='button'
+              ) Evaluaciones
+            li.nav-item(role='presentation')
+              button.nav-link(
+                id='tab-turnos'
+                data-bs-toggle='tab'
+                data-bs-target='#turnos'
+                type='button'
+              ) Turnos
+            li.nav-item(role='presentation')
+              button.nav-link(
+                id='tab-internaciones'
+                data-bs-toggle='tab'
+                data-bs-target='#internaciones'
+                type='button'
+              ) Internaciones
+            li.nav-item(role='presentation')
+              button.nav-link(
+                id='tab-historial'
+                data-bs-toggle='tab'
+                data-bs-target='#historial'
+                type='button'
+              ) Historial
+            li.nav-item(role='presentation')
+              button.nav-link(
+                id='tab-documentos'
+                data-bs-toggle='tab'
+                data-bs-target='#documentos'
+                type='button'
+              ) Documentos
+          
+          .tab-content.mt-3#tabsContenidoPaciente
+            .tab-pane.fade.show.active#resumen
+            .tab-pane.fade#evaluaciones
+            .tab-pane.fade#turnos
+            .tab-pane.fade#internaciones
+            .tab-pane.fade#historial
+            .tab-pane.fade#documentos
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+block scripts
+  script(src='/js/medico/buscar-paciente.js')

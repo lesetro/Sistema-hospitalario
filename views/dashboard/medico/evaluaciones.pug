@@ -1,0 +1,249 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          h2
+            i.fas.fa-stethoscope.me-2
+            | Evaluaciones Médicas
+          p.text-muted Gestiona las evaluaciones médicas de tus pacientes
+
+    // Estadísticas
+    .row.g-3.mb-4#estadisticas-evaluaciones
+      .col-lg-3.col-md-6
+        .card.border-start.border-primary.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Total Evaluaciones
+                h3.mb-0.text-primary#stat-total
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-clipboard-check.fa-2x.text-primary
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-success.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Este Mes
+                h3.mb-0.text-success#stat-mes
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-calendar-alt.fa-2x.text-success
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-info.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Esta Semana
+                h3.mb-0.text-info#stat-semana
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-calendar-week.fa-2x.text-info
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-warning.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Hoy
+                h3.mb-0.text-warning#stat-hoy
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-calendar-day.fa-2x.text-warning
+
+    .row.g-4
+      // Filtros
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-filter.me-2
+              | Filtros de Búsqueda
+          .card-body
+            form#formFiltros
+              .row.g-3
+                .col-md-3
+                  label.form-label
+                    i.fas.fa-user.me-1
+                    | Paciente
+                  select.form-select(id='filtroPaciente' name='paciente_id')
+                    option(value='') Todos los pacientes
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-calendar.me-1
+                    | Fecha Desde
+                  input.form-control(
+                    type='date'
+                    id='filtroFechaDesde'
+                    name='fechaDesde'
+                  )
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-calendar.me-1
+                    | Fecha Hasta
+                  input.form-control(
+                    type='date'
+                    id='filtroFechaHasta'
+                    name='fechaHasta'
+                  )
+                
+                .col-md-3
+                  label.form-label
+                    i.fas.fa-notes-medical.me-1
+                    | Diagnóstico
+                  input.form-control(
+                    type='text'
+                    id='filtroDiagnostico'
+                    name='diagnostico'
+                    placeholder='Buscar por diagnóstico'
+                  )
+                
+                .col-md-2.d-flex.align-items-end
+                  button.btn.btn-primary.w-100(type='submit')
+                    i.fas.fa-search.me-2
+                    | Buscar
+                  button.btn.btn-secondary.ms-2(type='button' onclick='limpiarFiltros()')
+                    i.fas.fa-times
+
+      // Tabla de evaluaciones
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Listado de Evaluaciones
+            div
+              button.btn.btn-sm.btn-success.me-2(onclick='mostrarModalNuevaEvaluacion()')
+                i.fas.fa-plus.me-2
+                | Nueva Evaluación
+              button.btn.btn-sm.btn-outline-primary(onclick='actualizarTabla()')
+                i.fas.fa-sync-alt.me-2
+                | Actualizar
+          
+          .card-body
+            #loading-evaluaciones.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando evaluaciones...
+            
+            #tabla-evaluaciones.d-none
+              .table-responsive
+                table.table.table-hover.align-middle
+                  thead
+                    tr
+                      th Fecha
+                      th Paciente
+                      th Diagnóstico
+                      th Tratamiento
+                      th Acciones
+                  tbody#tbody-evaluaciones
+              
+              // Paginación
+              nav.mt-3
+                ul.pagination.justify-content-center#paginacion
+
+  // Modal Nueva Evaluación
+  #modalNuevaEvaluacion.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-plus-circle.me-2
+            | Nueva Evaluación Médica
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#formNuevaEvaluacion
+            .row.g-3
+              .col-md-6
+                label.form-label Paciente *
+                select.form-select(id='nuevoPaciente' name='paciente_id' required)
+                  option(value='') Seleccione un paciente
+              
+              .col-md-6
+                label.form-label Turno (Opcional)
+                input.form-control(
+                  type='number'
+                  id='nuevoTurno'
+                  name='turno_id'
+                  placeholder='ID del turno'
+                )
+              
+              .col-md-12
+                label.form-label Diagnóstico
+                select.form-select(id='nuevoDiagnostico' name='diagnostico_id')
+                  option(value='') Sin diagnóstico
+              
+              .col-md-12
+                label.form-label Tratamiento
+                select.form-select(id='nuevoTratamiento' name='tratamiento_id')
+                  option(value='') Sin tratamiento
+              
+              .col-md-12
+                label.form-label Observaciones del Diagnóstico
+                textarea.form-control(
+                  id='nuevasObservaciones'
+                  name='observaciones_diagnostico'
+                  rows='4'
+                  placeholder='Descripción detallada de la evaluación médica...'
+                )
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-primary(type='submit' form='formNuevaEvaluacion')
+            i.fas.fa-save.me-2
+            | Guardar Evaluación
+
+  // Modal Detalle Evaluación
+  #modalDetalleEvaluacion.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-info-circle.me-2
+            | Detalle de la Evaluación
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body#modalDetalleEvaluacionBody
+          .text-center.py-4
+            .spinner-border.text-primary
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+  // Modal Editar Evaluación
+  #modalEditarEvaluacion.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-warning
+          h5.modal-title
+            i.fas.fa-edit.me-2
+            | Editar Evaluación
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body
+          form#formEditarEvaluacion
+            input(type='hidden' id='editarEvaluacionId')
+            .row.g-3
+              .col-md-12
+                label.form-label Diagnóstico
+                select.form-select(id='editarDiagnostico' name='diagnostico_id')
+                  option(value='') Sin diagnóstico
+              
+              .col-md-12
+                label.form-label Tratamiento
+                select.form-select(id='editarTratamiento' name='tratamiento_id')
+                  option(value='') Sin tratamiento
+              
+              .col-md-12
+                label.form-label Observaciones del Diagnóstico
+                textarea.form-control(
+                  id='editarObservaciones'
+                  name='observaciones_diagnostico'
+                  rows='4'
+                )
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-warning(type='submit' form='formEditarEvaluacion')
+            i.fas.fa-save.me-2
+            | Actualizar
+
+block scripts
+  script(src='/js/medico/evaluaciones.js')

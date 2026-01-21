@@ -1,0 +1,177 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          h2
+            i.fas.fa-calendar-check.me-2
+            | Mis Turnos
+          p.text-muted Gestiona tus turnos médicos
+
+    // Tarjetas de Estadísticas
+    .row.g-3.mb-4#estadisticas-turnos
+      .col-lg-3.col-md-6
+        .card.border-start.border-warning.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Pendientes
+                h3.mb-0.text-warning#stat-pendientes
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-clock.fa-2x.text-warning
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-success.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Confirmados
+                h3.mb-0.text-success#stat-confirmados
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-check-circle.fa-2x.text-success
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-info.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Completados
+                h3.mb-0.text-info#stat-completados
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-calendar-check.fa-2x.text-info
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-danger.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Cancelados
+                h3.mb-0.text-danger#stat-cancelados
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-times-circle.fa-2x.text-danger
+
+    // Filtros
+    .card.shadow-sm.mb-4
+      .card-header.bg-white
+        h5.mb-0
+          i.fas.fa-filter.me-2
+          | Filtros de Búsqueda
+      .card-body
+        form#formFiltros
+          .row.g-3
+            .col-md-3
+              label.form-label
+                i.fas.fa-calendar.me-1
+                | Fecha
+              input.form-control(
+                type='date'
+                id='filtroFecha'
+                name='fecha'
+              )
+            
+            .col-md-3
+              label.form-label
+                i.fas.fa-list.me-1
+                | Estado
+              select.form-select(id='filtroEstado' name='estado')
+                option(value='TODOS') Todos los estados
+                option(value='PENDIENTE') Pendiente
+                option(value='CONFIRMADO') Confirmado
+                option(value='COMPLETADO') Completado
+                option(value='CANCELADO') Cancelado
+            
+            .col-md-4
+              label.form-label
+                i.fas.fa-user.me-1
+                | Paciente (Nombre/DNI)
+              input.form-control(
+                type='text'
+                id='filtroPaciente'
+                name='paciente'
+                placeholder='Buscar por nombre o DNI'
+              )
+            
+            .col-md-2.d-flex.align-items-end
+              button.btn.btn-primary.w-100(type='submit')
+                i.fas.fa-search.me-2
+                | Buscar
+              button.btn.btn-secondary.ms-2(type='button' onclick='limpiarFiltros()')
+                i.fas.fa-times
+
+    // Tabla de Turnos
+    .card.shadow-sm
+      .card-header.bg-white.d-flex.justify-content-between.align-items-center
+        h5.mb-0
+          i.fas.fa-list.me-2
+          | Listado de Turnos
+        button.btn.btn-sm.btn-outline-primary(onclick='actualizarTabla()')
+          i.fas.fa-sync-alt.me-2
+          | Actualizar
+      
+      .card-body
+        #loading-turnos.text-center.py-4
+          .spinner-border.text-primary
+          p.mt-2.text-muted Cargando turnos...
+        
+        #tabla-turnos.d-none
+          .table-responsive
+            table.table.table-hover.align-middle#tablaTurnos
+              thead
+                tr
+                  th Fecha/Hora
+                  th Paciente
+                  th Estado
+                  th Tipo
+                  th Acciones
+              tbody#tbody-turnos
+          
+          // Paginación
+          nav.mt-3#paginacion-container
+            ul.pagination.justify-content-center#paginacion
+
+  // Modal Detalle Turno
+  #modalDetalleTurno.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-info-circle.me-2
+            | Detalle del Turno
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body#modalDetalleTurnoBody
+          .text-center.py-4
+            .spinner-border.text-primary
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+  // Modal Cancelar Turno
+  #modalCancelarTurno.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-danger.text-white
+          h5.modal-title
+            i.fas.fa-times-circle.me-2
+            | Cancelar Turno
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#formCancelarTurno
+            input(type='hidden' id='cancelarTurnoId')
+            .mb-3
+              label.form-label Motivo de Cancelación
+              textarea.form-control(
+                id='motivoCancelacion'
+                name='motivo'
+                rows='3'
+                required
+                placeholder='Ingrese el motivo de la cancelación'
+              )
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+          button.btn.btn-danger(type='submit' form='formCancelarTurno')
+            i.fas.fa-check.me-2
+            | Confirmar Cancelación
+
+block scripts
+  script(src='/js/medico/mis-turnos.js')

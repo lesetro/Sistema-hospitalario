@@ -1,0 +1,845 @@
+//- ========================================
+//- COMUNICACIONES - NOTIFICACIONES + NOTICIAS
+//- ========================================
+
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          .d-flex.justify-content-between.align-items-center
+            div
+              h2
+                i.fas.fa-bell.me-2
+                | Comunicaciones
+              p.text-muted Notificaciones y noticias del hospital
+            button.btn.btn-primary(data-bs-toggle='modal' data-bs-target='#modalNuevoMensaje')
+              i.fas.fa-envelope.me-2
+              | Nuevo Mensaje
+
+    //- ESTADÍSTICAS
+    .row.g-3.mb-4#estadisticas-comunicaciones
+      .col-lg-3.col-md-6
+        .card.border-start.border-primary.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Total Notificaciones
+                h3.mb-0.text-primary#stat-total
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-bell.fa-2x.text-primary
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-warning.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted No Leídas
+                h3.mb-0.text-warning#stat-no-leidas
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-envelope.fa-2x.text-warning
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-success.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Leídas
+                h3.mb-0.text-success#stat-leidas
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-envelope-open.fa-2x.text-success
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-info.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Últimas 24h
+                h3.mb-0.text-info#stat-24h
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-clock.fa-2x.text-info
+
+    .row
+      //- NOTIFICACIONES
+      .col-lg-7
+        .card.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-bell.me-2
+              | Mis Notificaciones
+            div
+              button.btn.btn-sm.btn-outline-success.me-2(onclick='marcarTodasLeidas()' title='Marcar todas como leídas')
+                i.fas.fa-check-double.me-1
+                | Marcar todas
+              button.btn.btn-sm.btn-outline-primary(onclick='actualizarNotificaciones()' title='Actualizar')
+                i.fas.fa-sync-alt
+
+          .card-body
+            //- FILTROS
+            .mb-3
+              select.form-select.form-select-sm(id='filtroLeida' onchange='actualizarNotificaciones()')
+                option(value='TODAS') Todas las notificaciones
+                option(value='false' selected) Solo no leídas
+                option(value='true') Solo leídas
+
+            //- LOADING
+            #loading-notificaciones.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando notificaciones...
+
+            //- LISTA
+            #lista-notificaciones.d-none
+              .list-group.list-group-flush#contenido-notificaciones
+              nav.mt-3
+                ul.pagination.pagination-sm.justify-content-center#paginacion-notificaciones
+
+            //- SIN RESULTADOS
+            #sin-notificaciones.text-center.py-4.d-none
+              i.fas.fa-inbox.fa-3x.text-muted.mb-3
+              p.text-muted No hay notificaciones
+
+      //- NOTICIAS DEL HOSPITAL
+      .col-lg-5
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-newspaper.me-2
+              | Noticias del Hospital
+
+          .card-body
+            //- LOADING
+            #loading-noticias.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando noticias...
+
+            //- LISTA
+            #lista-noticias.d-none
+              #contenido-noticias
+              nav.mt-3
+                ul.pagination.pagination-sm.justify-content-center#paginacion-noticias
+
+            //- SIN RESULTADOS
+            #sin-noticias.text-center.py-4.d-none
+              i.fas.fa-newspaper.fa-3x.text-muted.mb-3
+              p.text-muted No hay noticias disponibles
+
+  //- MODAL NUEVO MENSAJE
+  #modalNuevoMensaje.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-envelope.me-2
+            | Nuevo Mensaje
+          button.btn-close(data-bs-dismiss='modal' aria-label='Close')
+        .modal-body
+          form#formNuevoMensaje
+            .mb-3
+              label.form-label
+                i.fas.fa-user.me-1
+                | Destinatario *
+              .input-group
+                input.form-control#buscarUsuario(
+                  type='text'
+                  placeholder='Nombre, email o DNI...'
+                  autocomplete='off'
+                )
+                button.btn.btn-outline-secondary(type='button' onclick='limpiarBusqueda()')
+                  i.fas.fa-times
+              
+              //- RESULTADOS BÚSQUEDA
+              #resultadosBusqueda.mt-2.d-none
+                .list-group#listaBusqueda
+
+              //- USUARIO SELECCIONADO
+              #usuarioSeleccionado.alert.alert-info.mt-2.d-none
+                span#usuarioSeleccionadoNombre
+                button.btn.btn-sm.btn-outline-secondary.float-end(type='button' onclick='deseleccionarUsuario()')
+                  i.fas.fa-times
+            
+            .mb-3
+              label.form-label
+                i.fas.fa-file-alt.me-1
+                | Mensaje *
+              textarea.form-control(
+                id='mensajeNuevo'
+                rows='4'
+                placeholder='Escribe tu mensaje aquí...'
+                required
+              )
+              small.text-muted.d-block.mt-1
+                | #[strong Guardar como borrador:] Ctrl+S
+              
+              //- BORRADORES
+              #listaBorradores.mt-2
+                .small.text-muted
+                  i.fas.fa-save.me-1
+                  | Borradores guardados:
+                #contenidoBorradores.list-group.list-group-sm.mt-2
+
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cerrar
+          button.btn.btn-warning(type='button' onclick='guardarBorrador()')
+            i.fas.fa-save.me-1
+            | Guardar como Borrador
+          button.btn.btn-primary(type='submit' form='formNuevoMensaje')
+            i.fas.fa-paper-plane.me-1
+            | Enviar Mensaje
+
+  //- MODAL VER NOTICIA COMPLETA
+  #modalVerNoticia.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-newspaper.me-2
+            | Noticia
+          button.btn-close(data-bs-dismiss='modal' aria-label='Close')
+        .modal-body#modalNoticiaBody
+          .text-center.py-4
+            .spinner-border.text-primary
+
+block scripts
+  script.
+    let paginaNotificaciones = 1;
+    let paginaNoticias = 1;
+    const itemsPorPagina = 10;
+    let usuarioSeleccionado = null;
+    let borradores = JSON.parse(localStorage.getItem('borradores')) || [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🔔 Iniciando comunicaciones...');
+      cargarEstadisticas();
+      actualizarNotificaciones();
+      cargarNoticias();
+      setupBuscadorUsuarios();
+      mostrarBorradores();
+
+      // Auto-refresh cada 2 minutos
+      setInterval(() => {
+        console.log('🔄 Auto-refresh de estadísticas');
+        cargarEstadisticas();
+        if (document.getElementById('filtroLeida').value === 'false') {
+          actualizarNotificaciones();
+        }
+      }, 120000);
+    });
+
+    // ========================================
+    // CARGAR ESTADÍSTICAS
+    // ========================================
+
+    async function cargarEstadisticas() {
+      try {
+        console.log('📊 Cargando estadísticas...');
+        const response = await fetch('/medico/comunicaciones/api/notificaciones/estadisticas');
+        const data = await response.json();
+
+        if (data.success) {
+          document.getElementById('stat-total').textContent = data.data.total;
+          document.getElementById('stat-no-leidas').textContent = data.data.noLeidas;
+          document.getElementById('stat-leidas').textContent = data.data.leidas;
+          document.getElementById('stat-24h').textContent = data.data.ultimas24h;
+          console.log('✅ Estadísticas cargadas:', data.data);
+        }
+      } catch (error) {
+        console.error('❌ Error al cargar estadísticas:', error);
+      }
+    }
+
+    // ========================================
+    // ACTUALIZAR NOTIFICACIONES
+    // ========================================
+
+    async function actualizarNotificaciones(pagina = 1) {
+      try {
+        console.log('📬 Actualizando notificaciones - página:', pagina);
+        paginaNotificaciones = pagina;
+
+        const params = new URLSearchParams({
+          page: pagina,
+          limit: itemsPorPagina,
+          leida: document.getElementById('filtroLeida').value
+        });
+
+        document.getElementById('loading-notificaciones').classList.remove('d-none');
+        document.getElementById('lista-notificaciones').classList.add('d-none');
+        document.getElementById('sin-notificaciones').classList.add('d-none');
+
+        const response = await fetch(`/medico/comunicaciones/api/notificaciones?${params.toString()}`);
+        const data = await response.json();
+
+        document.getElementById('loading-notificaciones').classList.add('d-none');
+
+        if (data.success && data.data.length > 0) {
+          console.log('✅ Notificaciones cargadas:', data.data.length);
+          mostrarNotificaciones(data.data);
+          mostrarPaginacionNotificaciones(data.pagination);
+          document.getElementById('lista-notificaciones').classList.remove('d-none');
+        } else {
+          console.log('ℹ️ Sin notificaciones');
+          document.getElementById('sin-notificaciones').classList.remove('d-none');
+        }
+      } catch (error) {
+        console.error('❌ Error al cargar notificaciones:', error);
+        document.getElementById('loading-notificaciones').classList.add('d-none');
+        mostrarAlerta('error', 'Error al cargar notificaciones');
+      }
+    }
+
+    // ========================================
+    // MOSTRAR NOTIFICACIONES
+    // ========================================
+
+    function mostrarNotificaciones(notificaciones) {
+      const contenedor = document.getElementById('contenido-notificaciones');
+
+      contenedor.innerHTML = notificaciones.map(notif => {
+        const fecha = new Date(notif.created_at);
+        const hace = calcularTiempoTranscurrido(fecha);
+
+        return `
+          <div class="list-group-item ${!notif.leida ? 'list-group-item-warning' : ''}">
+            <div class="d-flex justify-content-between align-items-start">
+              <div class="flex-grow-1">
+                <div class="d-flex align-items-center mb-1">
+                  ${!notif.leida ? '<span class="badge bg-warning text-dark me-2">Nuevo</span>' : ''}
+                  <small class="text-muted">${hace}</small>
+                </div>
+                <p class="mb-0">${notif.mensaje}</p>
+              </div>
+              <div class="btn-group-vertical btn-group-sm ms-2" role="group">
+                ${!notif.leida ? `
+                  <button class="btn btn-sm btn-outline-success"
+                          onclick="marcarLeida(${notif.id})"
+                          title="Marcar como leída">
+                    <i class="fas fa-check"></i>
+                  </button>
+                ` : ''}
+                <button class="btn btn-sm btn-outline-danger"
+                        onclick="eliminarNotificacion(${notif.id})"
+                        title="Eliminar">
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ========================================
+    // MOSTRAR PAGINACIÓN
+    // ========================================
+
+    function mostrarPaginacionNotificaciones(pagination) {
+      const paginacionDiv = document.getElementById('paginacion-notificaciones');
+
+      if (pagination.totalPages <= 1) {
+        paginacionDiv.innerHTML = '';
+        return;
+      }
+
+      let html = `
+        <li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="actualizarNotificaciones(${pagination.page - 1}); return false;">
+            <i class="fas fa-chevron-left"></i>
+          </a>
+        </li>
+      `;
+
+      for (let i = 1; i <= Math.min(pagination.totalPages, 5); i++) {
+        html += `
+          <li class="page-item ${i === pagination.page ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="actualizarNotificaciones(${i}); return false;">
+              ${i}
+            </a>
+          </li>
+        `;
+      }
+
+      html += `
+        <li class="page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="actualizarNotificaciones(${pagination.page + 1}); return false;">
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        </li>
+      `;
+
+      paginacionDiv.innerHTML = html;
+    }
+
+    function mostrarPaginacionNoticias(pagination) {
+      const paginacionDiv = document.getElementById('paginacion-noticias');
+
+      if (pagination.totalPages <= 1) {
+        paginacionDiv.innerHTML = '';
+        return;
+      }
+
+      let html = `
+        <li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="cargarNoticias(${pagination.page - 1}); return false;">
+            <i class="fas fa-chevron-left"></i>
+          </a>
+        </li>
+      `;
+
+      for (let i = 1; i <= Math.min(pagination.totalPages, 5); i++) {
+        html += `
+          <li class="page-item ${i === pagination.page ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="cargarNoticias(${i}); return false;">
+              ${i}
+            </a>
+          </li>
+        `;
+      }
+
+      html += `
+        <li class="page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="cargarNoticias(${pagination.page + 1}); return false;">
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        </li>
+      `;
+
+      paginacionDiv.innerHTML = html;
+    }
+
+    // ========================================
+    // BUSCADOR DE USUARIOS
+    // ========================================
+
+    function setupBuscadorUsuarios() {
+      const input = document.getElementById('buscarUsuario');
+      input.addEventListener('input', debounce(buscarUsuarios, 300));
+      
+      // Guardar borrador con Ctrl+S
+      document.getElementById('mensajeNuevo').addEventListener('keydown', function(e) {
+        if (e.ctrlKey && e.key === 's') {
+          e.preventDefault();
+          guardarBorrador();
+        }
+      });
+
+      // Enviar formulario
+      document.getElementById('formNuevoMensaje').addEventListener('submit', enviarMensaje);
+    }
+
+    async function buscarUsuarios() {
+      const termino = document.getElementById('buscarUsuario').value.trim();
+
+      if (termino.length < 2) {
+        document.getElementById('resultadosBusqueda').classList.add('d-none');
+        return;
+      }
+
+      try {
+        const response = await fetch(`/medico/comunicaciones/api/usuarios/buscar?search=${encodeURIComponent(termino)}`);
+        const data = await response.json();
+
+        if (data.success && data.data.length > 0) {
+          const lista = document.getElementById('listaBusqueda');
+          lista.innerHTML = data.data.map(usuario => `
+            <button class="list-group-item list-group-item-action text-start" 
+                    type="button"
+                    onclick="seleccionarUsuario(${usuario.id}, '${usuario.nombre} ${usuario.apellido}', '${usuario.email}')">
+              <strong>${usuario.nombre} ${usuario.apellido}</strong>
+              <br>
+              <small class="text-muted">${usuario.email} | DNI: ${usuario.dni}</small>
+            </button>
+          `).join('');
+
+          document.getElementById('resultadosBusqueda').classList.remove('d-none');
+        } else {
+          document.getElementById('resultadosBusqueda').classList.add('d-none');
+        }
+      } catch (error) {
+        console.error('Error en búsqueda:', error);
+      }
+    }
+
+    function seleccionarUsuario(id, nombre, email) {
+      usuarioSeleccionado = { id, nombre, email };
+      document.getElementById('buscarUsuario').value = nombre;
+      document.getElementById('resultadosBusqueda').classList.add('d-none');
+      document.getElementById('usuarioSeleccionado').classList.remove('d-none');
+      document.getElementById('usuarioSeleccionadoNombre').textContent = `${nombre} (${email})`;
+    }
+
+    function deseleccionarUsuario() {
+      usuarioSeleccionado = null;
+      document.getElementById('buscarUsuario').value = '';
+      document.getElementById('usuarioSeleccionado').classList.add('d-none');
+    }
+
+    function limpiarBusqueda() {
+      document.getElementById('buscarUsuario').value = '';
+      document.getElementById('resultadosBusqueda').classList.add('d-none');
+    }
+
+    // ========================================
+    // BORRADORES
+    // ========================================
+
+    function guardarBorrador() {
+      if (!usuarioSeleccionado) {
+        mostrarAlerta('error', 'Selecciona un destinatario primero');
+        return;
+      }
+
+      const mensaje = document.getElementById('mensajeNuevo').value.trim();
+      if (!mensaje) {
+        mostrarAlerta('error', 'El mensaje no puede estar vacío');
+        return;
+      }
+
+      const borrador = {
+        id: Date.now(),
+        usuario_id: usuarioSeleccionado.id,
+        usuario_nombre: usuarioSeleccionado.nombre,
+        mensaje: mensaje,
+        fecha: new Date().toISOString()
+      };
+
+      borradores.push(borrador);
+      localStorage.setItem('borradores', JSON.stringify(borradores));
+
+      mostrarAlerta('success', 'Borrador guardado');
+      mostrarBorradores();
+    }
+
+    function mostrarBorradores() {
+      const contenedor = document.getElementById('contenidoBorradores');
+
+      if (borradores.length === 0) {
+        contenedor.innerHTML = '<p class="text-muted m-0">Sin borradores</p>';
+        return;
+      }
+
+      contenedor.innerHTML = borradores.map(b => `
+        <div class="list-group-item small">
+          <div class="d-flex justify-content-between">
+            <div>
+              <strong>${b.usuario_nombre}</strong>
+              <br>
+              <small class="text-muted">${b.mensaje.substring(0, 30)}...</small>
+            </div>
+            <div class="btn-group btn-group-sm">
+              <button class="btn btn-outline-primary" onclick="cargarBorrador(${b.id})" title="Cargar">
+                <i class="fas fa-upload"></i>
+              </button>
+              <button class="btn btn-outline-danger" onclick="eliminarBorrador(${b.id})" title="Eliminar">
+                <i class="fas fa-trash"></i>
+              </button>
+            </div>
+          </div>
+        </div>
+      `).join('');
+    }
+
+    function cargarBorrador(id) {
+      const borrador = borradores.find(b => b.id === id);
+      if (borrador) {
+        seleccionarUsuario(borrador.usuario_id, borrador.usuario_nombre, '');
+        document.getElementById('mensajeNuevo').value = borrador.mensaje;
+        mostrarAlerta('info', 'Borrador cargado');
+      }
+    }
+
+    function eliminarBorrador(id) {
+      if (!confirm('¿Eliminar este borrador?')) return;
+      borradores = borradores.filter(b => b.id !== id);
+      localStorage.setItem('borradores', JSON.stringify(borradores));
+      mostrarBorradores();
+      mostrarAlerta('success', 'Borrador eliminado');
+    }
+
+    // ========================================
+    // ENVIAR MENSAJE
+    // ========================================
+
+    async function enviarMensaje(e) {
+      e.preventDefault();
+
+      if (!usuarioSeleccionado) {
+        mostrarAlerta('error', 'Selecciona un destinatario');
+        return;
+      }
+
+      const mensaje = document.getElementById('mensajeNuevo').value.trim();
+      if (!mensaje) {
+        mostrarAlerta('error', 'El mensaje no puede estar vacío');
+        return;
+      }
+
+      try {
+        const response = await fetch('/medico/comunicaciones/api/notificaciones', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usuario_id: usuarioSeleccionado.id,
+            mensaje: mensaje
+          })
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          mostrarAlerta('success', 'Mensaje enviado correctamente');
+          document.getElementById('formNuevoMensaje').reset();
+          deseleccionarUsuario();
+          bootstrap.Modal.getInstance(document.getElementById('modalNuevoMensaje')).hide();
+          
+          // Eliminar borrador si existe
+          const borrador = borradores.find(b => b.usuario_id === usuarioSeleccionado.id && b.mensaje === mensaje);
+          if (borrador) {
+            eliminarBorrador(borrador.id);
+          }
+        } else {
+          mostrarAlerta('error', data.message || 'Error al enviar mensaje');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarAlerta('error', 'Error al enviar mensaje');
+      }
+    }
+
+    // ========================================
+    // ACCIONES NOTIFICACIONES
+    // ========================================
+
+    async function marcarLeida(id) {
+      try {
+        console.log('👁️ Marcando como leída - id:', id);
+
+        const response = await fetch(`/medico/comunicaciones/api/notificaciones/${id}/leida`, {
+          method: 'PUT'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          console.log('✅ Notificación marcada como leída');
+          actualizarNotificaciones(paginaNotificaciones);
+          cargarEstadisticas();
+        } else {
+          mostrarAlerta('error', data.message || 'Error al marcar como leída');
+        }
+      } catch (error) {
+        console.error('❌ Error:', error);
+        mostrarAlerta('error', 'Error al marcar como leída');
+      }
+    }
+
+    async function marcarTodasLeidas() {
+      if (!confirm('¿Marcar todas las notificaciones como leídas?')) return;
+
+      try {
+        console.log('👁️ Marcando todas como leídas');
+
+        const response = await fetch('/medico/comunicaciones/api/notificaciones/marcar-todas-leidas', {
+          method: 'PUT'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          console.log('✅ Todas marcadas como leídas');
+          mostrarAlerta('success', data.message);
+          actualizarNotificaciones(paginaNotificaciones);
+          cargarEstadisticas();
+        } else {
+          mostrarAlerta('error', data.message || 'Error al marcar notificaciones');
+        }
+      } catch (error) {
+        console.error('❌ Error:', error);
+        mostrarAlerta('error', 'Error al marcar notificaciones');
+      }
+    }
+
+    async function eliminarNotificacion(id) {
+      if (!confirm('¿Está seguro de eliminar esta notificación?')) return;
+
+      try {
+        console.log('🗑️ Eliminando notificación - id:', id);
+
+        const response = await fetch(`/medico/comunicaciones/api/notificaciones/${id}`, {
+          method: 'DELETE'
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          console.log('✅ Notificación eliminada');
+          mostrarAlerta('success', data.message);
+          actualizarNotificaciones(paginaNotificaciones);
+          cargarEstadisticas();
+        } else {
+          mostrarAlerta('error', data.message || 'Error al eliminar');
+        }
+      } catch (error) {
+        console.error('❌ Error:', error);
+        mostrarAlerta('error', 'Error al eliminar notificación');
+      }
+    }
+
+    // ========================================
+    // CARGAR Y MOSTRAR NOTICIAS
+    // ========================================
+
+    async function cargarNoticias(pagina = 1) {
+      try {
+        console.log('📰 Cargando noticias - página:', pagina);
+
+        paginaNoticias = pagina;
+
+        const params = new URLSearchParams({
+          page: pagina,
+          limit: 5
+        });
+
+        document.getElementById('loading-noticias').classList.remove('d-none');
+        document.getElementById('lista-noticias').classList.add('d-none');
+        document.getElementById('sin-noticias').classList.add('d-none');
+
+        const response = await fetch(`/medico/comunicaciones/api/noticias?${params.toString()}`);
+        const data = await response.json();
+
+        document.getElementById('loading-noticias').classList.add('d-none');
+
+        if (data.success && data.data.length > 0) {
+          console.log('✅ Noticias cargadas:', data.data.length);
+          mostrarNoticias(data.data);
+          mostrarPaginacionNoticias(data.pagination);
+          document.getElementById('lista-noticias').classList.remove('d-none');
+        } else {
+          console.log('ℹ️ Sin noticias');
+          document.getElementById('sin-noticias').classList.remove('d-none');
+        }
+      } catch (error) {
+        console.error('❌ Error al cargar noticias:', error);
+        document.getElementById('loading-noticias').classList.add('d-none');
+        mostrarAlerta('error', 'Error al cargar noticias');
+      }
+    }
+
+    function mostrarNoticias(noticias) {
+      const contenedor = document.getElementById('contenido-noticias');
+
+      contenedor.innerHTML = noticias.map(noticia => {
+        const fecha = new Date(noticia.fecha);
+
+        return `
+          <div class="card mb-3 border">
+            <div class="card-body">
+              <h6 class="card-title">
+                <i class="fas fa-newspaper text-primary me-2"></i>
+                ${noticia.titulo}
+              </h6>
+              <p class="card-text small text-muted mb-2">
+                ${noticia.texto.substring(0, 150)}${noticia.texto.length > 150 ? '...' : ''}
+              </p>
+              <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                  <i class="fas fa-user me-1"></i>
+                  ${noticia.autor ? `${noticia.autor.nombre} ${noticia.autor.apellido}` : 'Anónimo'}
+                  <br>
+                  <i class="fas fa-calendar me-1"></i>
+                  ${fecha.toLocaleDateString('es-AR')}
+                </small>
+                <button class="btn btn-sm btn-outline-primary" onclick="verNoticia(${noticia.id})">
+                  <i class="fas fa-eye me-1"></i>
+                  Leer más
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ========================================
+    // VER NOTICIA COMPLETA
+    // ========================================
+
+    async function verNoticia(id) {
+      try {
+        console.log('📰 Obteniendo noticia - id:', id);
+
+        const response = await fetch(`/medico/comunicaciones/api/noticias/${id}`);
+        const data = await response.json();
+
+        if (data.success) {
+          const noticia = data.data;
+          const fecha = new Date(noticia.fecha);
+
+          document.getElementById('modalNoticiaBody').innerHTML = `
+            <div class="mb-3">
+              <h4>${noticia.titulo}</h4>
+              <small class="text-muted">
+                <i class="fas fa-user me-1"></i>
+                ${noticia.autor ? `${noticia.autor.nombre} ${noticia.autor.apellido}` : 'Anónimo'}
+                |
+                <i class="fas fa-calendar me-1"></i>
+                ${fecha.toLocaleString('es-AR')}
+              </small>
+            </div>
+            <div style="white-space: pre-wrap;">
+              ${noticia.texto}
+            </div>
+          `;
+
+          console.log('✅ Noticia obtenida');
+          new bootstrap.Modal(document.getElementById('modalVerNoticia')).show();
+        }
+      } catch (error) {
+        console.error('❌ Error:', error);
+        mostrarAlerta('error', 'Error al cargar noticia');
+      }
+    }
+
+    // ========================================
+    // UTILIDADES
+    // ========================================
+
+    function calcularTiempoTranscurrido(fecha) {
+      const ahora = new Date();
+      const diferencia = ahora - fecha;
+      const minutos = Math.floor(diferencia / 60000);
+      const horas = Math.floor(diferencia / 3600000);
+      const dias = Math.floor(diferencia / 86400000);
+
+      if (minutos < 1) return 'Hace un momento';
+      if (minutos < 60) return `Hace ${minutos} minuto${minutos !== 1 ? 's' : ''}`;
+      if (horas < 24) return `Hace ${horas} hora${horas !== 1 ? 's' : ''}`;
+      if (dias < 30) return `Hace ${dias} día${dias !== 1 ? 's' : ''}`;
+      return fecha.toLocaleDateString('es-AR');
+    }
+
+    function debounce(fn, ms) {
+      let timeout;
+      return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => fn.apply(this, args), ms);
+      };
+    }
+
+    function mostrarAlerta(tipo, mensaje) {
+      const alertContainer = document.createElement('div');
+      alertContainer.className = `alert alert-${tipo === 'success' ? 'success' : tipo === 'info' ? 'info' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+      alertContainer.style.zIndex = '9999';
+      alertContainer.innerHTML = `
+        <i class="fas fa-${tipo === 'success' ? 'check-circle' : tipo === 'info' ? 'info-circle' : 'exclamation-circle'} me-2"></i>
+        ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+
+      document.body.appendChild(alertContainer);
+
+      setTimeout(() => {
+        alertContainer.remove();
+      }, 5000);
+    }

@@ -1,0 +1,288 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          h2
+            i.fas.fa-procedures.me-2
+            | Intervenciones Quirúrgicas
+          p.text-muted Gestiona las intervenciones quirúrgicas de tus pacientes
+
+    // Estadísticas
+    .row.g-3.mb-4#estadisticas-intervenciones
+      .col-lg-3.col-md-6
+        .card.border-start.border-warning.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted En Curso
+                h3.mb-0.text-warning#stat-en-curso
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-procedures.fa-2x.text-warning
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-success.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Finalizadas
+                h3.mb-0.text-success#stat-finalizadas
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-check-circle.fa-2x.text-success
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-info.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Este Mes
+                h3.mb-0.text-info#stat-mes
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-calendar-alt.fa-2x.text-info
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-primary.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Total
+                h3.mb-0.text-primary#stat-total
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-clipboard-list.fa-2x.text-primary
+
+    // Intervenciones Próximas
+    .row.mb-4
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-clock.me-2
+              | Intervenciones Próximas (7 días)
+          .card-body
+            #loading-proximas.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando...
+            #lista-proximas.d-none
+
+    // Filtros
+    .row
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-filter.me-2
+              | Filtros de Búsqueda
+          .card-body
+            form#formFiltros
+              .row.g-3
+                .col-md-3
+                  label.form-label
+                    i.fas.fa-list.me-1
+                    | Estado
+                  select.form-select(id='filtroEstado' name='estado')
+                    option(value='TODOS') Todos
+                    option(value='EN_CURSO') En Curso
+                    option(value='FINALIZADAS') Finalizadas
+                
+                .col-md-3
+                  label.form-label
+                    i.fas.fa-heartbeat.me-1
+                    | Resultado
+                  select.form-select(id='filtroResultado' name='resultado')
+                    option(value='TODOS') Todos
+                    option(value='Fallecio') Falleció
+                    option(value='NecesitaInternacionHabitacion') Internación Habitación
+                    option(value='NecesitaInternacionUCI') Internación UCI
+                    option(value='AltaDirecta') Alta Directa
+                    option(value='Complicaciones') Complicaciones
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-calendar.me-1
+                    | Desde
+                  input.form-control(
+                    type='date'
+                    id='filtroFechaDesde'
+                    name='fechaDesde'
+                  )
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-calendar.me-1
+                    | Hasta
+                  input.form-control(
+                    type='date'
+                    id='filtroFechaHasta'
+                    name='fechaHasta'
+                  )
+                
+                .col-md-2.d-flex.align-items-end
+                  button.btn.btn-primary.w-100(type='submit')
+                    i.fas.fa-search.me-2
+                    | Buscar
+
+      .col-12.mt-4
+        .card.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Listado de Intervenciones
+            div
+              button.btn.btn-sm.btn-success.me-2(onclick='mostrarModalNuevaIntervencion()')
+                i.fas.fa-plus.me-2
+                | Nueva Intervención
+              button.btn.btn-sm.btn-outline-primary(onclick='actualizarTabla()')
+                i.fas.fa-sync-alt.me-2
+                | Actualizar
+          
+          .card-body
+            #loading-intervenciones.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando intervenciones...
+            
+            #tabla-intervenciones.d-none
+              .table-responsive
+                table.table.table-hover.align-middle
+                  thead
+                    tr
+                      th Paciente
+                      th Procedimiento
+                      th Fecha Inicio
+                      th Estado
+                      th Resultado
+                      th Acciones
+                  tbody#tbody-intervenciones
+              
+              // Paginación
+              nav.mt-3
+                ul.pagination.justify-content-center#paginacion
+
+  // Modal Nueva Intervención
+  #modalNuevaIntervencion.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-plus-circle.me-2
+            | Nueva Intervención Quirúrgica
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#formNuevaIntervencion
+            .row.g-3
+              .col-md-6
+                label.form-label Paciente ID *
+                input.form-control(
+                  type='number'
+                  id='nuevoPacienteId'
+                  name='paciente_id'
+                  required
+                )
+              
+              .col-md-6
+                label.form-label Habitación *
+                select.form-select(id='nuevaHabitacion' name='habitacion_id' required)
+                  option(value='') Seleccione habitación
+              
+              .col-md-6
+                label.form-label Evaluación Médica ID
+                input.form-control(
+                  type='number'
+                  id='nuevaEvaluacionId'
+                  name='evaluacion_medica_id'
+                )
+              
+              .col-md-6
+                label.form-label Lista de Espera ID *
+                input.form-control(
+                  type='number'
+                  id='nuevaListaEsperaId'
+                  name='lista_espera_id'
+                  required
+                )
+              
+              .col-md-12
+                label.form-label Tipo de Procedimiento *
+                input.form-control(
+                  type='text'
+                  id='nuevoTipoProcedimiento'
+                  name='tipo_procedimiento'
+                  required
+                  placeholder='Ej: Apendicectomía'
+                )
+              
+              .col-md-6
+                label.form-label Fecha Inicio *
+                input.form-control(
+                  type='datetime-local'
+                  id='nuevaFechaInicio'
+                  name='fecha_inicio'
+                  required
+                )
+              
+              .col-md-12
+                label.form-label Observaciones
+                textarea.form-control(
+                  id='nuevasObservaciones'
+                  name='observaciones'
+                  rows='3'
+                )
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-primary(type='submit' form='formNuevaIntervencion')
+            i.fas.fa-save.me-2
+            | Registrar Intervención
+
+  // Modal Detalle Intervención
+  #modalDetalleIntervencion.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-info-circle.me-2
+            | Detalle de la Intervención
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body#modalDetalleIntervencionBody
+          .text-center.py-4
+            .spinner-border.text-primary
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+  // Modal Finalizar Intervención
+  #modalFinalizarIntervencion.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-check-circle.me-2
+            | Finalizar Intervención
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#formFinalizarIntervencion
+            input(type='hidden' id='finalizarIntervencionId')
+            .mb-3
+              label.form-label Resultado de la Cirugía *
+              select.form-select(id='resultadoCirugia' name='resultado_cirugia' required)
+                option(value='') Seleccione resultado
+                option(value='Fallecio') Falleció
+                option(value='NecesitaInternacionHabitacion') Necesita Internación en Habitación
+                option(value='NecesitaInternacionUCI') Necesita Internación en UCI
+                option(value='AltaDirecta') Alta Directa
+                option(value='Complicaciones') Complicaciones
+            
+            .mb-3
+              label.form-label Observaciones Finales
+              textarea.form-control(
+                id='observacionesFinales'
+                name='observaciones'
+                rows='4'
+              )
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-success(type='submit' form='formFinalizarIntervencion')
+            i.fas.fa-check.me-2
+            | Finalizar
+
+block scripts
+  script(src='/js/medico/intervenciones.js')

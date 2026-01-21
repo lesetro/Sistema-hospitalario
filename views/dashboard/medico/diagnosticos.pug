@@ -1,0 +1,164 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          h2
+            i.fas.fa-notes-medical.me-2
+            | Diagnósticos
+          p.text-muted Catálogo y estadísticas de diagnósticos médicos
+
+    // Estadísticas
+    .row.g-3.mb-4#estadisticas-diagnosticos
+      .col-lg-3.col-md-6
+        .card.border-start.border-primary.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Diagnósticos Utilizados
+                h3.mb-0.text-primary#stat-utilizados
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-notes-medical.fa-2x.text-primary
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-success.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Con Diagnóstico
+                h3.mb-0.text-success#stat-con-diagnostico
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-check-circle.fa-2x.text-success
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-warning.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Sin Diagnóstico
+                h3.mb-0.text-warning#stat-sin-diagnostico
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-exclamation-circle.fa-2x.text-warning
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-info.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Este Mes
+                h3.mb-0.text-info#stat-mes
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-calendar-alt.fa-2x.text-info
+
+    .row.g-4
+      // Diagnósticos Más Utilizados
+      .col-xl-6
+        .card.shadow-sm.h-100
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-chart-bar.me-2
+              | Diagnósticos Más Utilizados
+          .card-body
+            #loading-mas-utilizados.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando...
+            #lista-mas-utilizados.d-none
+
+      // Diagnósticos Recientes
+      .col-xl-6
+        .card.shadow-sm.h-100
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-history.me-2
+              | Diagnósticos Recientes
+          .card-body
+            #loading-recientes.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando...
+            #lista-recientes.d-none
+
+    // Búsqueda y Catálogo
+    .row.mt-4
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-search.me-2
+              | Catálogo de Diagnósticos
+          .card-body
+            .row.g-3.mb-3
+              .col-md-6
+                label.form-label
+                  i.fas.fa-search.me-1
+                  | Buscar Diagnóstico
+                input.form-control(
+                  type='text'
+                  id='busquedaDiagnostico'
+                  placeholder='Buscar por nombre o código...'
+                )
+              
+              .col-md-4
+                label.form-label
+                  i.fas.fa-list.me-1
+                  | Tipo de Diagnóstico
+                select.form-select(id='filtroTipo')
+                  option(value='TODOS') Todos los tipos
+              
+              .col-md-2.d-flex.align-items-end
+                button.btn.btn-primary.w-100(onclick='buscarDiagnosticos()')
+                  i.fas.fa-search.me-2
+                  | Buscar
+
+            #loading-catalogo.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando catálogo...
+            
+            #catalogo-diagnosticos.d-none
+              .table-responsive
+                table.table.table-hover.align-middle
+                  thead
+                    tr
+                      th Código
+                      th Nombre
+                      th Tipo
+                      th Acciones
+                  tbody#tbody-diagnosticos
+              
+              // Paginación
+              nav.mt-3
+                ul.pagination.justify-content-center#paginacion
+
+  // Modal Detalle Diagnóstico
+  #modalDetalleDiagnostico.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-info-circle.me-2
+            | Detalle del Diagnóstico
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body#modalDetalleDiagnosticoBody
+          .text-center.py-4
+            .spinner-border.text-primary
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+  // Modal Pacientes con Diagnóstico
+  #modalPacientesDiagnostico.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-users.me-2
+            | Pacientes con este Diagnóstico
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body#modalPacientesDiagnosticoBody
+          .text-center.py-4
+            .spinner-border.text-primary
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+block scripts
+  script(src='/js/medico/diagnosticos.js')

@@ -1,0 +1,158 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          h2
+            i.fas.fa-history.me-2
+            | Historial Clínico
+          p.text-muted Visualiza el historial clínico completo de tus pacientes
+
+    // Búsqueda de Paciente
+    .row.mb-4
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-user-search.me-2
+              | Seleccionar Paciente
+          .card-body
+            .row.g-3
+              .col-md-8
+                input.form-control.form-control-lg(
+                  type='text'
+                  id='buscarPaciente'
+                  placeholder='Buscar por nombre, apellido o DNI...'
+                  autocomplete='off'
+                )
+                #resultados-busqueda.list-group.position-absolute.mt-1.shadow(style='z-index: 1000; max-height: 300px; overflow-y: auto; display: none;')
+              .col-md-4
+                button.btn.btn-outline-primary.btn-lg.w-100(onclick='limpiarSeleccion()')
+                  i.fas.fa-times.me-2
+                  | Limpiar
+
+    // Información del Paciente Seleccionado
+    #info-paciente-seleccionado.d-none.mb-4
+
+    // Contenido del Historial
+    #contenido-historial.d-none
+      // Resumen
+      .row.g-3.mb-4#estadisticas-historial
+      
+      // Pestañas
+      .row
+        .col-12
+          .card.shadow-sm
+            .card-header.bg-white
+              ul.nav.nav-tabs.card-header-tabs(role='tablist')
+                li.nav-item(role='presentation')
+                  button.nav-link.active(
+                    id='tab-linea-tiempo'
+                    data-bs-toggle='tab'
+                    data-bs-target='#linea-tiempo'
+                    type='button'
+                  ) 
+                    i.fas.fa-stream.me-2
+                    | Línea de Tiempo
+                li.nav-item(role='presentation')
+                  button.nav-link(
+                    id='tab-historial-completo'
+                    data-bs-toggle='tab'
+                    data-bs-target='#historial-completo'
+                    type='button'
+                  )
+                    i.fas.fa-list.me-2
+                    | Historial Completo
+                li.nav-item(role='presentation')
+                  button.nav-link(
+                    id='tab-nueva-entrada'
+                    data-bs-toggle='tab'
+                    data-bs-target='#nueva-entrada'
+                    type='button'
+                  )
+                    i.fas.fa-plus.me-2
+                    | Nueva Entrada
+            
+            .card-body
+              .tab-content
+                // Línea de Tiempo
+                .tab-pane.fade.show.active#linea-tiempo
+                  #loading-linea-tiempo.text-center.py-4
+                    .spinner-border.text-primary
+                  #contenido-linea-tiempo.d-none
+                
+                // Historial Completo
+                .tab-pane.fade#historial-completo
+                  .mb-3
+                    .row.g-3
+                      .col-md-3
+                        select.form-select(id='filtroTipoEvento')
+                          option(value='TODOS') Todos los eventos
+                          option(value='Consulta') Consulta
+                          option(value='Internacion') Internación
+                          option(value='Cirugia') Cirugía
+                          option(value='Estudio') Estudio
+                          option(value='Otro') Otro
+                      .col-md-3
+                        input.form-control(type='date' id='filtroFechaDesde')
+                      .col-md-3
+                        input.form-control(type='date' id='filtroFechaHasta')
+                      .col-md-3
+                        button.btn.btn-primary.w-100(onclick='cargarHistorialCompleto()')
+                          i.fas.fa-filter.me-2
+                          | Filtrar
+                  
+                  #loading-historial-completo.text-center.py-4
+                    .spinner-border.text-primary
+                  #contenido-historial-completo.d-none
+                    .table-responsive
+                      table.table.table-hover
+                        thead
+                          tr
+                            th Fecha
+                            th Tipo
+                            th Descripción
+                        tbody#tbody-historial
+                    nav.mt-3
+                      ul.pagination.justify-content-center#paginacion-historial
+                
+                // Nueva Entrada
+                .tab-pane.fade#nueva-entrada
+                  form#formNuevaEntrada
+                    input(type='hidden' id='nuevaEntradaPacienteId')
+                    .row.g-3
+                      .col-md-12
+                        label.form-label Tipo de Evento *
+                        select.form-select(id='nuevoTipoEvento' name='tipo_evento' required)
+                          option(value='') Seleccione tipo
+                          option(value='Consulta') Consulta
+                          option(value='Internacion') Internación
+                          option(value='Cirugia') Cirugía
+                          option(value='Estudio') Estudio
+                          option(value='Otro') Otro
+                      
+                      .col-md-12
+                        label.form-label Descripción *
+                        textarea.form-control(
+                          id='nuevaDescripcion'
+                          name='descripcion'
+                          rows='6'
+                          required
+                          placeholder='Describa el evento médico...'
+                        )
+                      
+                      .col-md-12
+                        button.btn.btn-success(type='submit')
+                          i.fas.fa-save.me-2
+                          | Guardar Entrada
+
+    // Mensaje inicial
+    #mensaje-inicial.text-center.py-5
+      i.fas.fa-user-md.fa-4x.text-muted.mb-3
+      h5.text-muted Seleccione un paciente para ver su historial clínico
+      p.text-muted Use el buscador para encontrar al paciente
+
+block scripts
+  script(src='/js/medico/historial-clinico.js')

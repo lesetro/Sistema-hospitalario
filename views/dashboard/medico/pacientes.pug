@@ -1,0 +1,152 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          h2
+            i.fas.fa-users.me-2
+            | Mis Pacientes
+          p.text-muted Gestiona y consulta información de tus pacientes
+
+    // Estadísticas
+    .row.g-3.mb-4#estadisticas-pacientes
+      .col-lg-4.col-md-6
+        .card.border-start.border-primary.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Total Pacientes
+                h3.mb-0.text-primary#stat-total-pacientes
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-users.fa-2x.text-primary
+      
+      .col-lg-4.col-md-6
+        .card.border-start.border-danger.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Internados
+                h3.mb-0.text-danger#stat-internados
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-bed.fa-2x.text-danger
+      
+      .col-lg-4.col-md-6
+        .card.border-start.border-success.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Evaluaciones (Mes)
+                h3.mb-0.text-success#stat-evaluaciones-mes
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-stethoscope.fa-2x.text-success
+
+    // Filtros
+    .card.shadow-sm.mb-4
+      .card-header.bg-white
+        h5.mb-0
+          i.fas.fa-filter.me-2
+          | Filtros de Búsqueda
+      .card-body
+        form#formFiltros
+          .row.g-3
+            .col-md-4
+              label.form-label
+                i.fas.fa-search.me-1
+                | Buscar Paciente
+              input.form-control(
+                type='text'
+                id='filtroBusqueda'
+                name='busqueda'
+                placeholder='Nombre, Apellido o DNI'
+              )
+            
+            .col-md-3
+              label.form-label
+                i.fas.fa-list.me-1
+                | Estado
+              select.form-select(id='filtroEstado' name='estado')
+                option(value='TODOS') Todos
+                option(value='Activo' selected) Activo
+                option(value='Inactivo') Inactivo
+                option(value='Baja') Baja
+            
+            .col-md-3
+              label.form-label
+                i.fas.fa-hospital.me-1
+                | Obra Social
+              select.form-select(id='filtroObraSocial' name='obraSocial')
+                option(value='TODAS') Todas
+            
+            .col-md-2.d-flex.align-items-end
+              button.btn.btn-primary.w-100(type='submit')
+                i.fas.fa-search.me-2
+                | Buscar
+              button.btn.btn-secondary.ms-2(type='button' onclick='limpiarFiltros()')
+                i.fas.fa-times
+
+    // Tabla de Pacientes
+    .card.shadow-sm
+      .card-header.bg-white.d-flex.justify-content-between.align-items-center
+        h5.mb-0
+          i.fas.fa-list.me-2
+          | Listado de Pacientes
+        button.btn.btn-sm.btn-outline-primary(onclick='actualizarTabla()')
+          i.fas.fa-sync-alt.me-2
+          | Actualizar
+      
+      .card-body
+        #loading-pacientes.text-center.py-4
+          .spinner-border.text-primary
+          p.mt-2.text-muted Cargando pacientes...
+        
+        #tabla-pacientes.d-none
+          .table-responsive
+            table.table.table-hover.align-middle#tablaPacientes
+              thead
+                tr
+                  th Paciente
+                  th DNI
+                  th Obra Social
+                  th Estado
+                  th Última Consulta
+                  th Acciones
+              tbody#tbody-pacientes
+          
+          // Paginación
+          nav.mt-3#paginacion-container
+            ul.pagination.justify-content-center#paginacion
+
+  // Modal Detalle Paciente
+  #modalDetallePaciente.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-user-circle.me-2
+            | Detalle del Paciente
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body#modalDetallePacienteBody
+          .text-center.py-4
+            .spinner-border.text-primary
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+  // Modal Historial Médico
+  #modalHistorial.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-clipboard-list.me-2
+            | Historial Médico
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body#modalHistorialBody
+          .text-center.py-4
+            .spinner-border.text-primary
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+block scripts
+  script(src='/js/medico/pacientes.js')

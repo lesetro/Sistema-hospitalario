@@ -1,0 +1,270 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          h2
+            i.fas.fa-exchange-alt.me-2
+            | Derivaciones
+          p.text-muted Gestiona las derivaciones de pacientes entre sectores
+
+    // Estadísticas
+    .row.g-3.mb-4#estadisticas-derivaciones
+      .col-lg-3.col-md-6
+        .card.border-start.border-primary.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Enviadas
+                h3.mb-0.text-primary#stat-enviadas
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-paper-plane.fa-2x.text-primary
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-success.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Recibidas
+                h3.mb-0.text-success#stat-recibidas
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-inbox.fa-2x.text-success
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-warning.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Pendientes de Aprobar
+                h3.mb-0.text-warning#stat-pendientes
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-clock.fa-2x.text-warning
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-info.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Este Mes
+                h3.mb-0.text-info#stat-mes
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-calendar-alt.fa-2x.text-info
+
+    // Pendientes de Aprobar
+    .row.mb-4
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-exclamation-circle.me-2
+              | Derivaciones Pendientes de Aprobar
+          .card-body
+            #loading-pendientes.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando...
+            #lista-pendientes.d-none
+
+    // Filtros
+    .row
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-filter.me-2
+              | Filtros de Búsqueda
+          .card-body
+            form#formFiltros
+              .row.g-3
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-arrows-alt-h.me-1
+                    | Dirección
+                  select.form-select(id='filtroDireccion' name='direccion')
+                    option(value='') Todas
+                    option(value='ENVIADAS') Enviadas
+                    option(value='RECIBIDAS') Recibidas
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-user.me-1
+                    | Paciente
+                  select.form-select(id='filtroPaciente' name='pacienteId')
+                    option(value='') Todos
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-list.me-1
+                    | Tipo
+                  select.form-select(id='filtroTipo' name='tipo')
+                    option(value='TODOS') Todos
+                    option(value='Interna') Interna
+                    option(value='Externa') Externa
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-check.me-1
+                    | Estado
+                  select.form-select(id='filtroEstado' name='estado')
+                    option(value='TODOS') Todos
+                    option(value='Pendiente') Pendiente
+                    option(value='Aprobada') Aprobada
+                    option(value='Rechazada') Rechazada
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-calendar.me-1
+                    | Desde
+                  input.form-control(
+                    type='date'
+                    id='filtroFechaDesde'
+                    name='fechaDesde'
+                  )
+                
+                .col-md-1
+                  label.form-label
+                    i.fas.fa-calendar.me-1
+                    | Hasta
+                  input.form-control(
+                    type='date'
+                    id='filtroFechaHasta'
+                    name='fechaHasta'
+                  )
+                
+                .col-md-1.d-flex.align-items-end
+                  button.btn.btn-primary.w-100(type='submit')
+                    i.fas.fa-search
+
+      .col-12.mt-4
+        .card.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Listado de Derivaciones
+            div
+              button.btn.btn-sm.btn-success.me-2(onclick='mostrarModalNuevaDerivacion()')
+                i.fas.fa-plus.me-2
+                | Nueva Derivación
+              button.btn.btn-sm.btn-outline-primary(onclick='actualizarTabla()')
+                i.fas.fa-sync-alt.me-2
+                | Actualizar
+          
+          .card-body
+            #loading-derivaciones.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando derivaciones...
+            
+            #tabla-derivaciones.d-none
+              .table-responsive
+                table.table.table-hover.align-middle
+                  thead
+                    tr
+                      th Paciente
+                      th Origen → Destino
+                      th Tipo
+                      th Estado
+                      th Fecha
+                      th Acciones
+                  tbody#tbody-derivaciones
+              
+              // Paginación
+              nav.mt-3
+                ul.pagination.justify-content-center#paginacion
+
+  // Modal Nueva Derivación
+  #modalNuevaDerivacion.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-plus-circle.me-2
+            | Nueva Derivación
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#formNuevaDerivacion
+            .mb-3
+              label.form-label Paciente ID *
+              input.form-control(
+                type='number'
+                id='nuevoPacienteId'
+                name='paciente_id'
+                required
+              )
+            
+            .mb-3
+              label.form-label Sector Destino *
+              select.form-select(id='nuevoDestinoId' name='destino_id' required)
+                option(value='') Seleccione sector
+            
+            .mb-3
+              label.form-label Tipo de Derivación *
+              select.form-select(id='nuevoTipo' name='tipo' required)
+                option(value='') Seleccione tipo
+                option(value='Interna') Interna
+                option(value='Externa') Externa
+            
+            .mb-3
+              label.form-label Motivo *
+              textarea.form-control(
+                id='nuevoMotivo'
+                name='motivo'
+                rows='4'
+                required
+                placeholder='Describa el motivo de la derivación...'
+              )
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-primary(type='submit' form='formNuevaDerivacion')
+            i.fas.fa-save.me-2
+            | Enviar Derivación
+
+  // Modal Detalle
+  #modalDetalle.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-info-circle.me-2
+            | Detalle de Derivación
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body#modalDetalleBody
+          .text-center.py-4
+            .spinner-border.text-primary
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+  // Modal Aprobar/Rechazar
+  #modalGestionarDerivacion.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-warning
+          h5.modal-title
+            i.fas.fa-tasks.me-2
+            | Gestionar Derivación
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body
+          form#formGestionarDerivacion
+            input(type='hidden' id='gestionarId')
+            .mb-3
+              label.form-label Acción *
+              select.form-select(id='gestionarEstado' name='estado' required)
+                option(value='') Seleccione acción
+                option(value='Aprobada') Aprobar
+                option(value='Rechazada') Rechazar
+            
+            .mb-3#divMotivoRechazo.d-none
+              label.form-label Motivo del Rechazo *
+              textarea.form-control(
+                id='motivoRechazo'
+                name='motivo_rechazo'
+                rows='3'
+              )
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-warning(type='submit' form='formGestionarDerivacion')
+            i.fas.fa-check.me-2
+            | Confirmar
+
+block scripts
+  script(src='/js/medico/derivaciones.js')

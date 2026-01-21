@@ -1,0 +1,143 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          h2
+            i.fas.fa-tachometer-alt.me-2
+            | Dashboard Médico
+          p.text-muted Bienvenido Dr/a. #{user.nombre} #{user.apellido}
+
+    // Tarjetas de Estadísticas
+    .row.g-4.mb-4#estadisticas-cards
+      .col-xl-3.col-md-6
+        .card.stat-card.border-start.border-primary.border-4.shadow-sm
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-2
+                  i.fas.fa-calendar-day.me-2
+                  | Turnos Hoy
+                h2.mb-0#stat-turnos-hoy
+                  .spinner-border.spinner-border-sm(role='status')
+              .stat-icon.bg-primary.text-white
+                i.fas.fa-calendar-check.fa-2x
+
+      .col-xl-3.col-md-6
+        .card.stat-card.border-start.border-warning.border-4.shadow-sm
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-2
+                  i.fas.fa-clock.me-2
+                  | Turnos Pendientes
+                h2.mb-0#stat-turnos-pendientes
+                  .spinner-border.spinner-border-sm(role='status')
+              .stat-icon.bg-warning.text-white
+                i.fas.fa-hourglass-half.fa-2x
+
+      .col-xl-3.col-md-6
+        .card.stat-card.border-start.border-success.border-4.shadow-sm
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-2
+                  i.fas.fa-user-injured.me-2
+                  | Pacientes (Mes)
+                h2.mb-0#stat-pacientes-mes
+                  .spinner-border.spinner-border-sm(role='status')
+              .stat-icon.bg-success.text-white
+                i.fas.fa-users.fa-2x
+
+      .col-xl-3.col-md-6
+        .card.stat-card.border-start.border-danger.border-4.shadow-sm
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-2
+                  i.fas.fa-bed.me-2
+                  | Internaciones Activas
+                h2.mb-0#stat-internaciones
+                  .spinner-border.spinner-border-sm(role='status')
+              .stat-icon.bg-danger.text-white
+                i.fas.fa-procedures.fa-2x
+
+    .row.g-4
+      // Próximos Turnos
+      .col-xl-6
+        .card.shadow-sm.h-100
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-calendar-alt.me-2
+              | Próximos Turnos
+            a.btn.btn-sm.btn-outline-primary(href='/medico/mis-turnos')
+              | Ver Todos
+              i.fas.fa-arrow-right.ms-2
+          .card-body
+            #loading-turnos.text-center.py-4
+              .spinner-border.text-primary(role='status')
+              p.mt-2.text-muted Cargando turnos...
+            #lista-turnos-proximos.d-none
+              .list-group.list-group-flush
+
+      // Pacientes Recientes
+      .col-xl-6
+        .card.shadow-sm.h-100
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-user-injured.me-2
+              | Pacientes Recientes
+            a.btn.btn-sm.btn-outline-primary(href='/medico/pacientes')
+              | Ver Todos
+              i.fas.fa-arrow-right.ms-2
+          .card-body
+            #loading-pacientes.text-center.py-4
+              .spinner-border.text-primary(role='status')
+              p.mt-2.text-muted Cargando pacientes...
+            #lista-pacientes-recientes.d-none
+              .list-group.list-group-flush
+
+    // Internaciones en Curso y Actividad Reciente
+    .row.g-4.mt-2
+      .col-xl-6
+        .card.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-bed.me-2
+              | Internaciones en Curso
+            a.btn.btn-sm.btn-outline-primary(href='/medico/internaciones')
+              | Ver Todas
+              i.fas.fa-arrow-right.ms-2
+          .card-body
+            #loading-internaciones.text-center.py-4
+              .spinner-border.text-primary(role='status')
+              p.mt-2.text-muted Cargando internaciones...
+            #lista-internaciones.d-none
+              .table-responsive
+                table.table.table-hover.table-sm
+                  thead
+                    tr
+                      th Paciente
+                      th Habitación
+                      th Estado
+                      th Desde
+                      th Acciones
+                  tbody#tbody-internaciones
+
+      .col-xl-6
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-history.me-2
+              | Actividad Reciente
+          .card-body
+            #loading-actividad.text-center.py-4
+              .spinner-border.text-primary(role='status')
+              p.mt-2.text-muted Cargando actividad...
+            #lista-actividad.d-none
+              .timeline
+
+block scripts
+  script(src='/js/medico/dashboard.js')

@@ -1,0 +1,229 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          h2
+            i.fas.fa-bed.me-2
+            | Internaciones
+          p.text-muted Gestiona las internaciones de tus pacientes
+
+    // Estadísticas
+    .row.g-3.mb-4#estadisticas-internaciones
+      .col-lg-3.col-md-6
+        .card.border-start.border-primary.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Activas
+                h3.mb-0.text-primary#stat-activas
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-bed.fa-2x.text-primary
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-success.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Con Alta
+                h3.mb-0.text-success#stat-con-alta
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-check-circle.fa-2x.text-success
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-info.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Este Mes
+                h3.mb-0.text-info#stat-mes
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-calendar-alt.fa-2x.text-info
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-warning.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Total
+                h3.mb-0.text-warning#stat-total
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-clipboard-list.fa-2x.text-warning
+
+    // Internaciones Activas
+    .row.mb-4
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-heartbeat.me-2
+              | Internaciones Activas
+          .card-body
+            #loading-activas.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando...
+            #lista-activas.d-none
+
+    // Filtros
+    .row
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-filter.me-2
+              | Filtros de Búsqueda
+          .card-body
+            form#formFiltros
+              .row.g-3
+                .col-md-3
+                  label.form-label
+                    i.fas.fa-user.me-1
+                    | Paciente
+                  select.form-select(id='filtroPaciente' name='pacienteId')
+                    option(value='') Todos
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-heartbeat.me-1
+                    | Estado Paciente
+                  select.form-select(id='filtroEstadoPaciente' name='estadoPaciente')
+                    option(value='TODOS') Todos
+                    option(value='Estable') Estable
+                    option(value='Grave') Grave
+                    option(value='Critico') Crítico
+                    option(value='Fallecido') Fallecido
+                    option(value='Sin_Evaluar') Sin Evaluar
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-clipboard-check.me-1
+                    | Estudios
+                  select.form-select(id='filtroEstudios' name='estadoEstudios')
+                    option(value='TODOS') Todos
+                    option(value='Completos') Completos
+                    option(value='Pendientes') Pendientes
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-procedures.me-1
+                    | Operación
+                  select.form-select(id='filtroOperacion' name='estadoOperacion')
+                    option(value='TODOS') Todos
+                    option(value='Prequirurgico') Prequirúrgico
+                    option(value='Postquirurgico') Postquirúrgico
+                    option(value='No aplica') No aplica
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-door-open.me-1
+                    | Alta
+                  select.form-select(id='filtroAlta' name='conAlta')
+                    option(value='') Todos
+                    option(value='NO') Sin alta
+                    option(value='SI') Con alta
+                
+                .col-md-1.d-flex.align-items-end
+                  button.btn.btn-primary.w-100(type='submit')
+                    i.fas.fa-search
+
+      .col-12.mt-4
+        .card.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Listado de Internaciones
+            button.btn.btn-sm.btn-outline-primary(onclick='actualizarTabla()')
+              i.fas.fa-sync-alt.me-2
+              | Actualizar
+          
+          .card-body
+            #loading-internaciones.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando internaciones...
+            
+            #tabla-internaciones.d-none
+              .table-responsive
+                table.table.table-hover.align-middle
+                  thead
+                    tr
+                      th Paciente
+                      th Habitación/Cama
+                      th Tipo
+                      th Estado Paciente
+                      th Fecha Inicio
+                      th Acciones
+                  tbody#tbody-internaciones
+              
+              // Paginación
+              nav.mt-3
+                ul.pagination.justify-content-center#paginacion
+
+  // Modal Detalle
+  #modalDetalle.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-info-circle.me-2
+            | Detalle de Internación
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body#modalDetalleBody
+          .text-center.py-4
+            .spinner-border.text-primary
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+  // Modal Actualizar Estado
+  #modalActualizarEstado.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-edit.me-2
+            | Actualizar Estado
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#formActualizarEstado
+            input(type='hidden' id='actualizarId')
+            .mb-3
+              label.form-label Estado del Paciente
+              select.form-select(id='actualizarEstadoPaciente' name='estado_paciente')
+                option(value='') Sin cambios
+                option(value='Estable') Estable
+                option(value='Grave') Grave
+                option(value='Critico') Crítico
+                option(value='Fallecido') Fallecido
+                option(value='Sin_Evaluar') Sin Evaluar
+            
+            .mb-3
+              label.form-label Estado de Estudios
+              select.form-select(id='actualizarEstadoEstudios' name='estado_estudios')
+                option(value='') Sin cambios
+                option(value='Completos') Completos
+                option(value='Pendientes') Pendientes
+            
+            .mb-3
+              label.form-label Estado de Operación
+              select.form-select(id='actualizarEstadoOperacion' name='estado_operacion')
+                option(value='') Sin cambios
+                option(value='Prequirurgico') Prequirúrgico
+                option(value='Postquirurgico') Postquirúrgico
+                option(value='No aplica') No aplica
+            
+            .mb-3
+              label.form-label Fecha de Cirugía
+              input.form-control(
+                type='datetime-local'
+                id='actualizarFechaCirugia'
+                name='fecha_cirugia'
+              )
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-primary(type='submit' form='formActualizarEstado')
+            i.fas.fa-save.me-2
+            | Actualizar
+
+block scripts
+  script(src='/js/medico/internaciones.js')

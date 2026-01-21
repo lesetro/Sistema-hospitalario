@@ -1,0 +1,259 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          h2
+            i.fas.fa-x-ray.me-2
+            | Estudios Solicitados
+          p.text-muted Gestiona los estudios médicos solicitados a tus pacientes
+
+    // Estadísticas
+    .row.g-3.mb-4#estadisticas-estudios
+      .col-lg-3.col-md-6
+        .card.border-start.border-warning.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Pendientes
+                h3.mb-0.text-warning#stat-pendientes
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-clock.fa-2x.text-warning
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-success.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Realizados
+                h3.mb-0.text-success#stat-realizados
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-check-circle.fa-2x.text-success
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-danger.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Cancelados
+                h3.mb-0.text-danger#stat-cancelados
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-times-circle.fa-2x.text-danger
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-info.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Este Mes
+                h3.mb-0.text-info#stat-mes
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-calendar-alt.fa-2x.text-info
+
+    .row.g-4.mb-4
+      // Distribución por Categoría
+      .col-xl-6
+        .card.shadow-sm.h-100
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-chart-pie.me-2
+              | Distribución por Categoría
+          .card-body
+            #loading-categorias.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando...
+            canvas#chartCategorias.d-none(height='250')
+
+      // Urgencias
+      .col-xl-6
+        .card.shadow-sm.h-100
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-exclamation-triangle.me-2
+              | Estudios por Urgencia
+          .card-body
+            #loading-urgencias.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando...
+            #grafico-urgencias.d-none
+
+    // Filtros y Tabla
+    .row
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-filter.me-2
+              | Filtros de Búsqueda
+          .card-body
+            form#formFiltros
+              .row.g-3
+                .col-md-3
+                  label.form-label
+                    i.fas.fa-flask.me-1
+                    | Tipo de Estudio
+                  select.form-select(id='filtroTipoEstudio' name='tipoEstudio')
+                    option(value='TODOS') Todos
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-list.me-1
+                    | Estado
+                  select.form-select(id='filtroEstado' name='estado')
+                    option(value='TODOS') Todos
+                    option(value='Pendiente') Pendiente
+                    option(value='Realizado') Realizado
+                    option(value='Cancelado') Cancelado
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-exclamation.me-1
+                    | Urgencia
+                  select.form-select(id='filtroUrgencia' name='urgencia')
+                    option(value='TODAS') Todas
+                    option(value='Normal') Normal
+                    option(value='Alta') Alta
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-calendar.me-1
+                    | Desde
+                  input.form-control(
+                    type='date'
+                    id='filtroFechaDesde'
+                    name='fechaDesde'
+                  )
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-calendar.me-1
+                    | Hasta
+                  input.form-control(
+                    type='date'
+                    id='filtroFechaHasta'
+                    name='fechaHasta'
+                  )
+                
+                .col-md-1.d-flex.align-items-end
+                  button.btn.btn-primary.w-100(type='submit')
+                    i.fas.fa-search
+
+      .col-12.mt-4
+        .card.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Listado de Estudios
+            div
+              button.btn.btn-sm.btn-success.me-2(onclick='mostrarModalNuevoEstudio()')
+                i.fas.fa-plus.me-2
+                | Solicitar Estudio
+              button.btn.btn-sm.btn-outline-primary(onclick='actualizarTabla()')
+                i.fas.fa-sync-alt.me-2
+                | Actualizar
+          
+          .card-body
+            #loading-estudios.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando estudios...
+            
+            #tabla-estudios.d-none
+              .table-responsive
+                table.table.table-hover.align-middle
+                  thead
+                    tr
+                      th Paciente
+                      th Tipo de Estudio
+                      th Estado
+                      th Urgencia
+                      th Fecha Solicitud
+                      th Acciones
+                  tbody#tbody-estudios
+              
+              // Paginación
+              nav.mt-3
+                ul.pagination.justify-content-center#paginacion
+
+  // Modal Nuevo Estudio
+  #modalNuevoEstudio.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-plus-circle.me-2
+            | Solicitar Nuevo Estudio
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#formNuevoEstudio
+            .row.g-3
+              .col-md-12
+                .alert.alert-info
+                  i.fas.fa-info-circle.me-2
+                  | El estudio debe estar asociado a una evaluación médica existente
+              
+              .col-md-6
+                label.form-label Evaluación Médica *
+                input.form-control(
+                  type='number'
+                  id='nuevoEvaluacionId'
+                  name='evaluacion_medica_id'
+                  placeholder='ID de la evaluación'
+                  required
+                )
+                small.text-muted ID de la evaluación médica del paciente
+              
+              .col-md-6
+                label.form-label Paciente *
+                input.form-control(
+                  type='number'
+                  id='nuevoPacienteId'
+                  name='paciente_id'
+                  placeholder='ID del paciente'
+                  required
+                )
+              
+              .col-md-8
+                label.form-label Tipo de Estudio *
+                select.form-select(id='nuevoTipoEstudio' name='tipo_estudio_id' required)
+                  option(value='') Seleccione un tipo de estudio
+              
+              .col-md-4
+                label.form-label Urgencia *
+                select.form-select(id='nuevaUrgencia' name='urgencia' required)
+                  option(value='Normal' selected) Normal
+                  option(value='Alta') Alta
+              
+              .col-md-12
+                label.form-label Observaciones
+                textarea.form-control(
+                  id='nuevasObservaciones'
+                  name='observaciones'
+                  rows='3'
+                  placeholder='Indicaciones especiales para el estudio...'
+                )
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-primary(type='submit' form='formNuevoEstudio')
+            i.fas.fa-save.me-2
+            | Solicitar Estudio
+
+  // Modal Detalle Estudio
+  #modalDetalleEstudio.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-info-circle.me-2
+            | Detalle del Estudio
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body#modalDetalleEstudioBody
+          .text-center.py-4
+            .spinner-border.text-primary
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+block scripts
+  script(src='https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js')
+  script(src='/js/medico/estudiosSolicitados.js')

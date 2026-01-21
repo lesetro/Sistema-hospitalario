@@ -1,0 +1,255 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          h2
+            i.fas.fa-file-prescription.me-2
+            | Recetas y Certificados Médicos
+          p.text-muted Emite y gestiona recetas médicas y certificados
+
+    // Estadísticas
+    .row.g-3.mb-4#estadisticas-items
+      .col-lg-3.col-md-6
+        .card.border-start.border-primary.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Total Recetas
+                h3.mb-0.text-primary#stat-recetas
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-prescription.fa-2x.text-primary
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-success.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Total Certificados
+                h3.mb-0.text-success#stat-certificados
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-certificate.fa-2x.text-success
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-info.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Este Mes
+                h3.mb-0.text-info#stat-mes
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-calendar-alt.fa-2x.text-info
+      
+      .col-lg-3.col-md-6
+        .card.border-start.border-warning.border-4
+          .card-body
+            .d-flex.justify-content-between
+              div
+                small.text-muted Esta Semana
+                h3.mb-0.text-warning#stat-semana
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-calendar-week.fa-2x.text-warning
+
+    // Recientes
+    .row.mb-4
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-history.me-2
+              | Últimas Emisiones
+          .card-body
+            #loading-recientes.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando...
+            #lista-recientes.d-none
+
+    // Filtros y Búsqueda
+    .row
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-filter.me-2
+              | Filtros de Búsqueda
+          .card-body
+            form#formFiltros
+              .row.g-3
+                .col-md-3
+                  label.form-label
+                    i.fas.fa-list.me-1
+                    | Tipo
+                  select.form-select(id='filtroTipo' name='tipo')
+                    option(value='TODOS') Todos
+                    option(value='Receta Medica') Recetas Médicas
+                    option(value='Certificado') Certificados
+                
+                .col-md-3
+                  label.form-label
+                    i.fas.fa-user.me-1
+                    | Paciente
+                  select.form-select(id='filtroPaciente' name='pacienteId')
+                    option(value='') Todos los pacientes
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-calendar.me-1
+                    | Desde
+                  input.form-control(
+                    type='date'
+                    id='filtroFechaDesde'
+                    name='fechaDesde'
+                  )
+                
+                .col-md-2
+                  label.form-label
+                    i.fas.fa-calendar.me-1
+                    | Hasta
+                  input.form-control(
+                    type='date'
+                    id='filtroFechaHasta'
+                    name='fechaHasta'
+                  )
+                
+                .col-md-2.d-flex.align-items-end
+                  button.btn.btn-primary.w-100(type='submit')
+                    i.fas.fa-search.me-2
+                    | Buscar
+
+      .col-12.mt-4
+        .card.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Listado de Recetas y Certificados
+            div
+              button.btn.btn-sm.btn-success.me-2(onclick='mostrarModalNuevo()')
+                i.fas.fa-plus.me-2
+                | Nuevo
+              button.btn.btn-sm.btn-outline-primary(onclick='actualizarTabla()')
+                i.fas.fa-sync-alt.me-2
+                | Actualizar
+          
+          .card-body
+            #loading-items.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando...
+            
+            #tabla-items.d-none
+              .table-responsive
+                table.table.table-hover.align-middle
+                  thead
+                    tr
+                      th Tipo
+                      th Paciente
+                      th Fecha
+                      th Contenido
+                      th Acciones
+                  tbody#tbody-items
+              
+              // Paginación
+              nav.mt-3
+                ul.pagination.justify-content-center#paginacion
+
+  // Modal Nuevo
+  #modalNuevo.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-plus-circle.me-2
+            | Nueva Receta / Certificado
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#formNuevo
+            .row.g-3
+              .col-md-6
+                label.form-label Tipo *
+                select.form-select(id='nuevoTipo' name='tipo' required)
+                  option(value='') Seleccione tipo
+                  option(value='Receta Medica') Receta Médica
+                  option(value='Certificado') Certificado Médico
+              
+              .col-md-6
+                label.form-label Paciente ID *
+                input.form-control(
+                  type='number'
+                  id='nuevoPacienteId'
+                  name='paciente_id'
+                  required
+                  placeholder='ID del paciente'
+                )
+              
+              .col-md-12
+                label.form-label Evaluación Médica ID (Opcional)
+                input.form-control(
+                  type='number'
+                  id='nuevaEvaluacionId'
+                  name='evaluacion_medica_id'
+                  placeholder='ID de evaluación médica asociada'
+                )
+              
+              .col-md-12
+                label.form-label Contenido *
+                textarea.form-control(
+                  id='nuevoContenido'
+                  name='contenido'
+                  rows='8'
+                  required
+                  placeholder='Escriba aquí el contenido de la receta o certificado...'
+                )
+                small.text-muted Incluya todos los detalles necesarios: medicamentos, dosis, indicaciones, etc.
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-primary(type='submit' form='formNuevo')
+            i.fas.fa-save.me-2
+            | Guardar
+
+  // Modal Detalle
+  #modalDetalle.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-info-circle.me-2
+            | Detalle
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body#modalDetalleBody
+          .text-center.py-4
+            .spinner-border.text-primary
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+          button.btn.btn-primary(onclick='imprimirDetalle()')
+            i.fas.fa-print.me-2
+            | Imprimir
+
+  // Modal Editar
+  #modalEditar.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-warning
+          h5.modal-title
+            i.fas.fa-edit.me-2
+            | Editar Contenido
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body
+          form#formEditar
+            input(type='hidden' id='editarId')
+            .mb-3
+              label.form-label Contenido *
+              textarea.form-control(
+                id='editarContenido'
+                name='contenido'
+                rows='8'
+                required
+              )
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-warning(type='submit' form='formEditar')
+            i.fas.fa-save.me-2
+            | Actualizar
+
+block scripts
+  script(src='/js/medico/recetasCertificados.js')
