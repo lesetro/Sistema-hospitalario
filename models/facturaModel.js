@@ -22,25 +22,22 @@ module.exports = (sequelize, DataTypes) => {
       { fields: ['tipo_pago'] }
     ]
   });
- Factura.beforeCreate(async (factura, options) => {
+
+  Factura.beforeCreate(async (factura, options) => {
     const transaction = options.transaction || await sequelize.transaction();
     try {
       const paciente = await sequelize.models.Paciente.findByPk(factura.paciente_id, { transaction });
       
       if (paciente) {
-        // Si el paciente tiene obra social, asignarla automÃ¡ticamente
         if (paciente.obra_social_id && !factura.obra_social_id) {
           factura.obra_social_id = paciente.obra_social_id;
           factura.tipo_pago = 'Obra Social';
-        }
-        // Si NO tiene obra social, asignar SISTEMA PUBLICO
-        else if (!paciente.obra_social_id && !factura.obra_social_id) {
+        } else if (!paciente.obra_social_id && !factura.obra_social_id) {
           factura.tipo_pago = 'SISTEMA PUBLICO';
-          factura.estado = 'Pagada'; // âœ… AutomÃ¡ticamente pagada
+          factura.estado = 'Pagada';
           
-          // Agregar descripciÃ³n automÃ¡tica
           if (!factura.descripcion) {
-            factura.descripcion = 'AtenciÃ³n en sistema pÃºblico - IVA Exento';
+            factura.descripcion = 'Atención en sistema público - IVA Exento';
           }
         }
       }
@@ -57,14 +54,13 @@ module.exports = (sequelize, DataTypes) => {
     try {
       const paciente = await sequelize.models.Paciente.findByPk(factura.paciente_id, { transaction });
       if (paciente && paciente.usuario_id) {
-        // âœ… NOTIFICACIÃ“N SEGÃšN TIPO_PAGO
         let mensaje = '';
         if (factura.tipo_pago === 'SISTEMA PUBLICO') {
-          mensaje = `Se ha generado una factura al sistema pÃºblico por $${factura.monto}. No requiere pago directo.`;
+          mensaje = `Se generó factura al sistema público por $${factura.monto}. No requiere pago.`;
         } else if (factura.tipo_pago === 'Obra Social') {
-          mensaje = `Se ha generado una factura a su obra social por $${factura.monto}.`;
+          mensaje = `Se generó factura a su obra social por $${factura.monto}.`;
         } else {
-          mensaje = `Se ha generado una factura particular por $${factura.monto}. MÃ©todo: ${factura.tipo_pago}.`;
+          mensaje = `Se generó factura particular por $${factura.monto}. Método: ${factura.tipo_pago}.`;
         }
 
         await sequelize.models.Notificacion.create({
@@ -81,6 +77,7 @@ module.exports = (sequelize, DataTypes) => {
       throw error;
     }
   });
+
   Factura.associate = function(models) {
     Factura.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
     Factura.belongsTo(models.ObraSocial, { foreignKey: 'obra_social_id', as: 'obra_social',allowNull: true });

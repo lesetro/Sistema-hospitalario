@@ -1,52 +1,99 @@
-let tiempoEsperaBusqueda;
+// ========================================
+//  BÚSQUEDA GLOBAL - VERSIÓN DOMINANTE
+// ========================================
 
-function busquedaGlobal(valorBusqueda) {
+// Agregar al inicio de tu script.js
+console.log('🎯 SCRIPT.JS CORREGIDO CARGADO - ' + new Date().toISOString());
+
+// ========================================
+//  DESACTIVAR SCRIPT CONFLICTIVO
+// ========================================
+
+// Sobrescribir la función conflictiva
+window.realizarBusquedaGlobal = function() {
+  console.log('⚠️  Script conflictivo DESACTIVADO - Usando script.js');
+  return false;
+};
+
+// Sobrescribir mostrarMensaje también
+window.mostrarMensaje = function() {
+  console.log('⚠️  mostrarMensaje conflictivo DESACTIVADO');
+  return false;
+};
+
+// ========================================
+//  BÚSQUEDA GLOBAL - NUESTRA VERSIÓN
+// ========================================
+
+let tiempoEsperaBusqueda;
+let busquedaEnProgreso = false;
+
+function realizarBusqueda(valorBusqueda) {
+  if (busquedaEnProgreso) {
+    console.log('⏸️  Búsqueda ya en progreso');
+    return;
+  }
+  
   clearTimeout(tiempoEsperaBusqueda);
   
   const contenedorResultados = document.getElementById('searchResults');
   
-  if (!contenedorResultados) return;
+  if (!contenedorResultados) {
+    console.log('❌ No hay contenedor searchResults');
+    return;
+  }
 
-  // Ocultar si es muy corto
+  const filtro = document.getElementById('searchFilter')?.value || 'all';
+  
   if (valorBusqueda.length < 2) {
+    console.log('⏸️  Menos de 2 caracteres');
     contenedorResultados.style.display = 'none';
     contenedorResultados.innerHTML = '';
     return;
   }
+
+  console.log('🚀 Búsqueda MANUAL iniciada para:', valorBusqueda);
+  busquedaEnProgreso = true;
 
   // Mostrar carga
   contenedorResultados.innerHTML = `
     <div class="card">
       <div class="card-body text-center">
         <div class="spinner-border spinner-border-sm me-2"></div>
-        Buscando...
+        <span class="text-muted">Buscando "<strong>${valorBusqueda}</strong>"...</span>
       </div>
     </div>
   `;
   contenedorResultados.style.display = 'block';
 
-  // Debounce
   tiempoEsperaBusqueda = setTimeout(async () => {
     try {
-      const filtro = document.getElementById('searchFilter')?.value || 'all';
-      const respuesta = await fetch(`/api/search/global?search=${encodeURIComponent(valorBusqueda)}&filter=${filtro}`);
+      const url = `/api/search/global?search=${encodeURIComponent(valorBusqueda)}&filter=${filtro}`;
+      console.log('🌐 Fetch a endpoint correcto:', url);
       
-      if (!respuesta.ok) {
-        throw new Error('Error en la búsqueda');
-      }
+      const respuesta = await fetch(url);
+      console.log('📥 Status:', respuesta.status);
+      
+      if (!respuesta.ok) throw new Error(`HTTP ${respuesta.status}`);
       
       const data = await respuesta.json();
+      console.log('📊 Respuesta:', data);
       
-      if (data.success) {
+      busquedaEnProgreso = false;
+      
+      if (data.success && data.resultados && Array.isArray(data.resultados) && data.resultados.length > 0) {
+        console.log('✅ Mostrando', data.resultados.length, 'resultados');
         mostrarResultadosBusqueda(data.resultados, valorBusqueda);
       } else {
-        mostrarErrorBusqueda(data.message || 'Error al buscar');
+        console.log('❌ Sin resultados');
+        mostrarSinResultados(valorBusqueda);
       }
     } catch (error) {
-      console.error('Error al buscar:', error);
+      console.error('Error:', error);
+      busquedaEnProgreso = false;
       mostrarErrorBusqueda('Error al realizar la búsqueda');
     }
-  }, 500);
+  }, 300);
 }
 
 function mostrarResultadosBusqueda(resultados, termino) {
@@ -54,82 +101,76 @@ function mostrarResultadosBusqueda(resultados, termino) {
   if (!contenedor) return;
 
   let html = '<div class="card"><div class="card-body">';
-  html += `<h6 class="mb-3">Resultados para: <strong>"${termino}"</strong></h6>`;
+  html += `<div class="d-flex justify-content-between align-items-center mb-3">
+    <h6 class="mb-0"><i class="fas fa-check-circle text-success me-2"></i>${resultados.length} resultado(s) para "<strong>${termino}</strong>"</h6>
+    <button type="button" class="btn btn-sm btn-outline-secondary" onclick="document.getElementById('searchResults').style.display='none'"><i class="fas fa-times"></i></button>
+  </div>`;
 
-  let tieneResultados = false;
+  resultados.forEach(r => {
+    const nombre = r.nombre || 'Sin nombre';
+    const dni = r.dni || 'N/A';
+    const tipo = r.tipo || 'usuario';
+    const id = r.tipo_id || r.id || '';
 
-  // Pacientes
-  if (resultados.pacientes && resultados.pacientes.length > 0) {
-    tieneResultados = true;
-    html += '<div class="mb-3"><strong><i class="fas fa-user me-2"></i>Pacientes:</strong><ul class="list-unstyled mt-2">';
-    resultados.pacientes.forEach(p => {
-      html += `
-        <li class="border-bottom py-2">
-          <a href="/pacientes?dni=${p.usuario.dni}" class="text-decoration-none">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <strong>${p.usuario.nombre} ${p.usuario.apellido}</strong>
-                <br><small class="text-muted">DNI: ${p.usuario.dni}</small>
-              </div>
-              <i class="fas fa-chevron-right text-muted"></i>
+    let url = '#';
+    let badgeClass = 'bg-secondary';
+    
+    switch(tipo) {
+      case 'paciente':
+        url = `/pacientes/${id}`;
+        badgeClass = 'bg-primary';
+        break;
+      case 'medico':
+        url = `/personal/medicos/${id}`;
+        badgeClass = 'bg-success';
+        break;
+      case 'enfermero':
+        url = `/personal/enfermeros/${id}`;
+        badgeClass = 'bg-info';
+        break;
+      case 'administrativo':
+        url = `/personal/administrativos/${id}`;
+        badgeClass = 'bg-warning text-dark';
+        break;
+      default:
+        url = `/usuarios/${r.id}`;
+    }
+
+    html += `
+      <div class="border-bottom py-2 mb-2">
+        <a href="${url}" class="text-decoration-none text-dark">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>${nombre}</strong>
+              <br>
+              <small class="text-muted">DNI: ${dni}</small>
+              ${r.email ? `<br><small class="text-muted">Email: ${r.email}</small>` : ''}
+              ${r.rol ? `<br><small class="text-muted">Rol: ${r.rol}</small>` : ''}
             </div>
-          </a>
-        </li>
-      `;
-    });
-    html += '</ul></div>';
-  }
-
-  // Admisiones
-  if (resultados.admisiones && resultados.admisiones.length > 0) {
-    tieneResultados = true;
-    html += '<div class="mb-3"><strong><i class="fas fa-clipboard-list me-2"></i>Admisiones:</strong><ul class="list-unstyled mt-2">';
-    resultados.admisiones.forEach(a => {
-      html += `
-        <li class="border-bottom py-2">
-          <a href="/admisiones" class="text-decoration-none">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <strong>Admisión #${a.id}</strong> - ${a.paciente.usuario.nombre} ${a.paciente.usuario.apellido}
-                <br><small class="text-muted">${new Date(a.fecha).toLocaleDateString('es-AR')}</small>
-              </div>
-              <i class="fas fa-chevron-right text-muted"></i>
-            </div>
-          </a>
-        </li>
-      `;
-    });
-    html += '</ul></div>';
-  }
-
-  // Turnos
-  if (resultados.turnos && resultados.turnos.length > 0) {
-    tieneResultados = true;
-    html += '<div class="mb-3"><strong><i class="fas fa-calendar-alt me-2"></i>Turnos:</strong><ul class="list-unstyled mt-2">';
-    resultados.turnos.forEach(t => {
-      html += `
-        <li class="border-bottom py-2">
-          <a href="/turnos" class="text-decoration-none">
-            <div class="d-flex justify-content-between align-items-center">
-              <div>
-                <strong>Turno</strong> - ${t.paciente.usuario.nombre} ${t.paciente.usuario.apellido}
-                <br><small class="text-muted">${new Date(t.fecha).toLocaleDateString('es-AR')}</small>
-              </div>
-              <i class="fas fa-chevron-right text-muted"></i>
-            </div>
-          </a>
-        </li>
-      `;
-    });
-    html += '</ul></div>';
-  }
-
-  if (!tieneResultados) {
-    html += '<p class="text-muted mb-0"><i class="fas fa-info-circle me-2"></i>No se encontraron resultados</p>';
-  }
+            <span class="badge ${badgeClass}">${tipo}</span>
+          </div>
+        </a>
+      </div>
+    `;
+  });
 
   html += '</div></div>';
   contenedor.innerHTML = html;
+}
+
+function mostrarSinResultados(termino) {
+  const contenedor = document.getElementById('searchResults');
+  if (contenedor) {
+    contenedor.innerHTML = `
+      <div class="card">
+        <div class="card-body text-center py-4">
+          <i class="fas fa-search fa-2x text-muted mb-3 d-block"></i>
+          <p class="text-muted mb-0">No se encontraron resultados para "<strong>${termino}</strong>"</p>
+          <small class="text-muted">Pruebe con otros términos o elimine filtros</small>
+        </div>
+      </div>
+    `;
+  }
 }
 
 function mostrarErrorBusqueda(mensaje) {
@@ -137,10 +178,9 @@ function mostrarErrorBusqueda(mensaje) {
   if (contenedor) {
     contenedor.innerHTML = `
       <div class="card">
-        <div class="card-body">
-          <div class="alert alert-danger mb-0">
-            <i class="fas fa-exclamation-triangle me-2"></i>${mensaje}
-          </div>
+        <div class="card-body text-center py-3">
+          <i class="fas fa-exclamation-triangle text-danger me-2"></i>
+          <span class="text-danger">${mensaje}</span>
         </div>
       </div>
     `;
@@ -148,228 +188,80 @@ function mostrarErrorBusqueda(mensaje) {
 }
 
 // ========================================
-//  CONTADOR DE MENSAJES EN HEADER
-// ========================================
-
-async function cargarContadorGlobal() {
-  try {
-    const response = await fetch('/comunicacion/api/contador');
-    const data = await response.json();
-
-    if (data.success) {
-      const badge = document.getElementById('header-contador-mensajes');
-      if (badge) {
-        badge.textContent = data.contador;
-        badge.style.display = data.contador > 0 ? 'inline' : 'none';
-      }
-    }
-  } catch (error) {
-    // Silencioso - no mostrar error si falla
-    console.log('No se pudo cargar el contador de mensajes');
-  }
-}
-
-// ========================================
-//  FUNCIONES GLOBALES (window scope)
-// ========================================
-
-window.toggleSidebar = function() {
-  const sidebar = document.getElementById('sidebar');
-  if (sidebar) {
-    sidebar.classList.toggle('show');
-  }
-};
-
-// ========================================
-//  INICIALIZACIÓN
+//  INICIALIZACIÓN - CON CONTROL DE CONFLICTOS
 // ========================================
 
 document.addEventListener('DOMContentLoaded', function() {
-  console.log(' Script.js cargado correctamente');
-
-  // ============================================================================
-  // BÚSQUEDA GLOBAL - Conectar eventos
-  // ============================================================================
+  console.log('✅ DOMContentLoaded - Script.js DOMINANTE');
+  
+  // Desactivar cualquier otro listener conflictivo
+  const eventosConflictivos = ['input', 'keypress', 'click'];
+  
+  eventosConflictivos.forEach(evento => {
+    const input = document.getElementById('globalSearch');
+    const btn = document.getElementById('globalSearchBtn');
+    
+    if (input) {
+      const nuevoInput = input.cloneNode(true);
+      input.parentNode.replaceChild(nuevoInput, input);
+    }
+    
+    if (btn) {
+      const nuevoBtn = btn.cloneNode(true);
+      btn.parentNode.replaceChild(nuevoBtn, btn);
+    }
+  });
+  
+  // Nuestra configuración limpia
   const searchInput = document.getElementById('globalSearch');
   const searchBtn = document.getElementById('globalSearchBtn');
   const searchFilter = document.getElementById('searchFilter');
-
+  
+  console.log(`🔍 Reconfigurando: Input: ${!!searchInput}, Botón: ${!!searchBtn}`);
+  
   if (searchInput) {
-    // Búsqueda al escribir (con debounce)
+    // Input: ABSOLUTAMENTE NADA al escribir
     searchInput.addEventListener('input', function() {
-      busquedaGlobal(this.value);
+      const valor = this.value.trim();
+      console.log('⌨️  Input (NO ACTION):', valor);
+      
+      if (valor.length === 0) {
+        const contenedor = document.getElementById('searchResults');
+        if (contenedor) {
+          contenedor.style.display = 'none';
+          contenedor.innerHTML = '';
+        }
+      }
     });
-
-    // Búsqueda al presionar Enter
+    
+    // Enter: Nuestra búsqueda
     searchInput.addEventListener('keypress', function(e) {
       if (e.key === 'Enter') {
         e.preventDefault();
-        busquedaGlobal(this.value);
+        console.log('↵ Enter (nuestra búsqueda)');
+        realizarBusqueda(this.value);
       }
     });
   }
-
+  
   if (searchBtn) {
     searchBtn.addEventListener('click', function() {
+      console.log('🔘 Botón (nuestra búsqueda)');
       const valor = document.getElementById('globalSearch')?.value || '';
-      busquedaGlobal(valor);
+      realizarBusqueda(valor);
     });
   }
-
+  
   if (searchFilter) {
     searchFilter.addEventListener('change', function() {
+      console.log('🔄 Filtro cambiado:', this.value);
       const valor = document.getElementById('globalSearch')?.value || '';
       if (valor.length >= 2) {
-        busquedaGlobal(valor);
+        realizarBusqueda(valor);
       }
     });
   }
-
-  // Cerrar resultados al hacer clic fuera
-  document.addEventListener('click', function(e) {
-    const searchSection = document.querySelector('.search-section');
-    const resultsContainer = document.getElementById('searchResults');
-    
-    if (searchSection && resultsContainer && 
-        !searchSection.contains(e.target)) {
-      resultsContainer.style.display = 'none';
-    }
-  });
-
-  // ============================================================================
-  // CONTADOR DE MENSAJES
-  // ============================================================================
-  cargarContadorGlobal();
-  setInterval(cargarContadorGlobal, 60000); // Cada 60 segundos
-
-  // ============================================================================
-  // SIDEBAR MÓVIL
-  // ============================================================================
-  const mobileMenuToggle = document.querySelector('.mobile-menu-toggle');
-  if (mobileMenuToggle) {
-    mobileMenuToggle.addEventListener('click', window.toggleSidebar);
-  }
-
-  // Cerrar sidebar al hacer clic fuera (móvil)
-  document.addEventListener('click', function(e) {
-    const sidebar = document.getElementById('sidebar');
-    const toggleBtn = document.querySelector('.mobile-menu-toggle');
-    
-    if (window.innerWidth <= 768 && 
-        sidebar && 
-        sidebar.classList.contains('show') &&
-        !sidebar.contains(e.target) &&
-        toggleBtn && !toggleBtn.contains(e.target)) {
-      sidebar.classList.remove('show');
-    }
-  });
-
-  // ============================================================================
-  // VALIDACIÓN GENÉRICA DE FORMULARIOS
-  // ============================================================================
-  const forms = document.querySelectorAll('form:not(#nuevoPacienteForm, #nuevaAdmisionForm, #editarAdmisionForm)');
   
-  forms.forEach(form => {
-    form.addEventListener('submit', async function(e) {
-      if (!form.checkValidity()) {
-        e.preventDefault();
-        e.stopPropagation();
-        form.classList.add('was-validated');
-        return;
-      }
-
-      const submitBtn = form.querySelector('button[type="submit"]');
-      if (submitBtn) {
-        const originalText = submitBtn.innerHTML;
-        submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Enviando...';
-        submitBtn.disabled = true;
-
-        // Permitir que el formulario se envíe normalmente
-        // El servidor redirigirá después del procesamiento
-      }
-    });
-  });
-
-  // ============================================================================
-  // TOOLTIPS
-  // ============================================================================
-  const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
-  tooltips.forEach(tooltip => {
-    try {
-      new bootstrap.Tooltip(tooltip);
-    } catch (e) {
-      console.log('Error inicializando tooltip:', e);
-    }
-  });
-
-  // ============================================================================
-  // AUTO-CERRAR ALERTAS
-  // ============================================================================
-  const alerts = document.querySelectorAll('.alert:not(.alert-permanent)');
-  alerts.forEach(alert => {
-    if (!alert.classList.contains('alert-permanent')) {
-      setTimeout(() => {
-        const bsAlert = new bootstrap.Alert(alert);
-        bsAlert.close();
-      }, 5000);
-    }
-  });
-
-  console.log('✅ Todas las funcionalidades inicializadas');
+  console.log('🎯 Búsqueda global CONFIGURADA (script.js)');
 });
 
-// ========================================
-//  UTILIDADES GLOBALES
-// ========================================
-
-window.showLoading = function(message = 'Cargando...') {
-  const existing = document.getElementById('globalLoadingIndicator');
-  if (existing) existing.remove();
-
-  const loader = document.createElement('div');
-  loader.id = 'globalLoadingIndicator';
-  loader.className = 'position-fixed top-50 start-50 translate-middle bg-dark text-white p-3 rounded shadow';
-  loader.style.zIndex = '9999';
-  loader.innerHTML = `
-    <div class="d-flex align-items-center">
-      <div class="spinner-border spinner-border-sm me-2"></div>
-      <span>${message}</span>
-    </div>
-  `;
-  
-  document.body.appendChild(loader);
-};
-
-window.hideLoading = function() {
-  const loader = document.getElementById('globalLoadingIndicator');
-  if (loader) loader.remove();
-};
-
-window.showMessage = function(message, type = 'info') {
-  const alertClass = {
-    'success': 'alert-success',
-    'error': 'alert-danger',
-    'warning': 'alert-warning',
-    'info': 'alert-info'
-  }[type] || 'alert-info';
-
-  const alert = document.createElement('div');
-  alert.className = `alert ${alertClass} alert-dismissible fade show position-fixed`;
-  alert.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
-  alert.innerHTML = `
-    <i class="fas fa-${type === 'success' ? 'check-circle' : type === 'error' ? 'exclamation-circle' : 'info-circle'} me-2"></i>
-    ${message}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  `;
-
-  document.body.appendChild(alert);
-
-  setTimeout(() => {
-    if (alert.parentNode) {
-      const bsAlert = new bootstrap.Alert(alert);
-      bsAlert.close();
-    }
-  }, 10000);
-};
-
-console.log('📄 Script.js loaded');

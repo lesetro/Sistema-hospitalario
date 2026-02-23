@@ -1,0 +1,119 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    //- BREADCRUMB
+    nav(aria-label='breadcrumb')
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href='/enfermero') Dashboard
+        li.breadcrumb-item
+          a(href='/enfermero/sectores') Mi Sector
+        li.breadcrumb-item.active= servicio.nombre
+    
+    //- ENCABEZADO CON ESTADÍSTICAS
+    .d-flex.justify-content-between.align-items-center.mb-4
+      div
+        h2
+          i.fas.fa-hospital.me-2
+          | #{servicio.nombre}
+        p.text-muted.mb-0 #{habitaciones.length} habitación(es) en este servicio
+    
+    //- TARJETAS DE ESTADÍSTICAS
+    .row.mb-4
+      .col-md-3
+        .card.text-white.bg-primary
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.card-title Habitaciones
+                h2.display-6.mb-0= estadisticas.totalHabitaciones
+              i.fas.fa-door-open.fa-3x.opacity-50
+      
+      .col-md-3
+        .card.text-white.bg-success
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.card-title Camas Totales
+                h2.display-6.mb-0= estadisticas.totalCamas
+              i.fas.fa-bed.fa-3x.opacity-50
+      
+      .col-md-3
+        .card.text-white.bg-info
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.card-title Camas Libres
+                h2.display-6.mb-0= estadisticas.camasLibres
+              i.fas.fa-check-circle.fa-3x.opacity-50
+      
+      .col-md-3
+        .card.text-white(class=estadisticas.porcentajeOcupacion > 80 ? 'bg-danger' : 'bg-warning')
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.card-title Ocupación
+                h2.display-6.mb-0= estadisticas.porcentajeOcupacion + '%'
+              i.fas.fa-chart-pie.fa-3x.opacity-50
+
+    //- LISTADO DE HABITACIONES
+    .row
+      each habitacion in habitaciones
+        .col-md-6.col-lg-4.mb-4
+          .card.h-100
+            .card-header.bg-secondary.text-white.d-flex.justify-content-between.align-items-center
+              span
+                i.fas.fa-door-closed.me-2
+                | Habitación #{habitacion.numero}
+              span.badge.bg-light.text-dark
+                = habitacion.camas.length + ' camas'
+            
+            .card-body
+              //- RESUMEN DE CAMAS EN ESTA HABITACIÓN
+              - const libres = habitacion.camas.filter(c => c.estado === 'Libre').length
+              - const ocupadas = habitacion.camas.filter(c => c.estado === 'Ocupada').length
+              - const otras = habitacion.camas.filter(c => c.estado !== 'Libre' && c.estado !== 'Ocupada').length
+              
+              .d-flex.justify-content-around.mb-3
+                .text-center
+                  .h4.mb-0.text-success= libres
+                  small.text-muted Libres
+                
+                .text-center
+                  .h4.mb-0.text-danger= ocupadas
+                  small.text-muted Ocupadas
+                
+                .text-center
+                  .h4.mb-0.text-warning= otras
+                  small.text-muted Otras
+              
+              //- LISTA RESUMEN DE CAMAS
+              .list-group.list-group-flush.mb-3
+                each cama in habitacion.camas.slice(0, 3)
+                  .list-group-item.d-flex.justify-content-between.align-items-center.px-0
+                    span
+                      i.fas.fa-bed.me-2
+                      | Cama #{cama.numero}
+                    span.badge(
+                      class=cama.estado === 'Libre' ? 'bg-success' : 
+                            cama.estado === 'Ocupada' ? 'bg-danger' : 'bg-warning'
+                    )= cama.estado
+                
+                if habitacion.camas.length > 3
+                  .list-group-item.text-center.text-muted.px-0
+                    small y #{habitacion.camas.length - 3} cama(s) más...
+              
+              a.btn.btn-outline-primary.w-100(
+                href=`/enfermero/camas/habitaciones/${habitacion.id}/camas`
+              )
+                i.fas.fa-eye.me-2
+                | Ver Detalle de Habitación
+    
+    if habitaciones.length === 0
+      .alert.alert-info
+        i.fas.fa-info-circle.me-2
+        | No hay habitaciones disponibles en este servicio.
+
+block scripts
+  script(src='/js/enfermero/servicio.js')

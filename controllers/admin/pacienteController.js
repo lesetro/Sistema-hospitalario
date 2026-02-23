@@ -18,7 +18,7 @@ const {
 /**
  * Vista principal de pacientes
  */
-const getVistaPacientes = async (req, res) => {
+const getVistaPacientes = async (req, res, next) => {
   try {
     const obrasSociales = await ObraSocial.findAll({
       attributes: ['id', 'nombre'],
@@ -30,17 +30,14 @@ const getVistaPacientes = async (req, res) => {
       obrasSociales
     });
   } catch (error) {
-    console.error('Error al cargar vista de pacientes:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar la página de pacientes'
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener lista de pacientes con paginación y filtros
  */
-const getListaPacientes = async (req, res) => {
+const getListaPacientes = async (req, res, next) => {
   try {
     const {
       page = 1,
@@ -141,19 +138,14 @@ const getListaPacientes = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener lista de pacientes:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener lista de pacientes',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener detalles completos de un paciente
  */
-const getDetallesPaciente = async (req, res) => {
+const getDetallesPaciente = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -291,19 +283,14 @@ const getDetallesPaciente = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener detalles del paciente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener detalles del paciente',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Actualizar datos de un paciente
  */
-const actualizarPaciente = async (req, res) => {
+const actualizarPaciente = async (req, res, next) => {
   const transaction = await require('../database/db').sequelize.transaction();
 
   try {
@@ -358,19 +345,14 @@ const actualizarPaciente = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al actualizar paciente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar paciente',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Baja lógica de un paciente
  */
-const bajaPaciente = async (req, res) => {
+const bajaPaciente = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { motivo } = req.body;
@@ -427,19 +409,14 @@ const bajaPaciente = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al dar de baja paciente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al dar de baja al paciente',
-      error: error.message
-    });
+   next(error);
   }
 };
 
 /**
  * Reactivar un paciente
  */
-const reactivarPaciente = async (req, res) => {
+const reactivarPaciente = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -470,12 +447,7 @@ const reactivarPaciente = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al reactivar paciente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al reactivar al paciente',
-      error: error.message
-    });
+    next(error);
   }
 };
 

@@ -7,9 +7,9 @@ const { Op } = require('sequelize');
 const db = require('../../database/db');
 
 // Listar notificaciones/mensajes
-exports.listarComunicaciones = async (req, res) => {
+exports.listarComunicaciones = async (req, res, next) => {
   try {
-    // ✅ CORRECCIÓN: usar req.user.usuario_id para notificaciones
+    // usar req.user.usuario_id para notificaciones
     const usuarioId = req.user.usuario_id;
     const { tipo, leida } = req.query;
 
@@ -51,18 +51,15 @@ exports.listarComunicaciones = async (req, res) => {
 
   } catch (error) {
     console.error('Error al listar comunicaciones:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar comunicaciones',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Marcar notificación como leída
-exports.marcarLeida = async (req, res) => {
+exports.marcarLeida = async (req, res, next) => {
   try {
     const { id } = req.params;
-    // ✅ CORRECCIÓN
+   
     const usuarioId = req.user.usuario_id;
 
     const notificacion = await Notificacion.findOne({
@@ -88,18 +85,14 @@ exports.marcarLeida = async (req, res) => {
 
   } catch (error) {
     console.error('Error al marcar como leída:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al marcar notificación',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Marcar todas como leídas
-exports.marcarTodasLeidas = async (req, res) => {
+exports.marcarTodasLeidas = async (req, res, next) => {
   try {
-    // ✅ CORRECCIÓN
+    
     const usuarioId = req.user.usuario_id;
 
     await Notificacion.update(
@@ -119,19 +112,15 @@ exports.marcarTodasLeidas = async (req, res) => {
 
   } catch (error) {
     console.error('Error al marcar todas como leídas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al marcar notificaciones',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Eliminar notificación
-exports.eliminarNotificacion = async (req, res) => {
+exports.eliminarNotificacion = async (req, res, next) => {
   try {
     const { id } = req.params;
-    // ✅ CORRECCIÓN
+    
     const usuarioId = req.user.usuario_id;
 
     const notificacion = await Notificacion.findOne({
@@ -157,18 +146,14 @@ exports.eliminarNotificacion = async (req, res) => {
 
   } catch (error) {
     console.error('Error al eliminar notificación:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al eliminar notificación',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Obtener notificaciones no leídas (para badge en header)
-exports.contadorNoLeidas = async (req, res) => {
+exports.contadorNoLeidas = async (req, res, next) => {
   try {
-    // ✅ CORRECCIÓN
+   
     const usuarioId = req.user.usuario_id;
 
     const count = await Notificacion.count({
@@ -185,18 +170,14 @@ exports.contadorNoLeidas = async (req, res) => {
 
   } catch (error) {
     console.error('Error al contar no leídas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al contar notificaciones',
-      count: 0
-    });
+    next(error);
   }
 };
 
 // Obtener últimas notificaciones (para dropdown en header)
-exports.ultimasNotificaciones = async (req, res) => {
+exports.ultimasNotificaciones = async (req, res, next) => {
   try {
-    // ✅ CORRECCIÓN
+   
     const usuarioId = req.user.usuario_id;
 
     const notificaciones = await Notificacion.findAll({
@@ -219,15 +200,12 @@ exports.ultimasNotificaciones = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener últimas notificaciones:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener notificaciones'
-    });
+    next(error);
   }
 };
 
 // Crear mensaje interno (comunicación entre personal)
-exports.enviarMensajeInterno = async (req, res) => {
+exports.enviarMensajeInterno = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
@@ -312,16 +290,12 @@ exports.enviarMensajeInterno = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('Error al enviar mensaje:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al enviar mensaje',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Buscar personal para enviar mensaje
-exports.buscarPersonal = async (req, res) => {
+exports.buscarPersonal = async (req, res, next) => {
   try {
     const { busqueda, tipo } = req.query;
 
@@ -406,10 +380,7 @@ exports.buscarPersonal = async (req, res) => {
 
   } catch (error) {
     console.error('Error al buscar personal:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al buscar personal'
-    });
+    next(error);
   }
 };
 

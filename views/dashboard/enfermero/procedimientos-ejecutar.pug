@@ -1,4 +1,4 @@
-extends ../../layouts/enfermero-layout
+extends ../../layouts/enfermero-layout.pug
 
 block content
   .container-fluid
@@ -75,10 +75,9 @@ block content
                 textarea.form-control(name='signos_vitales' rows='2' placeholder='PA: 120/80, FC: 70 lpm, T: 36.5°C, SpO2: 98%')
               
               .mb-4
-                label.form-label
-                  i.fas.fa-clipboard.me-2
-                  strong Observaciones de la Ejecución *
-                textarea.form-control(name='observaciones' rows='4' required placeholder='Describa el desarrollo del procedimiento...')
+                .form-floating
+                  textarea.form-control(name='observaciones' rows='4' required placeholder='Describa el desarrollo del procedimiento...')
+                  label Observaciones *
               
               .mb-4
                 label.form-label
@@ -119,7 +118,10 @@ block content
               i.fas.fa-user-md.me-2
               | Médico Solicitante
           .card-body
-            p.mb-0 Dr. #{procedimiento.evaluacion_medica.medico.usuario.nombre} #{procedimiento.evaluacion_medica.medico.usuario.apellido}
+            if procedimiento.evaluacion_medica && procedimiento.evaluacion_medica.medico && procedimiento.evaluacion_medica.medico.usuario
+              p.mb-0 Dr. #{procedimiento.evaluacion_medica.medico.usuario.nombre} #{procedimiento.evaluacion_medica.medico.usuario.apellido}
+            else
+              p.mb-0.text-muted No hay médico asignado
 
         if procedimiento.tratamiento
           .card.border-0.shadow-sm.mb-3
@@ -148,5 +150,84 @@ block content
                 li
                   strong Verificar preparación especial del paciente
 
+
+
 block scripts
-  script(src='/js/enfermero/procedimientos-ejecutar.js')
+  script.
+    document.addEventListener('DOMContentLoaded', () => {
+      const obs = document.querySelector('textarea[name="observaciones"]');
+      if (obs) {
+        obs.addEventListener('blur', function() {
+          const len = this.value.trim().length;
+          if (len > 0 && len < 20) {
+            this.classList.add('is-invalid');
+            let feedback = this.nextElementSibling;
+            if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+              feedback = document.createElement('div');
+              feedback.className = 'invalid-feedback';
+              feedback.textContent = 'Mínimo 20 caracteres';
+              this.parentNode.appendChild(feedback);
+            }
+            feedback.style.display = 'block';
+            this.focus();
+            this.select();
+          } else {
+            this.classList.remove('is-invalid');
+            const feedback = this.nextElementSibling;
+            if (feedback && feedback.classList.contains('invalid-feedback')) {
+              feedback.style.display = 'none';
+            }
+          }
+        });
+      }
+
+      // Enviar formulario
+      document.getElementById('form-ejecutar')?.addEventListener('submit', async e => {
+        e.preventDefault();
+        if (!confirm('¿Confirma completar el procedimiento?')) return;
+
+        const formData = new FormData(e.target);
+        const data = Object.fromEntries(formData);
+        const procId = window.location.pathname.split('/')[3];
+
+        try {
+          const res = await fetch(`/enfermero/procedimientos/${procId}/ejecutar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          const result = await res.json();
+          if (result.success) {
+            alert('Procedimiento completado');
+            window.location.href = result.redirect || '/enfermero/procedimientos';
+          } else {
+            alert(result.message || 'Error');
+          }
+        } catch (err) {
+          alert('Error al enviar');
+        }
+      });
+
+      // Cancelar
+      window.cancelarProcedimiento = async () => {
+        const motivo = prompt('Motivo de cancelación:');
+        if (!motivo) return;
+        const procId = window.location.pathname.split('/')[3];
+        try {
+          const res = await fetch(`/enfermero/procedimientos/${procId}/cancelar`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ motivo_cancelacion: motivo })
+          });
+          const result = await res.json();
+          if (result.success) {
+            alert(result.message);
+            window.location.href = result.redirect || '/enfermero/procedimientos';
+          } else {
+            alert(result.message || 'Error');
+          }
+        } catch (err) {
+          alert('Error al cancelar');
+        }
+      };
+    });

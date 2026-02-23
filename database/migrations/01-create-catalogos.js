@@ -60,11 +60,13 @@ module.exports = {
         id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
         nombre: { type: Sequelize.STRING(100), allowNull: false, unique: true },
         descripcion: { type: Sequelize.TEXT, allowNull: true },
+        sector_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'sectores', key: 'id' }, comment: 'Sector al que pertenece este servicio' },
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
         updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') }
       }, { transaction, engine: 'InnoDB', charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' });
 
       await queryInterface.addIndex('tiposdeservicio', ['nombre'], { unique: true, transaction });
+      await queryInterface.addIndex('tiposdeservicio', ['sector_id'], { transaction });
 
       // ===================================
       // TIPOS DE INTERNACION

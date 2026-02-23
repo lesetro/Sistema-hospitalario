@@ -1,0 +1,264 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .solicitud-detalle-paciente
+    //- Breadcrumb
+    nav(aria-label='breadcrumb')
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href='/paciente') Inicio
+        li.breadcrumb-item
+          a(href='/paciente/lista-espera') Lista de Espera
+        li.breadcrumb-item.active(aria-current='page') Detalle de Solicitud
+
+    //- Encabezado
+    .row.mb-4
+      .col-md-4.text-md-end
+        a.btn.btn-outline-secondary(href='/paciente/lista-espera')
+          i.fas.fa-arrow-left.me-2
+          | Volver
+        if puedeCancelar
+          button.btn.btn-danger.ms-2(onclick=`mostrarModalCancelar(${solicitud.id})`)
+            i.fas.fa-times.me-2
+            | Cancelar Solicitud
+
+    //- Estado de la solicitud
+    .alert(class=solicitud.estado === 'ASIGNADO' ? 'alert-primary' : solicitud.estado === 'PENDIENTE' ? 'alert-warning' : solicitud.estado === 'COMPLETADO' ? 'alert-success' : 'alert-danger')
+      .row.align-items-center
+        .col-md-8
+          h5.alert-heading
+            i.fas(class=solicitud.estado === 'ASIGNADO' ? 'fa-check-circle' : solicitud.estado === 'PENDIENTE' ? 'fa-hourglass-half' : solicitud.estado === 'COMPLETADO' ? 'fa-check-double' : 'fa-times-circle').me-2
+            | Estado: #{solicitud.estado}
+          if solicitud.estado === 'PENDIENTE'
+            p.mb-0
+              | Tu solicitud está en proceso. Serás notificado cuando se asigne un turno.
+              if posicionEnCola
+                br
+                strong Posición en la cola: #{posicionEnCola}
+          else if solicitud.estado === 'ASIGNADO'
+            p.mb-0 Tu turno ha sido asignado. Revisa los detalles a continuación.
+          else if solicitud.estado === 'COMPLETADO'
+            p.mb-0 Esta solicitud fue completada exitosamente.
+          else if solicitud.estado === 'CANCELADO'
+            p.mb-0 Esta solicitud fue cancelada.
+        .col-md-4.text-md-end
+          span.badge.fs-5(class=solicitud.prioridad === 'ALTA' ? 'bg-danger' : solicitud.prioridad === 'MEDIA' ? 'bg-warning' : 'bg-secondary')
+            | Prioridad: #{solicitud.prioridad}
+
+    .row
+      //- Información de la solicitud
+      .col-lg-6.mb-4
+        .card.border-0.shadow-sm.h-100
+          .card-header.bg-info.text-white
+            h5.mb-0
+              i.fas.fa-info-circle.me-2
+              | Información de la Solicitud
+          .card-body
+            .info-group.mb-3
+              label.text-muted.mb-1
+                i.fas.fa-clipboard.me-2
+                | Tipo de Turno
+              p.mb-0
+                strong #{solicitud.tipo_turno.nombre}
+                if solicitud.tipo_turno.descripcion
+                  br
+                  small.text-muted #{solicitud.tipo_turno.descripcion}
+            
+            if solicitud.especialidad
+              .info-group.mb-3
+                label.text-muted.mb-1
+                  i.fas.fa-stethoscope.me-2
+                  | Especialidad
+                p.mb-0
+                  strong #{solicitud.especialidad.nombre}
+                  if solicitud.especialidad.descripcion
+                    br
+                    small.text-muted #{solicitud.especialidad.descripcion}
+            
+            if solicitud.tipo_estudio
+              .info-group.mb-3
+                label.text-muted.mb-1
+                  i.fas.fa-x-ray.me-2
+                  | Tipo de Estudio
+                p.mb-0
+                  strong #{solicitud.tipo_estudio.nombre}
+                  br
+                  span.badge.bg-secondary #{solicitud.tipo_estudio.categoria}
+                if solicitud.tipo_estudio.requiere_ayuno
+                  .alert.alert-warning.mt-2.mb-0
+                    i.fas.fa-exclamation-triangle.me-2
+                    strong Importante:
+                    |  Este estudio requiere ayuno de 8 horas previas.
+            
+            .info-group.mb-3
+              label.text-muted.mb-1
+                i.fas.fa-calendar.me-2
+                | Fecha de Registro
+              p.mb-0
+                strong #{new Date(solicitud.fecha_registro).toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            
+            .info-group
+              label.text-muted.mb-1
+                i.fas.fa-clock.me-2
+                | Tiempo de Espera
+              p.mb-0
+                strong #{diasEspera} día#{diasEspera !== 1 ? 's' : ''}
+
+      //- Turno asignado (si existe)
+      .col-lg-6.mb-4
+        if solicitud.turno
+          .card.border-0.shadow-sm.h-100.border-success
+            .card-header.bg-success.text-white
+              h5.mb-0
+                i.fas.fa-calendar-check.me-2
+                | Turno Asignado
+            .card-body
+              .alert.alert-success
+                i.fas.fa-check-circle.me-2
+                strong ¡Turno asignado exitosamente!
+              
+              .info-group.mb-3
+                label.text-muted.mb-1
+                  i.fas.fa-calendar.me-2
+                  | Fecha
+                p.mb-0
+                  strong #{new Date(solicitud.turno.fecha).toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+              
+              .info-group.mb-3
+                label.text-muted.mb-1
+                  i.fas.fa-clock.me-2
+                  | Horario
+                p.mb-0
+                  strong #{solicitud.turno.hora_inicio}
+              
+              if solicitud.turno.medico
+                .info-group.mb-3
+                  label.text-muted.mb-1
+                    i.fas.fa-user-md.me-2
+                    | Médico
+                  p.mb-0
+                    strong Dr/a. #{solicitud.turno.medico.usuario.nombre} #{solicitud.turno.medico.usuario.apellido}
+                    if solicitud.turno.medico.especialidad
+                      br
+                      small.text-muted #{solicitud.turno.medico.especialidad.nombre}
+              
+              if solicitud.turno.sector
+                .info-group.mb-3
+                  label.text-muted.mb-1
+                    i.fas.fa-map-marker-alt.me-2
+                    | Sector
+                  p.mb-0
+                    strong #{solicitud.turno.sector.nombre}
+              
+              .info-group
+                label.text-muted.mb-1
+                  i.fas.fa-info-circle.me-2
+                  | Estado del Turno
+                p.mb-0
+                  span.badge.fs-6(class=solicitud.turno.estado === 'CONFIRMADO' ? 'bg-success' : solicitud.turno.estado === 'PENDIENTE' ? 'bg-warning' : 'bg-info')
+                    | #{solicitud.turno.estado}
+              
+              .d-grid.mt-3
+                a.btn.btn-success(href=`/paciente/turnos/${solicitud.turno.id}`)
+                  i.fas.fa-eye.me-2
+                  | Ver Detalles del Turno
+        else
+          .card.border-0.shadow-sm.h-100
+            .card-header.bg-secondary.text-white
+              h5.mb-0
+                i.fas.fa-hourglass-half.me-2
+                | Estado de Asignación
+            .card-body
+              if solicitud.estado === 'PENDIENTE'
+                .text-center.py-4
+                  i.fas.fa-hourglass-half.fa-4x.text-warning.mb-3
+                  h5 En Espera de Asignación
+                  p.text-muted Tu solicitud está siendo procesada por el personal administrativo.
+                  if posicionEnCola
+                    .alert.alert-info
+                      i.fas.fa-sort-numeric-down.me-2
+                      strong Posición en la cola: #{posicionEnCola}
+                      p.mb-0.mt-2.small Tiempo estimado de espera: variable según disponibilidad
+              else if solicitud.estado === 'CANCELADO'
+                .text-center.py-4
+                  i.fas.fa-times-circle.fa-4x.text-danger.mb-3
+                  h5 Solicitud Cancelada
+                  p.text-muted Esta solicitud fue cancelada y no se asignará turno.
+              else if solicitud.estado === 'COMPLETADO'
+                .text-center.py-4
+                  i.fas.fa-check-double.fa-4x.text-success.mb-3
+                  h5 Solicitud Completada
+                  p.text-muted El turno asociado fue completado exitosamente.
+
+    //- Información adicional
+    .row
+      .col-lg-12
+        .card.border-0.shadow-sm
+          .card-header.bg-light
+            h5.mb-0
+              i.fas.fa-question-circle.me-2
+              | Información Adicional
+          .card-body
+            .row
+              .col-md-6
+                h6
+                  i.fas.fa-info-circle.text-info.me-2
+                  | ¿Qué hacer mientras esperas?
+                ul
+                  li Mantén tu información de contacto actualizada
+                  li Revisa regularmente tus notificaciones
+                  li Si tu situación cambia, cancela la solicitud
+                  li Prepara documentación necesaria (DNI, carnet)
+              
+              .col-md-6
+                h6
+                  i.fas.fa-phone.text-success.me-2
+                  | Contacto
+                p Si tienes dudas o necesitas información adicional:
+                ul.mb-0
+                  li Llama al hospital: (2657) 123-4567
+                  li Email: turnos@hospital.com
+                  li Horario de atención: Lunes a Viernes 8:00-18:00
+
+    //- Acciones
+    .text-center.mt-4
+      if puedeCancelar
+        button.btn.btn-danger.btn-lg(onclick=`mostrarModalCancelar(${solicitud.id})`)
+          i.fas.fa-times.me-2
+          | Cancelar Solicitud
+      
+      a.btn.btn-outline-secondary.btn-lg.ms-2(href='/paciente/lista-espera')
+        i.fas.fa-arrow-left.me-2
+        | Volver a Lista de Espera
+
+  //- Modal para cancelar solicitud
+  #modalCancelarSolicitud.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-danger.text-white
+          h5.modal-title
+            i.fas.fa-exclamation-triangle.me-2
+            | Cancelar Solicitud
+          button.btn-close.btn-close-white(type='button', data-bs-dismiss='modal')
+        .modal-body
+          p ¿Estás seguro de que deseas cancelar esta solicitud?
+          if solicitud.turno
+            .alert.alert-warning
+              i.fas.fa-exclamation-triangle.me-2
+              strong Atención:
+              |  Esta solicitud tiene un turno asignado. Al cancelar, también se cancelará el turno.
+          else
+            .alert.alert-info
+              i.fas.fa-info-circle.me-2
+              | Esta acción no se puede deshacer. Podrás crear una nueva solicitud si lo necesitas.
+          .mb-3
+            label.form-label Motivo de cancelación (opcional)
+            textarea#motivoCancelacion.form-control(rows='3', placeholder='Describe el motivo...')
+        .modal-footer
+          button.btn.btn-secondary(type='button', data-bs-dismiss='modal') No, mantener solicitud
+          button#btnConfirmarCancelacion.btn.btn-danger(type='button')
+            i.fas.fa-check.me-2
+            | Sí, cancelar solicitud
+
+block scripts
+  script(src='/js/paciente/paciente-lista-espera.js')

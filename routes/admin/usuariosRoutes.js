@@ -13,5 +13,5 @@ router.post('/api/crear', controller.crearUsuario);
 router.put('/api/:id', controller.actualizarUsuario);
 router.put('/api/:id/bloquear', controller.bloquearUsuario);
 router.put('/api/:id/reset-password', controller.resetPassword);
-
+router.put('/api/:id/completar-urgencia', controller.completarPacienteUrgencia);
 module.exports = router;

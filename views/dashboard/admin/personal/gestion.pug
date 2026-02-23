@@ -9,32 +9,36 @@ block content
 
     //- ENCABEZADO Y ESTADÍSTICAS
     .row.mb-4
-      .col-md-9
+      .col-md-8
         h2
           i.fas.fa-users.me-2
           | Gestión de Personal Hospitalario
-      .col-md-3
+      .col-md-4
+        .d-flex.justify-content-end.mb-2
+          button#btnNuevoPersonal.btn.btn-success
+            i.fas.fa-user-plus.me-2
+            | Nuevo Personal
         .row
-          .col-6
+          .col-4
             .card.text-center.bg-primary.text-white
               .card-body.p-2
                 h4#total-medicos.mb-0 0
                 small Médicos
-          .col-6
+          .col-4
             .card.text-center.bg-success.text-white
               .card-body.p-2
                 h4#total-enfermeros.mb-0 0
                 small Enfermeros
-          .col-6.mt-2
+          .col-4
             .card.text-center.bg-warning.text-white
               .card-body.p-2
                 h4#total-administrativos.mb-0 0
                 small Admin
-          .col-6.mt-2
+          .col-12.mt-2
             .card.text-center.bg-danger.text-white
               .card-body.p-2
                 h4#sin-asignar.mb-0 0
-                small Sin Sector
+                small Personal Sin Sector
 
     //- FILTROS
     .card.mb-4
@@ -168,7 +172,6 @@ block content
             .mb-3
               label.form-label Días *
               input#turno-dias.form-control(placeholder='Ej: Lunes,Martes,Miércoles' required)
-              small.text-muted Sin espacios, separados por coma
             .row
               .col-6
                 .mb-3
@@ -188,6 +191,251 @@ block content
         .modal-footer
           button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
           button#btnGuardarTurno.btn.btn-success(type='button') Guardar
+
+  //- MODAL CREAR PERSONAL
+  #modalCrear.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-user-plus.me-2
+            | Crear Nuevo Personal
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#form-crear
+            //- Selección de tipo
+            .mb-4
+              label.form-label.fw-bold Tipo de Personal *
+              select#crear-tipo.form-select(required)
+                option(value='') Seleccione el tipo...
+                option(value='medico') Médico
+                option(value='enfermero') Enfermero
+                option(value='administrativo') Administrativo
+            
+            //- Campos generales (visibles siempre)
+            #campos-generales
+              h6.mb-3.border-bottom.pb-2
+                i.fas.fa-user.me-2
+                | Datos Personales
+              .row
+                .col-md-6.mb-3
+                  label.form-label Nombre *
+                  input#crear-nombre.form-control(type='text' required)
+                .col-md-6.mb-3
+                  label.form-label Apellido *
+                  input#crear-apellido.form-control(type='text' required)
+                .col-md-4.mb-3
+                  label.form-label DNI *
+                  input#crear-dni.form-control(type='text' required)
+                .col-md-4.mb-3
+                  label.form-label Email *
+                  input#crear-email.form-control(type='email' required)
+                .col-md-4.mb-3
+                  label.form-label Teléfono
+                  input#crear-telefono.form-control(type='tel')
+                .col-md-4.mb-3
+                  label.form-label Fecha de Nacimiento *
+                  input#crear-fecha-nacimiento.form-control(
+                    type='date' 
+                    required
+                    max=new Date().toISOString().split('T')[0]
+                  )
+                .col-md-4.mb-3
+                  label.form-label Género *
+                  select#crear-genero.form-select(required)
+                    option(value='') Seleccione...
+                    option(value='Masculino') Masculino
+                    option(value='Femenino') Femenino
+                    option(value='Otro') Otro
+                    option(value='Prefiero no decir') Prefiero no decir
+                .col-md-4.mb-3
+                  label.form-label Estado
+                  select#crear-estado.form-select
+                    option(value='Activo' selected) Activo
+                    option(value='Inactivo') Inactivo
+                .col-md-6.mb-3
+                  label.form-label Sector
+                  select#crear-sector.form-select
+                    option(value='') Cargando sectores...
+                .col-md-6.mb-3
+                  label.form-label Fecha Ingreso
+                  input#crear-fecha-ingreso.form-control(
+                    type='date' 
+                    value=new Date().toISOString().split('T')[0]
+                  )
+                .col-md-12.mb-3
+                  label.form-label Contraseña
+                  input#crear-password.form-control(
+                    type='text' 
+                    value='Hospital123'
+                  )
+                  small.form-text.text-muted Contraseña por defecto para el primer acceso
+            
+            //- Campos específicos para MÉDICO
+            #campos-crear-medico.campo-crear-medico.d-none
+              h6.mb-3.border-bottom.pb-2
+                i.fas.fa-stethoscope.me-2
+                | Datos Médicos
+              .row
+                .col-md-6.mb-3
+                  label.form-label Matrícula *
+                  input#crear-matricula-medico.form-control(type='text' required)
+                .col-md-6.mb-3
+                  label.form-label Especialidad
+                  select#crear-especialidad.form-select
+                    option(value='') Cargando especialidades...
+            
+            //- Campos específicos para ENFERMERO
+            #campos-crear-enfermero.campo-crear-enfermero.d-none
+              h6.mb-3.border-bottom.pb-2
+                i.fas.fa-user-nurse.me-2
+                | Datos de Enfermero
+              .row
+                .col-md-6.mb-3
+                  label.form-label Matrícula *
+                  input#crear-matricula-enfermero.form-control(type='text' required)
+                .col-md-6.mb-3
+                  label.form-label Nivel
+                  select#crear-nivel.form-select
+                    option(value='Auxiliar') Auxiliar
+                    option(value='Profesional') Profesional
+                    option(value='Superior') Superior
+            
+            //- Campos específicos para ADMINISTRATIVO
+            #campos-crear-administrativo.campo-crear-administrativo.d-none
+              h6.mb-3.border-bottom.pb-2
+                i.fas.fa-briefcase.me-2
+                | Datos Administrativos
+              .row
+                .col-md-12.mb-3
+                  label.form-label Responsabilidad
+                  input#crear-responsabilidad.form-control(
+                    type='text' 
+                    placeholder='Ej: Recepción, Archivo, etc.'
+                  )
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnCrearPersonal.btn.btn-success(type='button')
+            i.fas.fa-user-plus.me-2
+            | Crear Personal
+
+  //- MODAL EDITAR EMPLEADO
+  #modalEditar.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title#editar-titulo
+            i.fas.fa-user-edit.me-2
+            | Editar Empleado
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#form-editar
+            input#editar-tipo(type='hidden')
+            input#editar-id(type='hidden')
+            
+            h6.mb-3.border-bottom.pb-2
+              i.fas.fa-user.me-2
+              | Datos Personales
+            .row
+              .col-md-6.mb-3
+                label.form-label Nombre *
+                input#editar-nombre.form-control(type='text' required)
+              .col-md-6.mb-3
+                label.form-label Apellido *
+                input#editar-apellido.form-control(type='text' required)
+              .col-md-4.mb-3
+                label.form-label DNI *
+                input#editar-dni.form-control(type='text' required)
+              .col-md-4.mb-3
+                label.form-label Email
+                input#editar-email.form-control(type='email')
+              .col-md-4.mb-3
+                label.form-label Teléfono
+                input#editar-telefono.form-control(type='tel')
+              .col-md-4.mb-3
+                label.form-label Estado
+                select#editar-estado.form-select
+                  option(value='Activo') Activo
+                  option(value='Inactivo') Inactivo
+                  option(value='Licencia') Licencia
+                  option(value='Vacaciones') Vacaciones
+              .col-md-8.mb-3
+                label.form-label Sector
+                select#editar-sector.form-select
+                  option(value='') Sin sector
+                  if sectores
+                    each s in sectores
+                      option(value=s.id)= s.nombre
+            
+            //- Campos para MÉDICO
+            #campos-medico.campo-medico.d-none
+              h6.mb-3.border-bottom.pb-2
+                i.fas.fa-stethoscope.me-2
+                | Datos Médicos
+              .row
+                .col-md-6.mb-3
+                  label.form-label Matrícula
+                  input#editar-matricula-medico.form-control(type='text')
+                .col-md-6.mb-3
+                  label.form-label Especialidad
+                  select#editar-especialidad.form-select
+                    option(value='') Sin especialidad
+                    if especialidades
+                      each e in especialidades
+                        option(value=e.id)= e.nombre
+                .col-md-6.mb-3
+                  label.form-label Fecha Ingreso
+                  input#editar-fecha-ingreso-medico.form-control(type='date')
+                .col-md-6.mb-3
+                  label.form-label Fecha Egreso
+                  input#editar-fecha-egreso-medico.form-control(type='date')
+                  small.form-text.text-muted Dejar vacío si sigue activo
+            
+            //- Campos para ENFERMERO
+            #campos-enfermero.campo-enfermero.d-none
+              h6.mb-3.border-bottom.pb-2
+                i.fas.fa-user-nurse.me-2
+                | Datos de Enfermero
+              .row
+                .col-md-6.mb-3
+                  label.form-label Matrícula
+                  input#editar-matricula-enfermero.form-control(type='text')
+                .col-md-6.mb-3
+                  label.form-label Nivel
+                  select#editar-nivel.form-select
+                    option(value='') Seleccione...
+                    option(value='Auxiliar') Auxiliar
+                    option(value='Profesional') Profesional
+                    option(value='Superior') Superior
+                .col-md-6.mb-3
+                  label.form-label Fecha Ingreso
+                  input#editar-fecha-ingreso-enfermero.form-control(type='date')
+                .col-md-6.mb-3
+                  label.form-label Fecha Egreso
+                  input#editar-fecha-egreso-enfermero.form-control(type='date')
+                  small.form-text.text-muted Dejar vacío si sigue activo
+            
+            //- Campos para ADMINISTRATIVO
+            #campos-administrativo.campo-administrativo.d-none
+              h6.mb-3.border-bottom.pb-2
+                i.fas.fa-briefcase.me-2
+                | Datos Administrativos
+              .row
+                .col-md-12.mb-3
+                  label.form-label Responsabilidad
+                  input#editar-responsabilidad.form-control(type='text')
+                .col-md-6.mb-3
+                  label.form-label Fecha Ingreso
+                  input#editar-fecha-ingreso-administrativo.form-control(type='date')
+                .col-md-6.mb-3
+                  label.form-label Fecha Egreso
+                  input#editar-fecha-egreso-administrativo.form-control(type='date')
+                  small.form-text.text-muted Dejar vacío si sigue activo
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnGuardarEdicion.btn.btn-primary(type='button')
+            i.fas.fa-save.me-2
+            | Guardar Cambios
 
 block scripts
   script(src='/js/admin/personal.js')

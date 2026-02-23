@@ -1,0 +1,157 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .admisiones-paciente
+    .page-header.mb-4
+      .row.align-items-center
+        .col-md-8
+          h2
+            i.fas.fa-clipboard-list.text-primary.me-2
+            | Mis Admisiones
+          p.text-muted Historial de atenciones y admisiones
+        .col-md-4.text-md-end
+          a.btn.btn-outline-secondary(href='/paciente')
+            i.fas.fa-arrow-left.me-2
+            | Volver al Inicio
+
+    //- Estadísticas
+    .row.mb-4
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-primary.text-white.mb-2
+              i.fas.fa-clipboard-check.fa-2x
+            h3.stat-number.text-primary #{estadisticas.total}
+            p.stat-label.mb-0 Total Admisiones
+      
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-warning.text-white.mb-2
+              i.fas.fa-clock.fa-2x
+            h3.stat-number.text-warning #{estadisticas.pendientes}
+            p.stat-label.mb-0 Pendientes
+      
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-success.text-white.mb-2
+              i.fas.fa-check-circle.fa-2x
+            h3.stat-number.text-success #{estadisticas.completadas}
+            p.stat-label.mb-0 Completadas
+      
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-info.text-white.mb-2
+              i.fas.fa-bed.fa-2x
+            h3.stat-number.text-info #{estadisticas.conInternacion}
+            p.stat-label.mb-0 Con Internación
+
+    //- Filtros
+    .card.border-0.shadow-sm.mb-4
+      .card-body
+        form(method='GET')
+          .row.g-3
+            .col-md-3
+              label.form-label Estado
+              select.form-select(name='estado')
+                option(value='', selected=!filtros.estado) Todos
+                option(value='Pendiente', selected=filtros.estado === 'Pendiente') Pendiente
+                option(value='Completada', selected=filtros.estado === 'Completada') Completada
+                option(value='Cancelada', selected=filtros.estado === 'Cancelada') Cancelada
+            .col-md-3
+              label.form-label Desde
+              input.form-control(type='date', name='desde', value=filtros.desde || '')
+            .col-md-3
+              label.form-label Hasta
+              input.form-control(type='date', name='hasta', value=filtros.hasta || '')
+            .col-md-3.d-flex.align-items-end
+              button.btn.btn-primary.w-100(type='submit')
+                i.fas.fa-filter.me-2
+                | Filtrar
+              button.btn.btn-secondary.ms-2(type='button', onclick='location.href="/paciente/admisiones"')
+                i.fas.fa-times
+
+    //- Lista de admisiones
+    .card.border-0.shadow-sm
+      .card-header.bg-light
+        h5.mb-0
+          i.fas.fa-list.me-2
+          | Historial de Admisiones
+      .card-body
+        if admisiones && admisiones.length > 0
+          .table-responsive
+            table.table.table-hover.align-middle
+              thead
+                tr
+                  th Estado
+                  th Fecha
+                  th Motivo
+                  th Médico/Especialidad
+                  th Sector
+                  th Internación
+                  th Acciones
+              tbody
+                each admision in admisiones
+                  tr
+                    td
+                      if admision.estado === 'Pendiente'
+                        span.badge.bg-warning Pendiente
+                      else if admision.estado === 'Completada'
+                        span.badge.bg-success Completada
+                      else
+                        span.badge.bg-danger Cancelada
+                    td #{new Date(admision.fecha).toLocaleDateString('es-AR')}
+                    td
+                      if admision.motivo
+                        | #{admision.motivo.nombre}
+                      else if admision.motivo_consulta
+                        | #{admision.motivo_consulta.nombre}
+                      else
+                        span.text-muted -
+                    td
+                      if admision.medico
+                        | Dr/a. #{admision.medico.usuario.nombre} #{admision.medico.usuario.apellido}
+                        if admision.medico.especialidad
+                          br
+                          small.text-muted #{admision.medico.especialidad.nombre}
+                      else if admision.especialidad
+                        | #{admision.especialidad.nombre}
+                      else if admision.tipo_estudio
+                        | #{admision.tipo_estudio.nombre}
+                      else
+                        span.text-muted -
+                    td
+                      if admision.sector
+                        small #{admision.sector.nombre}
+                      else
+                        span.text-muted -
+                    td.text-center
+                      if admision.internacion
+                        i.fas.fa-check-circle.text-success(title='Tuvo internación')
+                      else
+                        i.fas.fa-times-circle.text-muted(title='Sin internación')
+                    td
+                      a.btn.btn-sm.btn-outline-primary(href=`/paciente/admisiones/${admision.id}`)
+                        i.fas.fa-eye.me-1
+                        | Ver
+
+          if paginacion.totalPages > 1
+            nav.mt-4
+              ul.pagination.justify-content-center
+                li.page-item(class=!paginacion.hasPrev ? 'disabled' : '')
+                  a.page-link(href=`?page=${paginacion.currentPage - 1}`) Anterior
+                - for (let i = 1; i <= paginacion.totalPages; i++)
+                  li.page-item(class=i === paginacion.currentPage ? 'active' : '')
+                    a.page-link(href=`?page=${i}`) #{i}
+                li.page-item(class=!paginacion.hasNext ? 'disabled' : '')
+                  a.page-link(href=`?page=${paginacion.currentPage + 1}`) Siguiente
+        else
+          .text-center.py-5
+            i.fas.fa-clipboard.fa-4x.text-muted.mb-3
+            h5.text-muted No tienes admisiones registradas
+            p.text-muted Las admisiones se crean cuando recibes atención en el hospital
+
+block scripts
+  script(src='/js/paciente/paciente-admisiones.js')

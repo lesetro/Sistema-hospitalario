@@ -1,4 +1,3 @@
-// Administración de Medicación - Lista
 
 // Buscar paciente
 function buscarPaciente() {
@@ -63,7 +62,8 @@ function mostrarResultadosPacientes(pacientes) {
 // Ver recetas de un paciente
 async function verRecetasPaciente(pacienteId) {
   try {
-    const response = await fetch(`/enfermero/medicacion/api/recetas/${pacienteId}`);
+    //  Ruta  con /paciente/
+    const response = await fetch(`/enfermero/medicacion/api/paciente/${pacienteId}/recetas`);
     const data = await response.json();
     
     if (data.success) {

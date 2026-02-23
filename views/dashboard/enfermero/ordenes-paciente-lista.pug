@@ -1,0 +1,129 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/enfermero") Dashboard
+            li.breadcrumb-item
+              a(href="/enfermero/internados") Pacientes Internados
+            li.breadcrumb-item.active Órdenes Médicas
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-clipboard-list.me-2
+              | Órdenes Médicas del Paciente
+            if ordenes.length > 0
+              p.text-muted.mb-0
+                | Paciente: 
+                strong #{ordenes[0].paciente.usuario.nombre} #{ordenes[0].paciente.usuario.apellido}
+                |  - DNI: #{ordenes[0].paciente.usuario.dni}
+          div
+            a.btn.btn-outline-secondary(href="/enfermero/internados")
+              i.fas.fa-arrow-left.me-2
+              | Volver a Internados
+
+    // Estadísticas
+    .row.mb-4
+      .col-md-3.col-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body.text-center
+            h3.mb-0.text-primary= estadisticas.total
+            small.text-muted Total Órdenes
+      
+      .col-md-3.col-6.mb-3
+        .card.border-0.shadow-sm.h-100.border-start.border-warning.border-4
+          .card-body.text-center
+            h3.mb-0.text-warning= estadisticas.pendientes
+            small.text-muted Pendientes
+      
+      .col-md-3.col-6.mb-3
+        .card.border-0.shadow-sm.h-100.border-start.border-success.border-4
+          .card-body.text-center
+            h3.mb-0.text-success= estadisticas.completadas
+            small.text-muted Completadas
+      
+      .col-md-3.col-6.mb-3
+        .card.border-0.shadow-sm.h-100.border-start.border-danger.border-4
+          .card-body.text-center
+            h3.mb-0.text-danger= estadisticas.urgentes
+            small.text-muted Urgentes
+
+    // Lista de órdenes
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Órdenes Pendientes de Ejecución
+          
+          .card-body
+            if ordenes && ordenes.length > 0
+              each orden in ordenes
+                - const esPendiente = orden.estado === 'PENDIENTE'
+                - const esUrgente = orden.prioridad === 'URGENTE'
+                .card.mb-3(class=esUrgente && esPendiente ? 'border-danger border-2' : esPendiente ? 'border-warning' : 'border-success')
+                  .card-header.d-flex.justify-content-between.align-items-center(class=esUrgente && esPendiente ? 'bg-danger text-white' : esPendiente ? 'bg-warning' : 'bg-success text-white')
+                    div
+                      if esUrgente
+                        i.fas.fa-exclamation-triangle.me-2
+                      | Orden ##{orden.id}
+                      if orden.internacion && orden.internacion.cama
+                        small.ms-3
+                          i.fas.fa-bed.me-1
+                          | #{orden.internacion.cama.habitacion.sector.nombre} - Hab. #{orden.internacion.cama.habitacion.numero} - Cama #{orden.internacion.cama.numero}
+                    div
+                      if orden.estado === 'PENDIENTE'
+                        span.badge.bg-light.text-dark
+                          i.fas.fa-clock.me-1
+                          | PENDIENTE
+                      else if orden.estado === 'COMPLETADA'
+                        span.badge.bg-light.text-success
+                          i.fas.fa-check.me-1
+                          | COMPLETADA
+                      else
+                        span.badge.bg-light.text-secondary
+                          | #{orden.estado}
+                  
+                  .card-body
+                    .row
+                      .col-md-8
+                        h6
+                          i.fas.fa-user-md.me-2
+                          | Médico: Dr. #{orden.medico.usuario.nombre} #{orden.medico.usuario.apellido}
+                        p.mb-2
+                          small.text-muted
+                            i.fas.fa-calendar.me-1
+                            | Fecha: #{new Date(orden.fecha).toLocaleString('es-AR')}
+                        
+                        .bg-light.p-3.rounded
+                          pre.mb-0(style="white-space: pre-wrap; font-family: inherit; font-size: 0.9rem;")= orden.observaciones.substring(0, 300) + (orden.observaciones.length > 300 ? '...' : '')
+                      
+                      .col-md-4.text-end
+                        .d-grid.gap-2
+                          a.btn.btn-primary(href=`/enfermero/internados/orden/${orden.id}`)
+                            i.fas.fa-eye.me-2
+                            | Ver Detalle
+                          
+                          if orden.estado === 'PENDIENTE'
+                            a.btn.btn-success(href=`/enfermero/internados/orden/${orden.id}`)
+                              i.fas.fa-play-circle.me-2
+                              | Ejecutar Orden
+            else
+              .text-center.py-5.text-muted
+                i.fas.fa-clipboard-check.fa-4x.mb-3
+                h5 No hay órdenes médicas
+                p Este paciente no tiene órdenes médicas pendientes
+
+block scripts
+  script.
+    // Auto-refresh cada 30 segundos para ver nuevas órdenes
+    setTimeout(() => {
+      window.location.reload();
+    }, 30000);

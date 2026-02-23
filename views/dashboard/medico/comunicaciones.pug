@@ -1,7 +1,3 @@
-//- ========================================
-//- COMUNICACIONES - NOTIFICACIONES + NOTICIAS
-//- ========================================
-
 extends layout
 
 block content
@@ -12,31 +8,31 @@ block content
           .d-flex.justify-content-between.align-items-center
             div
               h2
-                i.fas.fa-bell.me-2
+                i.fas.fa-comments.me-2
                 | Comunicaciones
-              p.text-muted Notificaciones y noticias del hospital
+              p.text-muted Mensajes internos y noticias del hospital
             button.btn.btn-primary(data-bs-toggle='modal' data-bs-target='#modalNuevoMensaje')
               i.fas.fa-envelope.me-2
               | Nuevo Mensaje
 
     //- ESTADÍSTICAS
-    .row.g-3.mb-4#estadisticas-comunicaciones
+    .row.g-3.mb-4
       .col-lg-3.col-md-6
         .card.border-start.border-primary.border-4
           .card-body
             .d-flex.justify-content-between
               div
-                small.text-muted Total Notificaciones
-                h3.mb-0.text-primary#stat-total
+                small.text-muted Mensajes Recibidos
+                h3.mb-0.text-primary#stat-total-recibidas
                   .spinner-border.spinner-border-sm
-              i.fas.fa-bell.fa-2x.text-primary
+              i.fas.fa-inbox.fa-2x.text-primary
       
       .col-lg-3.col-md-6
         .card.border-start.border-warning.border-4
           .card-body
             .d-flex.justify-content-between
               div
-                small.text-muted No Leídas
+                small.text-muted No Leídos
                 h3.mb-0.text-warning#stat-no-leidas
                   .spinner-border.spinner-border-sm
               i.fas.fa-envelope.fa-2x.text-warning
@@ -46,10 +42,10 @@ block content
           .card-body
             .d-flex.justify-content-between
               div
-                small.text-muted Leídas
-                h3.mb-0.text-success#stat-leidas
+                small.text-muted Mensajes Enviados
+                h3.mb-0.text-success#stat-enviadas
                   .spinner-border.spinner-border-sm
-              i.fas.fa-envelope-open.fa-2x.text-success
+              i.fas.fa-paper-plane.fa-2x.text-success
       
       .col-lg-3.col-md-6
         .card.border-start.border-info.border-4
@@ -62,43 +58,111 @@ block content
               i.fas.fa-clock.fa-2x.text-info
 
     .row
-      //- NOTIFICACIONES
+      //- MENSAJERÍA (Notificaciones)
       .col-lg-7
         .card.shadow-sm
-          .card-header.bg-white.d-flex.justify-content-between.align-items-center
-            h5.mb-0
-              i.fas.fa-bell.me-2
-              | Mis Notificaciones
-            div
-              button.btn.btn-sm.btn-outline-success.me-2(onclick='marcarTodasLeidas()' title='Marcar todas como leídas')
-                i.fas.fa-check-double.me-1
-                | Marcar todas
-              button.btn.btn-sm.btn-outline-primary(onclick='actualizarNotificaciones()' title='Actualizar')
-                i.fas.fa-sync-alt
+          .card-header.bg-white.border-bottom
+            ul.nav.nav-tabs.card-header-tabs#mensajesTabs(role='tablist')
+              li.nav-item(role='presentation')
+                button.nav-link.active.text-dark(
+                  id='recibidos-tab'
+                  data-bs-toggle='tab'
+                  data-bs-target='#recibidos'
+                  type='button'
+                  role='tab'
+                  aria-controls='recibidos'
+                  aria-selected='true'
+                )
+                  i.fas.fa-inbox.me-2
+                  | Bandeja de Entrada
+                  span.badge.bg-primary.rounded-pill.ms-2#badge-recibidos 0
+              li.nav-item(role='presentation')
+                button.nav-link.text-dark(
+                  id='enviados-tab'
+                  data-bs-toggle='tab'
+                  data-bs-target='#enviados'
+                  type='button'
+                  role='tab'
+                  aria-controls='enviados'
+                  aria-selected='false'
+                )
+                  i.fas.fa-paper-plane.me-2
+                  | Mensajes Enviados
+                  span.badge.bg-success.rounded-pill.ms-2#badge-enviados 0
+              li.nav-item(role='presentation')
+                button.nav-link.text-dark(
+                  id='conversaciones-tab'
+                  data-bs-toggle='tab'
+                  data-bs-target='#conversaciones'
+                  type='button'
+                  role='tab'
+                  aria-controls='conversaciones'
+                  aria-selected='false'
+                )
+                  i.fas.fa-comments.me-2
+                  | Conversaciones
+                  span.badge.bg-info.rounded-pill.ms-2#badge-conversaciones 0
 
           .card-body
-            //- FILTROS
-            .mb-3
-              select.form-select.form-select-sm(id='filtroLeida' onchange='actualizarNotificaciones()')
-                option(value='TODAS') Todas las notificaciones
-                option(value='false' selected) Solo no leídas
-                option(value='true') Solo leídas
+            .tab-content#mensajesTabContent
+              //- MENSAJES RECIBIDOS
+              .tab-pane.fade.show.active(
+                id='recibidos'
+                role='tabpanel'
+                aria-labelledby='recibidos-tab'
+              )
+                .d-flex.justify-content-between.mb-3
+                  select.form-select.form-select-sm.w-auto#filtroLeidosRecibidos(onchange='cargarMensajesRecibidos()')
+                    option(value='TODAS') Todos los mensajes
+                    option(value='false') Solo no leídos
+                    option(value='true') Solo leídos
+                  button.btn.btn-sm.btn-outline-primary(onclick='cargarMensajesRecibidos()')
+                    i.fas.fa-sync-alt.me-1
+                    | Actualizar
 
-            //- LOADING
-            #loading-notificaciones.text-center.py-4
-              .spinner-border.text-primary
-              p.mt-2.text-muted Cargando notificaciones...
+                #loading-recibidos.text-center.py-4
+                  .spinner-border.text-primary
+                  p.mt-2.text-muted Cargando mensajes...
+                
+                #contenido-recibidos
+                nav.mt-3
+                  ul.pagination.pagination-sm.justify-content-center#paginacion-recibidos
 
-            //- LISTA
-            #lista-notificaciones.d-none
-              .list-group.list-group-flush#contenido-notificaciones
-              nav.mt-3
-                ul.pagination.pagination-sm.justify-content-center#paginacion-notificaciones
+              //- MENSAJES ENVIADOS
+              .tab-pane.fade(
+                id='enviados'
+                role='tabpanel'
+                aria-labelledby='enviados-tab'
+              )
+                .d-flex.justify-content-end.mb-3
+                  button.btn.btn-sm.btn-outline-success(onclick='cargarMensajesEnviados()')
+                    i.fas.fa-sync-alt.me-1
+                    | Actualizar
 
-            //- SIN RESULTADOS
-            #sin-notificaciones.text-center.py-4.d-none
-              i.fas.fa-inbox.fa-3x.text-muted.mb-3
-              p.text-muted No hay notificaciones
+                #loading-enviados.text-center.py-4
+                  .spinner-border.text-success
+                  p.mt-2.text-muted Cargando mensajes...
+                
+                #contenido-enviados
+                nav.mt-3
+                  ul.pagination.pagination-sm.justify-content-center#paginacion-enviados
+
+              //- CONVERSACIONES
+              .tab-pane.fade(
+                id='conversaciones'
+                role='tabpanel'
+                aria-labelledby='conversaciones-tab'
+              )
+                .d-flex.justify-content-end.mb-3
+                  button.btn.btn-sm.btn-outline-info(onclick='cargarConversaciones()')
+                    i.fas.fa-sync-alt.me-1
+                    | Actualizar
+
+                #loading-conversaciones.text-center.py-4
+                  .spinner-border.text-info
+                  p.mt-2.text-muted Cargando conversaciones...
+                
+                #contenido-conversaciones
 
       //- NOTICIAS DEL HOSPITAL
       .col-lg-5
@@ -169,21 +233,9 @@ block content
                 placeholder='Escribe tu mensaje aquí...'
                 required
               )
-              small.text-muted.d-block.mt-1
-                | #[strong Guardar como borrador:] Ctrl+S
-              
-              //- BORRADORES
-              #listaBorradores.mt-2
-                .small.text-muted
-                  i.fas.fa-save.me-1
-                  | Borradores guardados:
-                #contenidoBorradores.list-group.list-group-sm.mt-2
 
         .modal-footer
           button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cerrar
-          button.btn.btn-warning(type='button' onclick='guardarBorrador()')
-            i.fas.fa-save.me-1
-            | Guardar como Borrador
           button.btn.btn-primary(type='submit' form='formNuevoMensaje')
             i.fas.fa-paper-plane.me-1
             | Enviar Mensaje
@@ -201,34 +253,109 @@ block content
           .text-center.py-4
             .spinner-border.text-primary
 
+  //- MODAL VER CONVERSACIÓN
+  #modalConversacion.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-comments.me-2
+            | Conversación
+          button.btn-close(data-bs-dismiss='modal' aria-label='Close')
+        .modal-body
+          #loading-conversacion.text-center.py-4
+            .spinner-border.text-primary
+            p.mt-2.text-muted Cargando conversación...
+          #contenido-conversacion.d-none
+          #form-respuesta-conversacion.mt-3.d-none
+            textarea.form-control#mensajeRespuesta(rows='3' placeholder='Escribe tu respuesta...')
+            button.btn.btn-primary.mt-2(onclick='enviarRespuestaConversacion()')
+              i.fas.fa-paper-plane.me-1
+              | Enviar
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cerrar
+
 block scripts
+  style.
+    /* Estilos para las tabs - Bootstrap puro con ajustes */
+    .nav-tabs .nav-link {
+      color: #6c757d !important; /* Gris Bootstrap */
+      background-color: #f8f9fa; /* Fondo claro */
+      border: 1px solid #dee2e6;
+      border-bottom: 0;
+      margin-bottom: -1px;
+    }
+    
+    .nav-tabs .nav-link:hover {
+      color: #495057 !important; /* Gris más oscuro al hover */
+      background-color: #e9ecef;
+    }
+    
+    .nav-tabs .nav-link.active {
+      color: #fff !important; /* Blanco cuando está activo */
+      background-color: #0d6efd; /* Azul Bootstrap primary */
+      border-color: #0d6efd #dee2e6 #fff;
+    }
+    
+    /* Colores específicos para cada tab activa */
+    #recibidos-tab.active {
+      background-color: #0d6efd; /* Azul */
+    }
+    
+    #enviados-tab.active {
+      background-color: #198754; /* Verde */
+    }
+    
+    #conversaciones-tab.active {
+      background-color: #0dcaf0; /* Azul claro */
+    }
+
   script.
-    let paginaNotificaciones = 1;
+    // ========================================
+    // VARIABLES GLOBALES
+    // ========================================
+    let paginaRecibidos = 1;
+    let paginaEnviados = 1;
     let paginaNoticias = 1;
     const itemsPorPagina = 10;
     let usuarioSeleccionado = null;
-    let borradores = JSON.parse(localStorage.getItem('borradores')) || [];
+    let usuarioConversacionActual = null;
+    let vistaActual = 'recibidos';
 
+    // ========================================
+    // INICIALIZACIÓN
+    // ========================================
     document.addEventListener('DOMContentLoaded', function() {
       console.log('🔔 Iniciando comunicaciones...');
       cargarEstadisticas();
-      actualizarNotificaciones();
+      cargarMensajesRecibidos();
       cargarNoticias();
       setupBuscadorUsuarios();
-      mostrarBorradores();
 
-      // Auto-refresh cada 2 minutos
-      setInterval(() => {
-        console.log('🔄 Auto-refresh de estadísticas');
-        cargarEstadisticas();
-        if (document.getElementById('filtroLeida').value === 'false') {
-          actualizarNotificaciones();
-        }
-      }, 120000);
+      // Escuchar cambios de tabs de mensajería
+      const tabs = document.querySelectorAll('#mensajesTabs button');
+      tabs.forEach(tab => {
+        tab.addEventListener('shown.bs.tab', function(event) {
+          const targetId = event.target.getAttribute('data-bs-target');
+          vistaActual = targetId.replace('#', '');
+          
+          switch(vistaActual) {
+            case 'recibidos':
+              cargarMensajesRecibidos();
+              break;
+            case 'enviados':
+              cargarMensajesEnviados();
+              break;
+            case 'conversaciones':
+              cargarConversaciones();
+              break;
+          }
+        });
+      });
     });
 
     // ========================================
-    // CARGAR ESTADÍSTICAS
+    // FUNCIONES DE ESTADÍSTICAS
     // ========================================
 
     async function cargarEstadisticas() {
@@ -238,9 +365,9 @@ block scripts
         const data = await response.json();
 
         if (data.success) {
-          document.getElementById('stat-total').textContent = data.data.total;
+          document.getElementById('stat-total-recibidas').textContent = data.data.totalRecibidas;
           document.getElementById('stat-no-leidas').textContent = data.data.noLeidas;
-          document.getElementById('stat-leidas').textContent = data.data.leidas;
+          document.getElementById('stat-enviadas').textContent = data.data.totalEnviadas;
           document.getElementById('stat-24h').textContent = data.data.ultimas24h;
           console.log('✅ Estadísticas cargadas:', data.data);
         }
@@ -250,79 +377,89 @@ block scripts
     }
 
     // ========================================
-    // ACTUALIZAR NOTIFICACIONES
+    // FUNCIONES DE MENSAJES RECIBIDOS
     // ========================================
 
-    async function actualizarNotificaciones(pagina = 1) {
+    async function cargarMensajesRecibidos(pagina = 1) {
       try {
-        console.log('📬 Actualizando notificaciones - página:', pagina);
-        paginaNotificaciones = pagina;
-
+        paginaRecibidos = pagina;
+        
+        const filtro = document.getElementById('filtroLeidosRecibidos')?.value || 'TODAS';
         const params = new URLSearchParams({
           page: pagina,
           limit: itemsPorPagina,
-          leida: document.getElementById('filtroLeida').value
+          leida: filtro
         });
 
-        document.getElementById('loading-notificaciones').classList.remove('d-none');
-        document.getElementById('lista-notificaciones').classList.add('d-none');
-        document.getElementById('sin-notificaciones').classList.add('d-none');
-
+        document.getElementById('loading-recibidos').classList.remove('d-none');
+        document.getElementById('contenido-recibidos').innerHTML = '';
+        document.getElementById('paginacion-recibidos').innerHTML = '';
+        
         const response = await fetch(`/medico/comunicaciones/api/notificaciones?${params.toString()}`);
         const data = await response.json();
 
-        document.getElementById('loading-notificaciones').classList.add('d-none');
-
+        document.getElementById('loading-recibidos').classList.add('d-none');
+        
         if (data.success && data.data.length > 0) {
-          console.log('✅ Notificaciones cargadas:', data.data.length);
-          mostrarNotificaciones(data.data);
-          mostrarPaginacionNotificaciones(data.pagination);
-          document.getElementById('lista-notificaciones').classList.remove('d-none');
+          console.log('✅ Mensajes recibidos cargados:', data.data.length);
+          mostrarMensajesRecibidos(data.data);
+          mostrarPaginacion('paginacion-recibidos', data.pagination, cargarMensajesRecibidos);
+          // Actualizar badge
+          document.getElementById('badge-recibidos').textContent = data.pagination?.total || 0;
+          document.getElementById('badge-recibidos').classList.remove('d-none');
         } else {
-          console.log('ℹ️ Sin notificaciones');
-          document.getElementById('sin-notificaciones').classList.remove('d-none');
+          document.getElementById('contenido-recibidos').innerHTML = `
+            <div class="text-center py-4">
+              <i class="fas fa-inbox fa-3x text-muted mb-3"></i>
+              <p class="text-muted">No hay mensajes recibidos</p>
+            </div>
+          `;
+          document.getElementById('badge-recibidos').classList.add('d-none');
         }
       } catch (error) {
-        console.error('❌ Error al cargar notificaciones:', error);
-        document.getElementById('loading-notificaciones').classList.add('d-none');
-        mostrarAlerta('error', 'Error al cargar notificaciones');
+        console.error('❌ Error al cargar mensajes recibidos:', error);
+        mostrarAlerta('error', 'Error al cargar mensajes');
       }
     }
 
-    // ========================================
-    // MOSTRAR NOTIFICACIONES
-    // ========================================
-
-    function mostrarNotificaciones(notificaciones) {
-      const contenedor = document.getElementById('contenido-notificaciones');
-
-      contenedor.innerHTML = notificaciones.map(notif => {
-        const fecha = new Date(notif.created_at);
-        const hace = calcularTiempoTranscurrido(fecha);
-
+    function mostrarMensajesRecibidos(mensajes) {
+      const contenedor = document.getElementById('contenido-recibidos');
+      
+      contenedor.innerHTML = mensajes.map(msg => {
+        const fecha = new Date(msg.createdAt);
+        const remitenteNombre = msg.remitente ? `${msg.remitente.nombre} ${msg.remitente.apellido}` : 'Sistema';
+        
         return `
-          <div class="list-group-item ${!notif.leida ? 'list-group-item-warning' : ''}">
-            <div class="d-flex justify-content-between align-items-start">
-              <div class="flex-grow-1">
-                <div class="d-flex align-items-center mb-1">
-                  ${!notif.leida ? '<span class="badge bg-warning text-dark me-2">Nuevo</span>' : ''}
-                  <small class="text-muted">${hace}</small>
+          <div class="card mb-2 ${!msg.leida ? 'border-warning' : ''}">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                  <h6 class="card-title mb-1">
+                    <i class="fas fa-user me-2"></i>
+                    ${remitenteNombre}
+                    ${!msg.leida ? '<span class="badge bg-warning text-dark ms-2">Nuevo</span>' : ''}
+                  </h6>
+                  <p class="card-text mb-2">${msg.mensaje}</p>
+                  <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>
+                    ${fecha.toLocaleString('es-AR')}
+                  </small>
                 </div>
-                <p class="mb-0">${notif.mensaje}</p>
-              </div>
-              <div class="btn-group-vertical btn-group-sm ms-2" role="group">
-                ${!notif.leida ? `
-                  <button class="btn btn-sm btn-outline-success"
-                          onclick="marcarLeida(${notif.id})"
-                          title="Marcar como leída">
-                    <i class="fas fa-check"></i>
+                <div class="btn-group-vertical btn-group-sm ms-2">
+                  ${!msg.leida ? `
+                    <button class="btn btn-sm btn-outline-success" onclick="marcarMensajeLeido(${msg.id})" title="Marcar como leído">
+                      <i class="fas fa-check"></i>
+                    </button>
+                  ` : ''}
+                  ${msg.remitente ? `
+                    <button class="btn btn-sm btn-outline-info" onclick="responderMensaje(${msg.remitente.id}, '${msg.remitente.nombre} ${msg.remitente.apellido}')" title="Responder">
+                      <i class="fas fa-reply"></i>
+                    </button>
+                  ` : ''}
+                  <button class="btn btn-sm btn-outline-danger" onclick="eliminarMensaje(${msg.id})" title="Eliminar">
+                    <i class="fas fa-trash"></i>
                   </button>
-                ` : ''}
-                <button class="btn btn-sm btn-outline-danger"
-                        onclick="eliminarNotificacion(${notif.id})"
-                        title="Eliminar">
-                  <i class="fas fa-trash"></i>
-                </button>
+                </div>
               </div>
             </div>
           </div>
@@ -331,98 +468,276 @@ block scripts
     }
 
     // ========================================
-    // MOSTRAR PAGINACIÓN
+    // FUNCIONES DE MENSAJES ENVIADOS
     // ========================================
 
-    function mostrarPaginacionNotificaciones(pagination) {
-      const paginacionDiv = document.getElementById('paginacion-notificaciones');
+    async function cargarMensajesEnviados(pagina = 1) {
+      try {
+        paginaEnviados = pagina;
+        
+        const params = new URLSearchParams({
+          page: pagina,
+          limit: itemsPorPagina
+        });
 
-      if (pagination.totalPages <= 1) {
-        paginacionDiv.innerHTML = '';
-        return;
+        document.getElementById('loading-enviados').classList.remove('d-none');
+        document.getElementById('contenido-enviados').innerHTML = '';
+        document.getElementById('paginacion-enviados').innerHTML = '';
+        
+        const response = await fetch(`/medico/comunicaciones/api/mensajes/enviados?${params.toString()}`);
+        const data = await response.json();
+
+        document.getElementById('loading-enviados').classList.add('d-none');
+        
+        if (data.success && data.data.length > 0) {
+          console.log('✅ Mensajes enviados cargados:', data.data.length);
+          mostrarMensajesEnviados(data.data);
+          mostrarPaginacion('paginacion-enviados', data.pagination, cargarMensajesEnviados);
+          // Actualizar badge
+          document.getElementById('badge-enviados').textContent = data.pagination?.total || 0;
+          document.getElementById('badge-enviados').classList.remove('d-none');
+        } else {
+          document.getElementById('contenido-enviados').innerHTML = `
+            <div class="text-center py-4">
+              <i class="fas fa-paper-plane fa-3x text-muted mb-3"></i>
+              <p class="text-muted">No hay mensajes enviados</p>
+            </div>
+          `;
+          document.getElementById('badge-enviados').classList.add('d-none');
+        }
+      } catch (error) {
+        console.error('❌ Error al cargar mensajes enviados:', error);
+        mostrarAlerta('error', 'Error al cargar mensajes');
       }
-
-      let html = `
-        <li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
-          <a class="page-link" href="#" onclick="actualizarNotificaciones(${pagination.page - 1}); return false;">
-            <i class="fas fa-chevron-left"></i>
-          </a>
-        </li>
-      `;
-
-      for (let i = 1; i <= Math.min(pagination.totalPages, 5); i++) {
-        html += `
-          <li class="page-item ${i === pagination.page ? 'active' : ''}">
-            <a class="page-link" href="#" onclick="actualizarNotificaciones(${i}); return false;">
-              ${i}
-            </a>
-          </li>
-        `;
-      }
-
-      html += `
-        <li class="page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}">
-          <a class="page-link" href="#" onclick="actualizarNotificaciones(${pagination.page + 1}); return false;">
-            <i class="fas fa-chevron-right"></i>
-          </a>
-        </li>
-      `;
-
-      paginacionDiv.innerHTML = html;
     }
 
-    function mostrarPaginacionNoticias(pagination) {
-      const paginacionDiv = document.getElementById('paginacion-noticias');
-
-      if (pagination.totalPages <= 1) {
-        paginacionDiv.innerHTML = '';
-        return;
-      }
-
-      let html = `
-        <li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
-          <a class="page-link" href="#" onclick="cargarNoticias(${pagination.page - 1}); return false;">
-            <i class="fas fa-chevron-left"></i>
-          </a>
-        </li>
-      `;
-
-      for (let i = 1; i <= Math.min(pagination.totalPages, 5); i++) {
-        html += `
-          <li class="page-item ${i === pagination.page ? 'active' : ''}">
-            <a class="page-link" href="#" onclick="cargarNoticias(${i}); return false;">
-              ${i}
-            </a>
-          </li>
+    function mostrarMensajesEnviados(mensajes) {
+      const contenedor = document.getElementById('contenido-enviados');
+      
+      contenedor.innerHTML = mensajes.map(msg => {
+        const fecha = new Date(msg.createdAt);
+        const destinatarioNombre = msg.destinatario ? `${msg.destinatario.nombre} ${msg.destinatario.apellido}` : 'Usuario';
+        
+        return `
+          <div class="card mb-2">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                  <h6 class="card-title mb-1">
+                    <i class="fas fa-user me-2"></i>
+                    Para: ${destinatarioNombre}
+                    ${msg.leida ? '<span class="badge bg-success ms-2">Leído</span>' : '<span class="badge bg-secondary ms-2">No leído</span>'}
+                  </h6>
+                  <p class="card-text mb-2">${msg.mensaje}</p>
+                  <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>
+                    Enviado: ${fecha.toLocaleString('es-AR')}
+                  </small>
+                </div>
+                <div class="btn-group-vertical btn-group-sm ms-2">
+                  <button class="btn btn-sm btn-outline-danger" onclick="eliminarMensaje(${msg.id})" title="Eliminar">
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
         `;
-      }
-
-      html += `
-        <li class="page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}">
-          <a class="page-link" href="#" onclick="cargarNoticias(${pagination.page + 1}); return false;">
-            <i class="fas fa-chevron-right"></i>
-          </a>
-        </li>
-      `;
-
-      paginacionDiv.innerHTML = html;
+      }).join('');
     }
 
     // ========================================
-    // BUSCADOR DE USUARIOS
+    // FUNCIONES DE CONVERSACIONES
+    // ========================================
+
+    async function cargarConversaciones() {
+      try {
+        document.getElementById('loading-conversaciones').classList.remove('d-none');
+        document.getElementById('contenido-conversaciones').innerHTML = '';
+        
+        const response = await fetch('/medico/comunicaciones/api/mensajes/conversaciones');
+        const data = await response.json();
+
+        document.getElementById('loading-conversaciones').classList.add('d-none');
+        
+        if (data.success && data.data.length > 0) {
+          console.log('✅ Conversaciones cargadas:', data.data.length);
+          mostrarConversaciones(data.data);
+          // Actualizar badge
+          const totalNoLeidos = data.data.reduce((sum, conv) => sum + (conv.no_leidos || 0), 0);
+          document.getElementById('badge-conversaciones').textContent = totalNoLeidos;
+          document.getElementById('badge-conversaciones').classList.remove('d-none');
+        } else {
+          document.getElementById('contenido-conversaciones').innerHTML = `
+            <div class="text-center py-4">
+              <i class="fas fa-comments fa-3x text-muted mb-3"></i>
+              <p class="text-muted">No hay conversaciones</p>
+            </div>
+          `;
+          document.getElementById('badge-conversaciones').classList.add('d-none');
+        }
+      } catch (error) {
+        console.error('❌ Error al cargar conversaciones:', error);
+        mostrarAlerta('error', 'Error al cargar conversaciones');
+      }
+    }
+
+    function mostrarConversaciones(conversaciones) {
+      const contenedor = document.getElementById('contenido-conversaciones');
+      
+      contenedor.innerHTML = conversaciones.map(conv => {
+        const fecha = new Date(conv.ultima_fecha);
+        const usuarioNombre = conv.usuario ? `${conv.usuario.nombre} ${conv.usuario.apellido}` : 'Usuario';
+        
+        return `
+          <div class="card mb-2">
+            <div class="card-body">
+              <div class="d-flex justify-content-between align-items-start">
+                <div class="flex-grow-1">
+                  <h6 class="card-title mb-1">
+                    <i class="fas fa-user me-2"></i>
+                    ${usuarioNombre}
+                    ${conv.no_leidos > 0 ? `<span class="badge bg-danger ms-2">${conv.no_leidos} nuevo(s)</span>` : ''}
+                  </h6>
+                  <p class="card-text mb-2 text-muted">
+                    <small>
+                      ${conv.es_enviado ? '<i class="fas fa-share me-1"></i> Tú:' : '<i class="fas fa-reply me-1"></i>'}
+                      ${conv.ultimo_mensaje?.substring(0, 100) || 'Sin mensajes'}...
+                    </small>
+                  </p>
+                  <small class="text-muted">
+                    <i class="fas fa-clock me-1"></i>
+                    ${calcularTiempoTranscurrido(fecha)}
+                  </small>
+                </div>
+                <div class="btn-group-vertical btn-group-sm ms-2">
+                  <button class="btn btn-sm btn-outline-primary" onclick="abrirConversacion(${conv.usuario?.id})" title="Abrir conversación">
+                    <i class="fas fa-comments"></i>
+                  </button>
+                  <button class="btn btn-sm btn-outline-info" onclick="responderMensaje(${conv.usuario?.id}, '${usuarioNombre}')" title="Responder">
+                    <i class="fas fa-reply"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    // ========================================
+    // FUNCIONES DE NOTICIAS
+    // ========================================
+
+    async function cargarNoticias(pagina = 1) {
+      try {
+        paginaNoticias = pagina;
+
+        const params = new URLSearchParams({
+          page: pagina,
+          limit: 5
+        });
+
+        document.getElementById('loading-noticias').classList.remove('d-none');
+        document.getElementById('lista-noticias').classList.add('d-none');
+        document.getElementById('sin-noticias').classList.add('d-none');
+
+        const response = await fetch(`/medico/comunicaciones/api/noticias?${params.toString()}`);
+        const data = await response.json();
+
+        document.getElementById('loading-noticias').classList.add('d-none');
+
+        if (data.success && data.data.length > 0) {
+          console.log('✅ Noticias cargadas:', data.data.length);
+          mostrarNoticias(data.data);
+          mostrarPaginacion('paginacion-noticias', data.pagination, cargarNoticias);
+          document.getElementById('lista-noticias').classList.remove('d-none');
+        } else {
+          console.log('ℹ️ Sin noticias');
+          document.getElementById('sin-noticias').classList.remove('d-none');
+        }
+      } catch (error) {
+        console.error('❌ Error al cargar noticias:', error);
+        document.getElementById('loading-noticias').classList.add('d-none');
+        mostrarAlerta('error', 'Error al cargar noticias');
+      }
+    }
+
+    function mostrarNoticias(noticias) {
+      const contenedor = document.getElementById('contenido-noticias');
+
+      contenedor.innerHTML = noticias.map(noticia => {
+        const fecha = new Date(noticia.fecha);
+
+        return `
+          <div class="card mb-3 border">
+            <div class="card-body">
+              <h6 class="card-title">
+                <i class="fas fa-newspaper text-primary me-2"></i>
+                ${noticia.titulo}
+              </h6>
+              <p class="card-text small text-muted mb-2">
+                ${noticia.texto.substring(0, 150)}${noticia.texto.length > 150 ? '...' : ''}
+              </p>
+              <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">
+                  <i class="fas fa-user me-1"></i>
+                  ${noticia.autor ? `${noticia.autor.nombre} ${noticia.autor.apellido}` : 'Anónimo'}
+                  <br>
+                  <i class="fas fa-calendar me-1"></i>
+                  ${fecha.toLocaleDateString('es-AR')}
+                </small>
+                <button class="btn btn-sm btn-outline-primary" onclick="verNoticia(${noticia.id})">
+                  <i class="fas fa-eye me-1"></i>
+                  Leer más
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+    }
+
+    async function verNoticia(id) {
+      try {
+        const response = await fetch(`/medico/comunicaciones/api/noticias/${id}`);
+        const data = await response.json();
+
+        if (data.success) {
+          const noticia = data.data;
+          const fecha = new Date(noticia.fecha);
+
+          document.getElementById('modalNoticiaBody').innerHTML = `
+            <div class="mb-3">
+              <h4>${noticia.titulo}</h4>
+              <small class="text-muted">
+                <i class="fas fa-user me-1"></i>
+                ${noticia.autor ? `${noticia.autor.nombre} ${noticia.autor.apellido}` : 'Anónimo'}
+                |
+                <i class="fas fa-calendar me-1"></i>
+                ${fecha.toLocaleString('es-AR')}
+              </small>
+            </div>
+            <div style="white-space: pre-wrap;">
+              ${noticia.texto}
+            </div>
+          `;
+
+          new bootstrap.Modal(document.getElementById('modalVerNoticia')).show();
+        }
+      } catch (error) {
+        console.error('❌ Error:', error);
+        mostrarAlerta('error', 'Error al cargar noticia');
+      }
+    }
+
+    // ========================================
+    // FUNCIONES DE BÚSQUEDA Y MENSAJERÍA
     // ========================================
 
     function setupBuscadorUsuarios() {
       const input = document.getElementById('buscarUsuario');
       input.addEventListener('input', debounce(buscarUsuarios, 300));
-      
-      // Guardar borrador con Ctrl+S
-      document.getElementById('mensajeNuevo').addEventListener('keydown', function(e) {
-        if (e.ctrlKey && e.key === 's') {
-          e.preventDefault();
-          guardarBorrador();
-        }
-      });
 
       // Enviar formulario
       document.getElementById('formNuevoMensaje').addEventListener('submit', enviarMensaje);
@@ -480,87 +795,6 @@ block scripts
       document.getElementById('resultadosBusqueda').classList.add('d-none');
     }
 
-    // ========================================
-    // BORRADORES
-    // ========================================
-
-    function guardarBorrador() {
-      if (!usuarioSeleccionado) {
-        mostrarAlerta('error', 'Selecciona un destinatario primero');
-        return;
-      }
-
-      const mensaje = document.getElementById('mensajeNuevo').value.trim();
-      if (!mensaje) {
-        mostrarAlerta('error', 'El mensaje no puede estar vacío');
-        return;
-      }
-
-      const borrador = {
-        id: Date.now(),
-        usuario_id: usuarioSeleccionado.id,
-        usuario_nombre: usuarioSeleccionado.nombre,
-        mensaje: mensaje,
-        fecha: new Date().toISOString()
-      };
-
-      borradores.push(borrador);
-      localStorage.setItem('borradores', JSON.stringify(borradores));
-
-      mostrarAlerta('success', 'Borrador guardado');
-      mostrarBorradores();
-    }
-
-    function mostrarBorradores() {
-      const contenedor = document.getElementById('contenidoBorradores');
-
-      if (borradores.length === 0) {
-        contenedor.innerHTML = '<p class="text-muted m-0">Sin borradores</p>';
-        return;
-      }
-
-      contenedor.innerHTML = borradores.map(b => `
-        <div class="list-group-item small">
-          <div class="d-flex justify-content-between">
-            <div>
-              <strong>${b.usuario_nombre}</strong>
-              <br>
-              <small class="text-muted">${b.mensaje.substring(0, 30)}...</small>
-            </div>
-            <div class="btn-group btn-group-sm">
-              <button class="btn btn-outline-primary" onclick="cargarBorrador(${b.id})" title="Cargar">
-                <i class="fas fa-upload"></i>
-              </button>
-              <button class="btn btn-outline-danger" onclick="eliminarBorrador(${b.id})" title="Eliminar">
-                <i class="fas fa-trash"></i>
-              </button>
-            </div>
-          </div>
-        </div>
-      `).join('');
-    }
-
-    function cargarBorrador(id) {
-      const borrador = borradores.find(b => b.id === id);
-      if (borrador) {
-        seleccionarUsuario(borrador.usuario_id, borrador.usuario_nombre, '');
-        document.getElementById('mensajeNuevo').value = borrador.mensaje;
-        mostrarAlerta('info', 'Borrador cargado');
-      }
-    }
-
-    function eliminarBorrador(id) {
-      if (!confirm('¿Eliminar este borrador?')) return;
-      borradores = borradores.filter(b => b.id !== id);
-      localStorage.setItem('borradores', JSON.stringify(borradores));
-      mostrarBorradores();
-      mostrarAlerta('success', 'Borrador eliminado');
-    }
-
-    // ========================================
-    // ENVIAR MENSAJE
-    // ========================================
-
     async function enviarMensaje(e) {
       e.preventDefault();
 
@@ -593,10 +827,130 @@ block scripts
           deseleccionarUsuario();
           bootstrap.Modal.getInstance(document.getElementById('modalNuevoMensaje')).hide();
           
-          // Eliminar borrador si existe
-          const borrador = borradores.find(b => b.usuario_id === usuarioSeleccionado.id && b.mensaje === mensaje);
-          if (borrador) {
-            eliminarBorrador(borrador.id);
+          // Actualizar bandeja de salida y estadísticas
+          cargarEstadisticas();
+          if (vistaActual === 'enviados') {
+            cargarMensajesEnviados();
+          }
+          // Actualizar conversaciones
+          cargarConversaciones();
+        } else {
+          mostrarAlerta('error', data.message || 'Error al enviar mensaje');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        mostrarAlerta('error', 'Error al enviar mensaje');
+      }
+    }
+
+    function responderMensaje(usuarioId, nombre) {
+      seleccionarUsuario(usuarioId, nombre, '');
+      const modal = new bootstrap.Modal(document.getElementById('modalNuevoMensaje'));
+      modal.show();
+    }
+
+    // ========================================
+    // FUNCIONES DE CONVERSACIONES (MODAL)
+    // ========================================
+
+    async function abrirConversacion(usuarioId) {
+      try {
+        usuarioConversacionActual = usuarioId;
+        
+        document.getElementById('loading-conversacion').classList.remove('d-none');
+        document.getElementById('contenido-conversacion').classList.add('d-none');
+        document.getElementById('form-respuesta-conversacion').classList.add('d-none');
+        
+        const response = await fetch(`/medico/comunicaciones/api/mensajes/conversacion/${usuarioId}`);
+        const data = await response.json();
+        
+        document.getElementById('loading-conversacion').classList.add('d-none');
+        
+        if (data.success) {
+          mostrarConversacion(data.data);
+          document.getElementById('contenido-conversacion').classList.remove('d-none');
+          document.getElementById('form-respuesta-conversacion').classList.remove('d-none');
+        } else {
+          document.getElementById('contenido-conversacion').innerHTML = `
+            <div class="text-center py-4">
+              <p class="text-muted">No hay mensajes con este usuario</p>
+            </div>
+          `;
+          document.getElementById('contenido-conversacion').classList.remove('d-none');
+        }
+        
+        const modal = new bootstrap.Modal(document.getElementById('modalConversacion'));
+        modal.show();
+      } catch (error) {
+        console.error('Error al cargar conversación:', error);
+        mostrarAlerta('error', 'Error al cargar conversación');
+      }
+    }
+
+    function mostrarConversacion(mensajes) {
+      const contenedor = document.getElementById('contenido-conversacion');
+      
+      if (!mensajes || mensajes.length === 0) {
+        contenedor.innerHTML = `
+          <div class="text-center py-4">
+            <p class="text-muted">No hay mensajes en esta conversación</p>
+          </div>
+        `;
+        return;
+      }
+      
+      contenedor.innerHTML = mensajes.map(msg => {
+        const fecha = new Date(msg.createdAt);
+        const esPropio = msg.remitente_id !== usuarioConversacionActual;
+        const nombre = esPropio ? 'Tú' : (msg.remitente?.nombre ? `${msg.remitente.nombre} ${msg.remitente.apellido}` : 'Usuario');
+        
+        return `
+          <div class="d-flex mb-3 ${esPropio ? 'justify-content-end' : 'justify-content-start'}">
+            <div class="card ${esPropio ? 'bg-primary text-white' : 'bg-light'}" style="max-width: 70%;">
+              <div class="card-body p-2">
+                <p class="card-text mb-1">${msg.mensaje}</p>
+                <small class="${esPropio ? 'text-white-50' : 'text-muted'}">
+                  ${nombre} - ${fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+                </small>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+      
+      // Scroll al final
+      contenedor.scrollTop = contenedor.scrollHeight;
+    }
+
+    async function enviarRespuestaConversacion() {
+      const mensaje = document.getElementById('mensajeRespuesta').value.trim();
+      
+      if (!mensaje) {
+        mostrarAlerta('error', 'El mensaje no puede estar vacío');
+        return;
+      }
+      
+      try {
+        const response = await fetch('/medico/comunicaciones/api/notificaciones', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usuario_id: usuarioConversacionActual,
+            mensaje: mensaje
+          })
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+          document.getElementById('mensajeRespuesta').value = '';
+          // Recargar conversación
+          abrirConversacion(usuarioConversacionActual);
+          // Actualizar conversaciones
+          cargarConversaciones();
+          // Actualizar mensajes enviados si está en esa pestaña
+          if (vistaActual === 'enviados') {
+            cargarMensajesEnviados();
           }
         } else {
           mostrarAlerta('error', data.message || 'Error al enviar mensaje');
@@ -608,202 +962,107 @@ block scripts
     }
 
     // ========================================
-    // ACCIONES NOTIFICACIONES
+    // FUNCIONES DE ACCIÓN
     // ========================================
 
-    async function marcarLeida(id) {
+    async function marcarMensajeLeido(id) {
       try {
-        console.log('👁️ Marcando como leída - id:', id);
-
         const response = await fetch(`/medico/comunicaciones/api/notificaciones/${id}/leida`, {
           method: 'PUT'
         });
-
+        
         const data = await response.json();
-
+        
         if (data.success) {
-          console.log('✅ Notificación marcada como leída');
-          actualizarNotificaciones(paginaNotificaciones);
+          mostrarAlerta('success', 'Mensaje marcado como leído');
+          cargarMensajesRecibidos(paginaRecibidos);
           cargarEstadisticas();
+          cargarConversaciones();
         } else {
-          mostrarAlerta('error', data.message || 'Error al marcar como leída');
+          mostrarAlerta('error', data.message || 'Error al marcar mensaje');
         }
       } catch (error) {
-        console.error('❌ Error:', error);
-        mostrarAlerta('error', 'Error al marcar como leída');
+        console.error('Error:', error);
+        mostrarAlerta('error', 'Error al marcar mensaje como leído');
       }
     }
 
-    async function marcarTodasLeidas() {
-      if (!confirm('¿Marcar todas las notificaciones como leídas?')) return;
-
+    async function eliminarMensaje(id) {
+      if (!confirm('¿Está seguro de eliminar este mensaje?')) return;
+      
       try {
-        console.log('👁️ Marcando todas como leídas');
-
-        const response = await fetch('/medico/comunicaciones/api/notificaciones/marcar-todas-leidas', {
-          method: 'PUT'
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-          console.log('✅ Todas marcadas como leídas');
-          mostrarAlerta('success', data.message);
-          actualizarNotificaciones(paginaNotificaciones);
-          cargarEstadisticas();
-        } else {
-          mostrarAlerta('error', data.message || 'Error al marcar notificaciones');
-        }
-      } catch (error) {
-        console.error('❌ Error:', error);
-        mostrarAlerta('error', 'Error al marcar notificaciones');
-      }
-    }
-
-    async function eliminarNotificacion(id) {
-      if (!confirm('¿Está seguro de eliminar esta notificación?')) return;
-
-      try {
-        console.log('🗑️ Eliminando notificación - id:', id);
-
         const response = await fetch(`/medico/comunicaciones/api/notificaciones/${id}`, {
           method: 'DELETE'
         });
-
+        
         const data = await response.json();
-
+        
         if (data.success) {
-          console.log('✅ Notificación eliminada');
-          mostrarAlerta('success', data.message);
-          actualizarNotificaciones(paginaNotificaciones);
+          mostrarAlerta('success', 'Mensaje eliminado');
+          
+          // Recargar la vista actual
+          switch(vistaActual) {
+            case 'recibidos':
+              cargarMensajesRecibidos(paginaRecibidos);
+              break;
+            case 'enviados':
+              cargarMensajesEnviados(paginaEnviados);
+              break;
+          }
+          
+          // Actualizar estadísticas y conversaciones
           cargarEstadisticas();
+          cargarConversaciones();
+          
         } else {
-          mostrarAlerta('error', data.message || 'Error al eliminar');
+          mostrarAlerta('error', data.message || 'Error al eliminar mensaje');
         }
       } catch (error) {
-        console.error('❌ Error:', error);
-        mostrarAlerta('error', 'Error al eliminar notificación');
+        console.error('Error:', error);
+        mostrarAlerta('error', 'Error al eliminar mensaje');
       }
     }
 
     // ========================================
-    // CARGAR Y MOSTRAR NOTICIAS
+    // FUNCIONES UTILITARIAS
     // ========================================
 
-    async function cargarNoticias(pagina = 1) {
-      try {
-        console.log('📰 Cargando noticias - página:', pagina);
-
-        paginaNoticias = pagina;
-
-        const params = new URLSearchParams({
-          page: pagina,
-          limit: 5
-        });
-
-        document.getElementById('loading-noticias').classList.remove('d-none');
-        document.getElementById('lista-noticias').classList.add('d-none');
-        document.getElementById('sin-noticias').classList.add('d-none');
-
-        const response = await fetch(`/medico/comunicaciones/api/noticias?${params.toString()}`);
-        const data = await response.json();
-
-        document.getElementById('loading-noticias').classList.add('d-none');
-
-        if (data.success && data.data.length > 0) {
-          console.log('✅ Noticias cargadas:', data.data.length);
-          mostrarNoticias(data.data);
-          mostrarPaginacionNoticias(data.pagination);
-          document.getElementById('lista-noticias').classList.remove('d-none');
-        } else {
-          console.log('ℹ️ Sin noticias');
-          document.getElementById('sin-noticias').classList.remove('d-none');
-        }
-      } catch (error) {
-        console.error('❌ Error al cargar noticias:', error);
-        document.getElementById('loading-noticias').classList.add('d-none');
-        mostrarAlerta('error', 'Error al cargar noticias');
+    function mostrarPaginacion(elementId, pagination, funcion) {
+      const paginacionDiv = document.getElementById(elementId);
+      
+      if (!pagination || pagination.totalPages <= 1) {
+        paginacionDiv.innerHTML = '';
+        return;
       }
-    }
-
-    function mostrarNoticias(noticias) {
-      const contenedor = document.getElementById('contenido-noticias');
-
-      contenedor.innerHTML = noticias.map(noticia => {
-        const fecha = new Date(noticia.fecha);
-
-        return `
-          <div class="card mb-3 border">
-            <div class="card-body">
-              <h6 class="card-title">
-                <i class="fas fa-newspaper text-primary me-2"></i>
-                ${noticia.titulo}
-              </h6>
-              <p class="card-text small text-muted mb-2">
-                ${noticia.texto.substring(0, 150)}${noticia.texto.length > 150 ? '...' : ''}
-              </p>
-              <div class="d-flex justify-content-between align-items-center">
-                <small class="text-muted">
-                  <i class="fas fa-user me-1"></i>
-                  ${noticia.autor ? `${noticia.autor.nombre} ${noticia.autor.apellido}` : 'Anónimo'}
-                  <br>
-                  <i class="fas fa-calendar me-1"></i>
-                  ${fecha.toLocaleDateString('es-AR')}
-                </small>
-                <button class="btn btn-sm btn-outline-primary" onclick="verNoticia(${noticia.id})">
-                  <i class="fas fa-eye me-1"></i>
-                  Leer más
-                </button>
-              </div>
-            </div>
-          </div>
+      
+      let html = `
+        <li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="${funcion.name}(${pagination.page - 1}); return false;">
+            <i class="fas fa-chevron-left"></i>
+          </a>
+        </li>
+      `;
+      
+      for (let i = 1; i <= Math.min(pagination.totalPages, 5); i++) {
+        html += `
+          <li class="page-item ${i === pagination.page ? 'active' : ''}">
+            <a class="page-link" href="#" onclick="${funcion.name}(${i}); return false;">
+              ${i}
+            </a>
+          </li>
         `;
-      }).join('');
-    }
-
-    // ========================================
-    // VER NOTICIA COMPLETA
-    // ========================================
-
-    async function verNoticia(id) {
-      try {
-        console.log('📰 Obteniendo noticia - id:', id);
-
-        const response = await fetch(`/medico/comunicaciones/api/noticias/${id}`);
-        const data = await response.json();
-
-        if (data.success) {
-          const noticia = data.data;
-          const fecha = new Date(noticia.fecha);
-
-          document.getElementById('modalNoticiaBody').innerHTML = `
-            <div class="mb-3">
-              <h4>${noticia.titulo}</h4>
-              <small class="text-muted">
-                <i class="fas fa-user me-1"></i>
-                ${noticia.autor ? `${noticia.autor.nombre} ${noticia.autor.apellido}` : 'Anónimo'}
-                |
-                <i class="fas fa-calendar me-1"></i>
-                ${fecha.toLocaleString('es-AR')}
-              </small>
-            </div>
-            <div style="white-space: pre-wrap;">
-              ${noticia.texto}
-            </div>
-          `;
-
-          console.log('✅ Noticia obtenida');
-          new bootstrap.Modal(document.getElementById('modalVerNoticia')).show();
-        }
-      } catch (error) {
-        console.error('❌ Error:', error);
-        mostrarAlerta('error', 'Error al cargar noticia');
       }
+      
+      html += `
+        <li class="page-item ${pagination.page === pagination.totalPages ? 'disabled' : ''}">
+          <a class="page-link" href="#" onclick="${funcion.name}(${pagination.page + 1}); return false;">
+            <i class="fas fa-chevron-right"></i>
+          </a>
+        </li>
+      `;
+      
+      paginacionDiv.innerHTML = html;
     }
-
-    // ========================================
-    // UTILIDADES
-    // ========================================
 
     function calcularTiempoTranscurrido(fecha) {
       const ahora = new Date();

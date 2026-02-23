@@ -18,7 +18,7 @@ html(lang='es')
         p Sistema de Gestión
       .sidebar-menu
         .menu-item
-          a.menu-link(href='/', class=(title === 'Dashboard' ? 'active' : ''))
+          a.menu-link(href='/admin', class=(title === 'Dashboard' ? 'active' : ''))
             i.fas.fa-tachometer-alt
             span Inicio
         .menu-item
@@ -73,6 +73,10 @@ html(lang='es')
           a.menu-link(href='/configuracion/infraestructura', class=(title === 'Infraestructura Hospitalaria' ? 'active' : ''))
             i.fas.fa-building
             span Infraestructura
+
+        a.menu-link(href='/admin/mis-turnos', class=(title === 'Mis Turnos' ? 'active' : ''))
+          i.fas.fa-calendar-alt
+          span Mis Turnos
         
 
     // Main Content
@@ -82,14 +86,41 @@ html(lang='es')
         .d-flex.align-items-center.justify-content-between.w-100
           button.btn.btn-link.mobile-menu-toggle.me-3(onclick='toggleSidebar()')
             i.fas.fa-bars
-          .user-info.d-flex.align-items-center
+      
+          .user-info.d-flex.align-items-center.position-relative
             a.btn.btn-sm.btn-outline-primary.me-3(href='/comunicacion' title='Mensajes')
               i.fas.fa-envelope.me-1
               span#header-contador-mensajes.badge.bg-danger(style='display:none') 0
-            a.d-flex.align-items-center.text-decoration-none.text-dark(href='/auth/perfil' title='Ver perfil')
-              span.me-2 #{user ? user.nombre : 'Administrador'}
-            .user-avatar
-              i.fas.fa-user
+        
+            // Dropdown para usuario
+            .dropdown
+              a#userDropdown.d-flex.align-items-center.text-decoration-none.text-dark.dropdown-toggle(
+                href='#' 
+                role='button' 
+                data-bs-toggle='dropdown' 
+                aria-expanded='false'
+                title='Opciones de usuario'
+              )
+                .user-avatar.me-2
+                  i.fas.fa-user-circle.fa-lg
+                span.me-2 #{user ? user.nombre : 'Administrador'}
+                i.fas.fa-chevron-down.fa-xs
+        
+              ul.dropdown-menu.dropdown-menu-end(aria-labelledby='userDropdown')
+                li
+                  a.dropdown-item(href='/auth/perfil')
+                    i.fas.fa-user.me-2
+                    | Mi Perfil
+                li
+                  a.dropdown-item(href='/auth/recuperar-contrasena')
+                    i.fas.fa-key.me-2
+                    | Cambiar Contraseña
+                li
+                  hr.dropdown-divider
+                li
+                  a.dropdown-item.text-danger(href='/auth/logout')
+                    i.fas.fa-sign-out-alt.me-2
+                    | Cerrar Sesión
 
       // Búsqueda global
       .search-section.mb-4
@@ -107,10 +138,11 @@ html(lang='es')
                     i.fas.fa-search
               .col-md-4
                 select#searchFilter.form-select
-                  option(value="all") Buscar en todo
+                  option(value="all" selected) Buscar en todo
                   option(value="pacientes") Solo pacientes
-                  option(value="admisiones") Solo admisiones
-                  option(value="turnos") Solo turnos
+                  option(value="medicos") Solo médicos
+                  option(value="enfermeros") Solo enfermeros
+                  option(value="administrativos") Solo administrativos
             #searchResults.mt-3(style="display: none;")
               // Resultados de búsqueda aparecerán aquí
 
@@ -122,8 +154,7 @@ html(lang='es')
 
     // Scripts
     script(src='https://cdnjs.cloudflare.com/ajax/libs/bootstrap/5.3.0/js/bootstrap.bundle.min.js')
-    script(src='/js/script.js')
-    script(src='/js/busqueda-global.js')
+    script(src='/js/admin/script.js')
     block scripts
       if title === 'Admisiones'
         script(src='/js/admin/admision.js')

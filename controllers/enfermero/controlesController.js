@@ -7,54 +7,52 @@ const { ControlEnfermeria,
 const { Op } = require('sequelize');
 const db = require('../../database/db');
 
+// Para validad los datos, esta en el frontend pero es correcto hacer en el backend
+const extraerDatosControl = (body) => ({
+  alergias:                body.alergias                || null,
+  antecedentes_familiares: body.antecedentes_familiares || null,
+  antecedentes_personales: body.antecedentes_personales || null,
+  grupo_sanguineo:         body.grupo_sanguineo         || null,
+  factor_rh:               body.factor_rh               || null,
+  peso:                    body.peso                    || null,
+  altura:                  body.altura                  || null,
+  presion_arterial:        body.presion_arterial        || null,
+  frecuencia_cardiaca:     body.frecuencia_cardiaca     || null,
+  frecuencia_respiratoria: body.frecuencia_respiratoria || null,
+  temperatura:             body.temperatura             || null,
+  nivel_oxigeno:           body.nivel_oxigeno           || null,
+  nivel_glucosa:           body.nivel_glucosa           || null,
+  nivel_colesterol:        body.nivel_colesterol        || null,
+  nivel_trigliceridos:     body.nivel_trigliceridos     || null,
+  nivel_creatinina:        body.nivel_creatinina        || null,
+  nivel_urea:              body.nivel_urea              || null,
+  nivel_acido_urico:       body.nivel_acido_urico       || null,
+  nivel_hb:                body.nivel_hb                || null,
+  nivel_hct:               body.nivel_hct               || null,
+  nivel_leucocitos:        body.nivel_leucocitos        || null,
+  nivel_plaquetas:         body.nivel_plaquetas         || null,
+  nivel_proteinas:         body.nivel_proteinas         || null,
+  nivel_albumina:          body.nivel_albumina          || null,
+  nivel_globulina:         body.nivel_globulina         || null,
+  nivel_fosfatasa:         body.nivel_fosfatasa         || null
+});
+
+
 // Listar controles de enfermería
-exports.listarControles = async (req, res) => {
+exports.listarControles = async (req, res, next) => {
   try {
     const { fecha_inicio, fecha_fin, paciente, con_evaluacion } = req.query;
     
     const whereCondition = {};
-    const includeEvaluacion = {
-      model: EvaluacionEnfermeria,
-      as: 'evaluacion',
-      include: [
-        {
-          model: Paciente,
-          as: 'paciente',
-          include: [{
-            model: Usuario,
-            as: 'usuario',
-            attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo']
-          }]
-        },
-        {
-          model: Enfermero,
-          as: 'enfermero',
-          include: [{
-            model: Usuario,
-            as: 'usuario',
-            attributes: ['nombre', 'apellido']
-          }]
-        }
-      ]
-    };
 
-    // Filtro por paciente
-    if (paciente) {
-      includeEvaluacion.include[0].include[0].where = {
-        [Op.or]: [
-          { nombre: { [Op.like]: `%${paciente}%` } },
-          { apellido: { [Op.like]: `%${paciente}%` } },
-          { dni: { [Op.like]: `%${paciente}%` } }
-        ]
-      };
-    }
-
-    // Filtro por fecha
+    // Filtro por fecha del CONTROL
     if (fecha_inicio && fecha_fin) {
-      includeEvaluacion.where = {
-        fecha: {
-          [Op.between]: [new Date(fecha_inicio), new Date(fecha_fin)]
-        }
+      const fechaFinAjustada = new Date(fecha_fin);
+      fechaFinAjustada.setDate(fechaFinAjustada.getDate() + 1);
+      
+      whereCondition.created_at = {
+        [Op.gte]: new Date(fecha_inicio),
+        [Op.lt]: fechaFinAjustada
       };
     }
 
@@ -63,23 +61,58 @@ exports.listarControles = async (req, res) => {
       whereCondition.evaluacion_medica_id = { [Op.ne]: null };
     }
 
+    // Include de paciente directo (para filtro por nombre/dni)
+    const includePacienteDirecto = {
+      model: Paciente,
+      as: 'paciente',
+      required: false,
+      include: [{
+        model: Usuario,
+        as: 'usuario',
+        attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo']
+      }]
+    };
+
+    //  Si hay filtro por paciente, aplicar al paciente directo
+    if (paciente) {
+      includePacienteDirecto.required = true;
+      includePacienteDirecto.include[0].where = {
+        [Op.or]: [
+          { nombre: { [Op.like]: `%${paciente}%` } },
+          { apellido: { [Op.like]: `%${paciente}%` } },
+          { dni: { [Op.like]: `%${paciente}%` } }
+        ]
+      };
+    }
+
     const controles = await ControlEnfermeria.findAll({
       where: whereCondition,
       include: [
-        includeEvaluacion,
+        //  Evaluación de enfermería → enfermero
+        {
+          model: EvaluacionEnfermeria,
+          as: 'evaluacion',
+          required: false,
+          include: [
+            {
+              model: Enfermero,
+              as: 'enfermero',
+              required: false,
+              include: [{
+                model: Usuario,
+                as: 'usuario',
+                attributes: ['nombre', 'apellido']
+              }]
+            }
+          ]
+        },
+        // Paciente directo (desde control.paciente_id)
+        includePacienteDirecto,
+        // Evaluación médica asociada
         {
           model: EvaluacionMedica,
           as: 'evaluacion_medica',
-          required: false,
-          include: [{
-            model: Paciente,
-            as: 'paciente',
-            include: [{
-              model: Usuario,
-              as: 'usuario',
-              attributes: ['nombre', 'apellido', 'dni']
-            }]
-          }]
+          required: false
         }
       ],
       order: [['created_at', 'DESC']],
@@ -104,36 +137,27 @@ exports.listarControles = async (req, res) => {
 
   } catch (error) {
     console.error('Error al listar controles:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar los controles',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Ver detalle de control
-exports.verControl = async (req, res) => {
+exports.verControl = async (req, res, next) => {
   try {
     const { id } = req.params;
 
     const control = await ControlEnfermeria.findByPk(id, {
       include: [
+        //  Evaluación de enfermería → enfermero
         {
           model: EvaluacionEnfermeria,
           as: 'evaluacion',
+          required: false,
           include: [
-            {
-              model: Paciente,
-              as: 'paciente',
-              include: [{
-                model: Usuario,
-                as: 'usuario',
-                attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo', 'telefono']
-              }]
-            },
             {
               model: Enfermero,
               as: 'enfermero',
+              required: false,
               include: [{
                 model: Usuario,
                 as: 'usuario',
@@ -142,6 +166,18 @@ exports.verControl = async (req, res) => {
             }
           ]
         },
+        // Paciente directo
+        {
+          model: Paciente,
+          as: 'paciente',
+          required: false,
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo', 'telefono']
+          }]
+        },
+        //  Evaluación médica asociada
         {
           model: EvaluacionMedica,
           as: 'evaluacion_medica',
@@ -164,15 +200,11 @@ exports.verControl = async (req, res) => {
 
   } catch (error) {
     console.error('Error al ver control:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el detalle del control',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
-
 // Formulario para nuevo control
-exports.formularioNuevoControl = async (req, res) => {
+exports.formularioNuevoControl = async (req, res, next) => {
   try {
     const { evaluacion_id } = req.query;
     
@@ -199,218 +231,165 @@ exports.formularioNuevoControl = async (req, res) => {
 
   } catch (error) {
     console.error('Error al cargar formulario:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el formulario',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Crear nuevo control
-exports.crearControl = async (req, res) => {
+exports.crearControl = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
-    const {
-      evaluacion_enfermeria_id,
-      alergias,
-      antecedentes_familiares,
-      antecedentes_personales,
-      grupo_sanguineo,
-      factor_rh,
-      peso,
-      altura,
-      presion_arterial,
-      frecuencia_cardiaca,
-      frecuencia_respiratoria,
-      temperatura,
-      nivel_oxigeno,
-      nivel_glucosa,
-      nivel_colesterol,
-      nivel_trigliceridos,
-      nivel_creatinina,
-      nivel_urea,
-      nivel_acido_urico,
-      nivel_hb,
-      nivel_hct,
-      nivel_leucocitos,
-      nivel_plaquetas,
-      nivel_proteinas,
-      nivel_albumina,
-      nivel_globulina,
-      nivel_fosfatasa
-    } = req.body;
+    const { evaluacion_enfermeria_id } = req.body;
 
-    // Validar que la evaluación existe
     const evaluacion = await EvaluacionEnfermeria.findByPk(evaluacion_enfermeria_id, { transaction });
     if (!evaluacion) {
       await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        message: 'Evaluación de enfermería no encontrada'
-      });
+      return res.status(404).json({ success: false, message: 'Evaluación no encontrada' });
     }
 
-    // Verificar que no exista ya un control para esta evaluación
-    const controlExistente = await ControlEnfermeria.findOne({
-      where: { evaluacion_enfermeria_id },
-      transaction
-    });
-
-    if (controlExistente) {
-      await transaction.rollback();
-      return res.status(400).json({
-        success: false,
-        message: 'Ya existe un control de enfermería para esta evaluación'
-      });
-    }
-
-    // Crear control
     const control = await ControlEnfermeria.create({
       evaluacion_enfermeria_id,
-      alergias: alergias || null,
-      antecedentes_familiares: antecedentes_familiares || null,
-      antecedentes_personales: antecedentes_personales || null,
-      grupo_sanguineo: grupo_sanguineo || null,
-      factor_rh: factor_rh || null,
-      peso: peso || null,
-      altura: altura || null,
-      presion_arterial: presion_arterial || null,
-      frecuencia_cardiaca: frecuencia_cardiaca || null,
-      frecuencia_respiratoria: frecuencia_respiratoria || null,
-      temperatura: temperatura || null,
-      nivel_oxigeno: nivel_oxigeno || null,
-      nivel_glucosa: nivel_glucosa || null,
-      nivel_colesterol: nivel_colesterol || null,
-      nivel_trigliceridos: nivel_trigliceridos || null,
-      nivel_creatinina: nivel_creatinina || null,
-      nivel_urea: nivel_urea || null,
-      nivel_acido_urico: nivel_acido_urico || null,
-      nivel_hb: nivel_hb || null,
-      nivel_hct: nivel_hct || null,
-      nivel_leucocitos: nivel_leucocitos || null,
-      nivel_plaquetas: nivel_plaquetas || null,
-      nivel_proteinas: nivel_proteinas || null,
-      nivel_albumina: nivel_albumina || null,
-      nivel_globulina: nivel_globulina || null,
-      nivel_fosfatasa: nivel_fosfatasa || null
+      paciente_id: evaluacion.paciente_id,
+      estado: 'COMPLETADO',
+      ...extraerDatosControl(req.body) 
     }, { transaction });
 
     await transaction.commit();
 
     res.json({
       success: true,
-      message: 'Control de enfermería registrado correctamente',
+      message: 'Control registrado correctamente',
       control_id: control.id,
-      redirect: `dashboard/enfermero/controles/${control.id}`
+      redirect: `/enfermero/controles/${control.id}`
     });
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al crear control:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear el control',
-      error: error.message
-    });
+    console.error('❌ Error al crear control:', error);
+    next(error);
   }
 };
 
 // Actualizar control
-exports.actualizarControl = async (req, res) => {
+exports.actualizarControl = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
     const { id } = req.params;
-    const datosActualizacion = req.body;
 
     const control = await ControlEnfermeria.findByPk(id, { transaction });
-    
     if (!control) {
       await transaction.rollback();
-      return res.status(404).json({
-        success: false,
-        message: 'Control no encontrado'
-      });
+      return res.status(404).json({ success: false, message: 'Control no encontrado' });
     }
 
-    // Actualizar solo los campos proporcionados
-    await control.update(datosActualizacion, { transaction });
+    //  Buscar el enfermero logueado
+    const enfermero = await Enfermero.findOne({
+      where: { usuario_id: req.user.usuario_id },
+      transaction
+    });
+
+    // Si el control estaba SOLICITADO, buscar o crear evaluación de enfermería
+    let evaluacionEnfermeriaId = control.evaluacion_enfermeria_id;
+    
+    if (control.estado === 'SOLICITADO' && !evaluacionEnfermeriaId && enfermero) {
+      const nuevaEvaluacion = await EvaluacionEnfermeria.create({
+        paciente_id: control.paciente_id,
+        enfermero_id: enfermero.id,
+        evaluacion_medica_id: control.evaluacion_medica_id || null,
+        fecha: new Date(),
+        estado: 'Completado',
+        observaciones: 'Control de enfermería completado'
+      }, { transaction });
+      
+      evaluacionEnfermeriaId = nuevaEvaluacion.id;
+    }
+
+    await control.update({
+      ...extraerDatosControl(req.body),
+      evaluacion_enfermeria_id: evaluacionEnfermeriaId,
+      estado: control.estado === 'SOLICITADO' ? 'COMPLETADO' : control.estado
+    }, { transaction });
 
     await transaction.commit();
 
     res.json({
       success: true,
       message: 'Control actualizado correctamente',
-      redirect: `dashboard/enfermero/controles/${id}`
+      redirect: `/enfermero/controles`
     });
 
   } catch (error) {
     await transaction.rollback();
     console.error('Error al actualizar control:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar el control',
-      error: error.message
-    });
+    next(error);
   }
 };
-
 // Buscar evaluaciones sin control
-exports.buscarEvaluacionesSinControl = async (req, res) => {
+exports.buscarEvaluacionesSinControl = async (req, res, next) => {
   try {
     const { busqueda } = req.query;
 
-    const whereCondition = {};
-    const includeOptions = [
-      {
-        model: Paciente,
-        as: 'paciente',
-        include: [{
-          model: Usuario,
-          as: 'usuario',
-          attributes: ['nombre', 'apellido', 'dni']
-        }]
-      }
-    ];
-
-    if (busqueda) {
-      includeOptions[0].include[0].where = {
-        [Op.or]: [
-          { nombre: { [Op.like]: `%${busqueda}%` } },
-          { apellido: { [Op.like]: `%${busqueda}%` } },
-          { dni: { [Op.like]: `%${busqueda}%` } }
-        ]
-      };
-    }
-
-    // Buscar evaluaciones que no tienen control
+    // Paso 1: Obtener todas las evaluaciones con evaluación médica
     const evaluaciones = await EvaluacionEnfermeria.findAll({
-      where: whereCondition,
       include: [
-        ...includeOptions,
+        {
+          model: Paciente,
+          as: 'paciente',
+          required: true,
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido', 'dni'],
+            where: busqueda ? {
+              [Op.or]: [
+                { nombre: { [Op.like]: `%${busqueda}%` } },
+                { apellido: { [Op.like]: `%${busqueda}%` } },
+                { dni: { [Op.like]: `%${busqueda}%` } }
+              ]
+            } : {}
+          }]
+        },
+        {
+          model: EvaluacionMedica,
+          as: 'evaluacion_medica',
+          required: true  // ← Solo si tiene evaluación médica
+        },
         {
           model: ControlEnfermeria,
           as: 'control_enfermeria',
-          required: false,
-          where: { id: null }
+          required: false
+          
         }
       ],
-      having: db.sequelize.literal('control_enfermeria.id IS NULL'),
       limit: 10,
       subQuery: false
     });
 
+    //  Filtrar en JavaScript - solo las SIN CONTROL o con control NO COMPLETADO
+    const evaluacionesPendientes = evaluaciones.filter(e => {
+      // Si no tiene control, la incluye
+      if (!e.control_enfermeria) {
+        return true;
+      }
+      // Si tiene control pero NO está COMPLETADO, la incluye
+      return e.control_enfermeria.estado !== 'COMPLETADO';
+    });
+
+    console.log(' Evaluaciones encontradas:', evaluacionesPendientes.length);
+
     res.json({
       success: true,
-      evaluaciones: evaluaciones.map(e => ({
+      evaluaciones: evaluacionesPendientes.map(e => ({
         id: e.id,
         paciente: {
           id: e.paciente.id,
           nombre: `${e.paciente.usuario.nombre} ${e.paciente.usuario.apellido}`,
           dni: e.paciente.usuario.dni
         },
-        fecha: e.fecha
+        fecha: e.fecha ? new Date(e.fecha).toLocaleString('es-AR') : 'N/A',
+        estado_control: e.control_enfermeria?.estado || 'SIN SOLICITAR'
       }))
     });
 
@@ -418,14 +397,12 @@ exports.buscarEvaluacionesSinControl = async (req, res) => {
     console.error('Error al buscar evaluaciones:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al buscar evaluaciones',
-      error: error.message
+      message: 'Error al buscar evaluaciones'
     });
   }
 };
-
 // Calcular IMC (Índice de Masa Corporal)
-exports.calcularIMC = async (req, res) => {
+exports.calcularIMC = async (req, res, next) => {
   try {
     const { peso, altura } = req.query;
 
@@ -471,15 +448,12 @@ exports.calcularIMC = async (req, res) => {
 
   } catch (error) {
     console.error('Error al calcular IMC:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al calcular IMC'
-    });
+    next(error);
   }
 };
 
 // Obtener historial de controles de un paciente
-exports.historialPaciente = async (req, res) => {
+exports.historialPaciente = async (req, res, next) => {
   try {
     const { paciente_id } = req.params;
 
@@ -505,26 +479,83 @@ exports.historialPaciente = async (req, res) => {
 
     res.json({
       success: true,
-      controles: controles.map(c => ({
-        id: c.id,
-        fecha: c.created_at,
-        enfermero: `${c.evaluacion.enfermero.usuario.nombre} ${c.evaluacion.enfermero.usuario.apellido}`,
-        peso: c.peso,
-        altura: c.altura,
-        presion_arterial: c.presion_arterial,
-        temperatura: c.temperatura,
-        grupo_sanguineo: c.grupo_sanguineo,
-        factor_rh: c.factor_rh
-      }))
+      controles: controles.map(c => {
+        const fecha = c.createdAt || c.evaluacion?.created_at;
+        const fechaFormato = fecha 
+          ? new Date(fecha).toLocaleDateString('es-AR') 
+          : 'N/A';
+        
+        return {
+          id: c.id,
+          fecha: fechaFormato,
+          enfermero: `${c.evaluacion.enfermero.usuario.nombre} ${c.evaluacion.enfermero.usuario.apellido}`,
+          peso: c.peso,
+          altura: c.altura,
+          presion_arterial: c.presion_arterial,
+          temperatura: c.temperatura,
+          grupo_sanguineo: c.grupo_sanguineo,
+          factor_rh: c.factor_rh
+        };
+      })
     });
 
   } catch (error) {
     console.error('Error al obtener historial:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener historial'
-    });
+    next(error);
   }
 };
+exports.formularioEditarControl = async (req, res, next) => {
+  try {
+    const { id } = req.params;
 
+    const control = await ControlEnfermeria.findByPk(id, {
+      include: [
+        
+        {
+          model: Paciente,
+          as: 'paciente',
+          required: false,
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo', 'telefono']
+          }]
+        },
+        //  Evaluación de enfermería (opcional)
+        {
+          model: EvaluacionEnfermeria,
+          as: 'evaluacion',
+          required: false,
+          include: [
+            {
+              model: Enfermero,
+              as: 'enfermero',
+              include: [{
+                model: Usuario,
+                as: 'usuario',
+                attributes: ['nombre', 'apellido']
+              }]
+            }
+          ]
+        }
+      ]
+    });
+
+    if (!control) {
+      return res.status(404).render('error', {
+        message: 'Control de enfermería no encontrado'
+      });
+    }
+
+    res.render('dashboard/enfermero/controles-editar', {
+      title: 'Editar Control',
+      user: req.user,
+      control
+    });
+
+  } catch (error) {
+    console.error('Error al cargar formulario de edición:', error);
+    next(error);
+  }
+};
 module.exports = exports;

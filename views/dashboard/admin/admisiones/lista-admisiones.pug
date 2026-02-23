@@ -69,6 +69,7 @@ block content
                       th Forma Ingreso
                       th Médico
                       th Estado
+                      th Servicio
                       th Acciones
                   tbody
                     each admision in admisiones
@@ -93,6 +94,29 @@ block content
                             span.badge.bg-success Completada
                           else if admision.estado === 'Cancelada'
                             span.badge.bg-danger Cancelada
+                        td
+                          if admision.turno && admision.turno.tipo_servicio
+                            span.badge.bg-success.text-white(
+                              data-bs-toggle='tooltip'
+                              title=`Servicio: ${admision.turno.tipo_servicio.nombre}${admision.turno.tipo_servicio.descripcion ? ' - ' + admision.turno.tipo_servicio.descripcion : ''}`
+                            )
+                              i.fas.fa-calendar-check.me-1
+                              = admision.turno.tipo_servicio.nombre
+  
+                           
+                          else if admision.sector
+                            span.badge.bg-info.text-white(
+                              data-bs-toggle='tooltip'
+                              title=`Sector: ${admision.sector.nombre}`
+                            )
+                              i.fas.fa-hospital.me-1
+                              = admision.sector.nombre
+  
+  
+                          else
+                            span.text-muted
+                              i.fas.fa-question-circle.me-1
+                              | Sin asignación
                         td
                           .btn-group(role='group')
                             button.btn.btn-sm.btn-info.btn-ver-detalle(type='button' data-id=admision.id title='Ver Detalle')

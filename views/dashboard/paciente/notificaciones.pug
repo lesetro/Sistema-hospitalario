@@ -1,0 +1,57 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .notificaciones-paciente
+    .page-header.mb-4
+      .row.align-items-center
+        .col-md-8
+          h2
+            i.fas.fa-bell.text-primary.me-2
+            | Notificaciones
+        .col-md-4.text-md-end
+          if estadisticas.noLeidas > 0
+            button.btn.btn-primary(onclick='marcarTodasLeidas()')
+              i.fas.fa-check-double.me-2
+              | Marcar todas leídas
+
+    if estadisticas.noLeidas > 0
+      .alert.alert-info
+        i.fas.fa-info-circle.me-2
+        | Tienes #{estadisticas.noLeidas} notificación#{estadisticas.noLeidas > 1 ? 'es' : ''} sin leer
+
+    .card.border-0.shadow-sm
+      .card-body
+        if notificaciones && notificaciones.length > 0
+          .list-group.list-group-flush
+            each notif in notificaciones
+              .list-group-item(class=!notif.leida ? 'bg-light' : '')
+                .d-flex.justify-content-between.align-items-start
+                  .flex-grow-1
+                    if !notif.leida
+                      span.badge.bg-primary.me-2 Nueva
+                    p.mb-1 #{notif.mensaje}
+                    small.text-muted
+                      i.fas.fa-clock.me-1
+                      | #{new Date(notif.createdAt).toLocaleString('es-AR')}
+                  if !notif.leida
+                    button.btn.btn-sm.btn-outline-primary(onclick=`marcarLeida(${notif.id})`)
+                      i.fas.fa-check
+        else
+          .text-center.py-5
+            i.fas.fa-bell-slash.fa-4x.text-muted.mb-3
+            h5.text-muted No tienes notificaciones
+
+block scripts
+  script.
+    async function marcarLeida(id) {
+      try {
+        const res = await fetch(`/paciente/notificaciones/${id}/marcar-leida`, { method: 'POST' });
+        if (res.ok) location.reload();
+      } catch (e) { console.error(e); }
+    }
+    async function marcarTodasLeidas() {
+      try {
+        const res = await fetch('/paciente/notificaciones/marcar-todas-leidas', { method: 'POST' });
+        if (res.ok) location.reload();
+      } catch (e) { console.error(e); }
+    }

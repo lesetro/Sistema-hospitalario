@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const medicoController = require('../../controllers/medico/medicoController');
 const authMiddleware = require('../../middleware/authMiddleware');
+const turnosMedicoRoutes = require('./turnosMedicoRouter');
+const emergenciaRoutes = require('./emergenciaRoutes');
 
 // Todas las rutas requieren autenticación y rol de médico
 router.use(authMiddleware);
@@ -15,5 +17,8 @@ router.get('/api/turnos-proximos', medicoController.obtenerTurnosProximos);
 router.get('/api/pacientes-recientes', medicoController.obtenerPacientesRecientes);
 router.get('/api/internaciones-en-curso', medicoController.obtenerInternacionesEnCurso);
 router.get('/api/actividad-reciente', medicoController.obtenerActividadReciente);
+
+router.use('/mis-turnos', turnosMedicoRoutes);  
+router.use('/emergencias', emergenciaRoutes);       
 
 module.exports = router;

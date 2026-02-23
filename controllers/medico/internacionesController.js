@@ -10,15 +10,15 @@ const {
   EvaluacionMedica,
   IntervencionQuirurgica,
   ListaEspera,
-  AltaMedica,
-  sequelize
+  AltaMedica
 } = require('../../models');
 const { Op } = require('sequelize');
+const db = require('../../database/db');
 
 // ========================================
 // RENDERIZAR VISTA
 // ========================================
-exports.renderInternaciones = async (req, res) => {
+exports.renderInternaciones = async (req, res, next) => {
   try {
     console.log('🔍 renderInternaciones - usuario_id:', req.user.usuario_id);
     
@@ -52,17 +52,14 @@ exports.renderInternaciones = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al renderizar internaciones:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: error.message
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER INTERNACIONES
 // ========================================
-exports.obtenerInternaciones = async (req, res) => {
+exports.obtenerInternaciones = async (req, res, next) => {
   try {
     console.log('📋 obtenerInternaciones - usuario_id:', req.user.usuario_id);
     
@@ -177,17 +174,14 @@ exports.obtenerInternaciones = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener internaciones:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER INTERNACIÓN POR ID
 // ========================================
-exports.obtenerInternacionPorId = async (req, res) => {
+exports.obtenerInternacionPorId = async (req, res, next) => {
   try {
     console.log('🔍 obtenerInternacionPorId - usuario_id:', req.user.usuario_id);
     
@@ -309,18 +303,15 @@ exports.obtenerInternacionPorId = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener internación:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // ACTUALIZAR ESTADO
 // ========================================
-exports.actualizarEstado = async (req, res) => {
-  const transaction = await sequelize.transaction();
+exports.actualizarEstado = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
 
   try {
     console.log('🔄 actualizarEstado - usuario_id:', req.user.usuario_id);
@@ -390,17 +381,14 @@ exports.actualizarEstado = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('❌ Error al actualizar internación:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER INTERNACIONES ACTIVAS
 // ========================================
-exports.obtenerInternacionesActivas = async (req, res) => {
+exports.obtenerInternacionesActivas = async (req, res, next) => {
   try {
     console.log('📅 obtenerInternacionesActivas - usuario_id:', req.user.usuario_id);
     
@@ -463,17 +451,14 @@ exports.obtenerInternacionesActivas = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener internaciones activas:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER TIPOS DE INTERNACIÓN
 // ========================================
-exports.obtenerTiposInternacion = async (req, res) => {
+exports.obtenerTiposInternacion = async (req, res, next) => {
   try {
     console.log('🏥 obtenerTiposInternacion');
     
@@ -490,17 +475,14 @@ exports.obtenerTiposInternacion = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener tipos de internación:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER PACIENTES PARA FILTRO
 // ========================================
-exports.obtenerPacientesParaFiltro = async (req, res) => {
+exports.obtenerPacientesParaFiltro = async (req, res, next) => {
   try {
     console.log('👥 obtenerPacientesParaFiltro - usuario_id:', req.user.usuario_id);
     
@@ -562,18 +544,15 @@ exports.obtenerPacientesParaFiltro = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener pacientes:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ESTADÍSTICAS
 // ========================================
-// ✅ CORREGIDO - SIN sequelize.fn() y .get()
-exports.obtenerEstadisticas = async (req, res) => {
+
+exports.obtenerEstadisticas = async (req, res, next) => {
   try {
     console.log('📊 obtenerEstadisticas - usuario_id:', req.user.usuario_id);
     
@@ -654,9 +633,6 @@ exports.obtenerEstadisticas = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener estadísticas:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };

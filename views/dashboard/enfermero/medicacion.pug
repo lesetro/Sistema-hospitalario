@@ -60,9 +60,10 @@ block content
                 label.form-label Estado
                 select.form-select(name='estado')
                   option(value='' selected=!filtros.estado) Todas
-                  option(value='pendiente' selected=(filtros.estado === 'pendiente')) Pendientes
-                  option(value='administrada' selected=(filtros.estado === 'administrada')) Administradas
-              
+                  option(value='PENDIENTE' selected=(filtros.estado === 'PENDIENTE')) Pendientes
+                  option(value='ADMINISTRADA' selected=(filtros.estado === 'ADMINISTRADA')) Administradas
+                  option(value='CANCELADA' selected=(filtros.estado === 'CANCELADA')) Canceladas
+                  
               .col-md-2.d-flex.align-items-end
                 button.btn.btn-primary.w-100(type='submit')
                   i.fas.fa-filter.me-2
@@ -77,7 +78,7 @@ block content
               i.fas.fa-list.me-2
               | Recetas Médicas
           .card-body.p-0
-            if recetas.length > 0
+            if recetas && recetas.length > 0
               .table-responsive
                 table.table.table-hover.mb-0#tabla-recetas
                   thead.table-light
@@ -91,12 +92,17 @@ block content
                       th.text-center Acciones
                   tbody
                     each receta in recetas
-                      tr(class=receta.administrada ? '' : 'table-warning')
+                      //  CAMBIO: Usa receta.estado en lugar de administrada
+                      tr(class=receta.estado === 'ADMINISTRADA' ? '' : 'table-warning')
                         td
-                          if receta.administrada
+                          if receta.estado === 'ADMINISTRADA'
                             span.badge.bg-success
                               i.fas.fa-check.me-1
                               | Administrada
+                          else if receta.estado === 'CANCELADA'
+                            span.badge.bg-danger
+                              i.fas.fa-times.me-1
+                              | Cancelada
                           else
                             span.badge.bg-warning.text-dark
                               i.fas.fa-clock.me-1
@@ -110,16 +116,19 @@ block content
                         td
                           small= new Date(receta.fecha).toLocaleDateString('es-AR')
                         td
-                          if receta.ultima_administracion
-                            small= new Date(receta.ultima_administracion).toLocaleString('es-AR')
+                          // Si está ADMINISTRADA, podría mostrar fecha, sino "Nunca"
+                          if receta.estado === 'ADMINISTRADA'
+                            small.text-success= new Date(receta.updated_at).toLocaleString('es-AR')
                           else
                             small.text-muted Nunca
                         td.text-center
                           .btn-group.btn-group-sm(role='group')
                             a.btn.btn-outline-info(href=`/enfermero/medicacion/${receta.id}` title='Ver detalle')
                               i.fas.fa-eye
-                            a.btn.btn-success(href=`/enfermero/medicacion/${receta.id}/administrar` title='Administrar')
-                              i.fas.fa-syringe
+                            //  Solo mostrar botón Administrar si está PENDIENTE
+                            if receta.estado === 'PENDIENTE'
+                              a.btn.btn-success(href=`/enfermero/medicacion/${receta.id}/administrar` title='Administrar')
+                                i.fas.fa-syringe
             else
               .p-5.text-center.text-muted
                 i.fas.fa-prescription.fa-4x.mb-3

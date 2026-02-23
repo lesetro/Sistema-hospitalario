@@ -1,0 +1,173 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header con breadcrumb
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/enfermero/camas") Dashboard Camas
+            li.breadcrumb-item
+              a(href="/enfermero/camas/sector") Mi Sector
+            li.breadcrumb-item.active Servicios
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-stethoscope.me-2
+              | Servicios de Mi Sector
+            p.text-muted.mb-0 Selecciona un servicio para ver sus habitaciones
+          div
+            a.btn.btn-outline-secondary(href="/enfermero/camas/sector")
+              i.fas.fa-arrow-left.me-2
+              | Volver al Sector
+
+    // Resumen de servicios
+    .row.mb-4
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            .row.align-items-center
+              .col-md-8
+                h5.mb-2
+                  i.fas.fa-heartbeat.me-2.text-primary
+                  | Servicios Disponibles
+                p.text-muted.mb-0 Lista de todos los servicios médicos en su sector asignado
+              .col-md-4.text-end
+                .badge.bg-info.fs-6
+                  = servicios.length
+                  = servicios.length === 1 ? ' Servicio' : ' Servicios'
+
+    // Lista de servicios
+    .row
+      if servicios && servicios.length > 0
+        each servicio in servicios
+          // Calcular porcentaje de ocupación (si existe en estadísticas)
+          - const totalCamas = servicio.estadisticas.totalCamas || 0;
+          - const camasOcupadas = servicio.estadisticas.camasOcupadas || 0;
+          - const porcentajeOcupacion = totalCamas > 0 ? Math.round((camasOcupadas / totalCamas) * 100) : 0;
+          - const camasLibres = servicio.estadisticas.camasLibres || 0;
+          - const camasLimpieza = servicio.estadisticas.camasLimpieza || 0;
+          
+          .col-xl-6.col-lg-12.mb-4
+            .card.border-0.shadow-sm.h-100.hover-card
+              .card-header.bg-white.d-flex.justify-content-between.align-items-center
+                h5.mb-0
+                  i.fas.fa-heartbeat.me-2.text-primary
+                  = servicio.nombre
+                span.badge(class=porcentajeOcupacion > 80 ? 'bg-danger' : porcentajeOcupacion > 50 ? 'bg-warning text-dark' : 'bg-success')
+                  = porcentajeOcupacion + '% ocupado'
+              
+              .card-body
+                // Descripción
+                if servicio.descripcion
+                  p.card-text.text-muted.mb-3= servicio.descripcion
+                
+                // Estadísticas en grid
+                .row.g-3.mb-3
+                  .col-6
+                    .card.border-0.bg-light
+                      .card-body.text-center.p-3
+                        .d-flex.align-items-center.justify-content-center.mb-2
+                          .p-2.rounded-circle.bg-info.bg-opacity-10.me-2
+                            i.fas.fa-door-open.text-info
+                        h4.text-info.mb-1= servicio.estadisticas.totalHabitaciones || 0
+                        small.text-muted Habitaciones
+                  
+                  .col-6
+                    .card.border-0.bg-light
+                      .card-body.text-center.p-3
+                        .d-flex.align-items-center.justify-content-center.mb-2
+                          .p-2.rounded-circle.bg-primary.bg-opacity-10.me-2
+                            i.fas.fa-bed.text-primary
+                        h4.text-primary.mb-1= totalCamas
+                        small.text-muted Total Camas
+                  
+                  .col-6
+                    .card.border-0.bg-light
+                      .card-body.text-center.p-3
+                        .d-flex.align-items-center.justify-content-center.mb-2
+                          .p-2.rounded-circle.bg-success.bg-opacity-10.me-2
+                            i.fas.fa-check-circle.text-success
+                        h4.text-success.mb-1= camasLibres
+                        small.text-muted Camas Libres
+                  
+                  .col-6
+                    .card.border-0.bg-light
+                      .card-body.text-center.p-3
+                        .d-flex.align-items-center.justify-content-center.mb-2
+                          .p-2.rounded-circle.bg-danger.bg-opacity-10.me-2
+                            i.fas.fa-user-injured.text-danger
+                        h4.text-danger.mb-1= camasOcupadas
+                        small.text-muted Ocupadas
+                
+                // Barra de progreso
+                .mb-2
+                  .d-flex.justify-content-between.mb-1
+                    small.text-muted Nivel de Ocupación
+                    small.fw-bold(class=porcentajeOcupacion > 80 ? 'text-danger' : porcentajeOcupacion > 50 ? 'text-warning' : 'text-success')
+                      = porcentajeOcupacion + '%'
+                  .progress(style="height: 10px")
+                    .progress-bar(
+                      class=porcentajeOcupacion > 80 ? 'bg-danger' : porcentajeOcupacion > 50 ? 'bg-warning' : 'bg-success'
+                      role="progressbar"
+                      style=`width: ${porcentajeOcupacion}%`
+                      aria-valuenow=porcentajeOcupacion
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    )
+              
+              .card-footer.bg-white.border-0.pt-0
+                .d-grid.gap-2
+                  // Ajustar la ruta según tu router
+                  a.btn.btn-primary(
+                    href=`/enfermero/camas/servicios/${servicio.id}/habitaciones`
+                  )
+                    i.fas.fa-door-open.me-2
+                    | Ver Habitaciones
+                  
+                  if camasLibres > 0
+                    button.btn.btn-outline-success(
+                      type='button'
+                      onclick=`verCamasDisponiblesServicio(${servicio.id})`
+                    )
+                      i.fas.fa-bed.me-2
+                      = `${camasLibres} cama(s) disponible(s)`
+
+      else
+        .col-12
+          .card.border-0.shadow-sm
+            .card-body.text-center.py-5
+              i.fas.fa-stethoscope.fa-4x.text-muted.mb-3
+              h4 No hay servicios en este sector
+              p.text-muted.mb-0 No se encontraron servicios asociados a su sector asignado.
+
+block scripts
+  script.
+    function verCamasDisponiblesServicio(servicioId) {
+      window.location.href = `/enfermero/camas/disponibles?tipo_servicio_id=${servicioId}`;
+    }
+    
+    // Agregar efecto hover a las cards
+    document.addEventListener('DOMContentLoaded', function() {
+      const cards = document.querySelectorAll('.hover-card');
+      cards.forEach(card => {
+        card.style.transition = 'transform 0.2s, box-shadow 0.2s';
+        card.addEventListener('mouseenter', function() {
+          this.style.transform = 'translateY(-5px)';
+          this.style.boxShadow = '0 0.5rem 1rem rgba(0,0,0,0.15)';
+        });
+        card.addEventListener('mouseleave', function() {
+          this.style.transform = 'translateY(0)';
+          this.style.boxShadow = '';
+        });
+      });
+    });
+
+  style.
+    .hover-card {
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }

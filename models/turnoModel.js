@@ -30,6 +30,11 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: true,
         references: { model: 'sectores', key: 'id' }
       },
+      tipo_servicio_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true, 
+        references: { model: 'tiposdeservicio', key: 'id' }
+      },
       evaluacion_medica_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
@@ -69,6 +74,7 @@ module.exports = (sequelize, DataTypes) => {
     Turno.hasOne(models.ListaEspera, {foreignKey: 'turno_id',as: 'lista_espera'});
     Turno.belongsTo(models.EvaluacionMedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacion_medica'});
     Turno.belongsTo(models.TipoEstudio, { foreignKey: 'tipo_estudio_id', as: 'tipo_estudio' });
+    Turno.belongsTo(models.TipoDeServicio, { foreignKey: 'tipo_servicio_id', as: 'tipo_servicio' });
     
   };
 

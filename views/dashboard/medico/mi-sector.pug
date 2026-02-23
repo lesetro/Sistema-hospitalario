@@ -1,0 +1,110 @@
+extends layout
+
+block content
+  .container-fluid
+    //- BREADCRUMB
+    nav(aria-label='breadcrumb')
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href='/medico') Dashboard
+        li.breadcrumb-item.active Mi Sector
+    
+    //- ENCABEZADO
+    .d-flex.justify-content-between.align-items-center.mb-4
+      div
+        h2
+          i.fas.fa-hospital.me-2
+          = sector.nombre
+        p.text-muted.mb-0= sector.descripcion || 'Su sector asignado'
+      
+      a.btn.btn-primary(href='/medico/sectores/pendientes')
+        i.fas.fa-users.me-2
+        | Ver Pendientes de Asignar
+    
+    //- ESTADÍSTICAS
+    .row.mb-4
+      .col-md-3
+        .card.border-primary
+          .card-body.text-center
+            .display-4.text-primary
+              i.fas.fa-door-open
+            h3.mb-0= estadisticas.totalHabitaciones
+            small.text-muted Habitaciones
+      
+      .col-md-3
+        .card.border-info
+          .card-body.text-center
+            .display-4.text-info
+              i.fas.fa-bed
+            h3.mb-0= estadisticas.totalCamas
+            small.text-muted Total Camas
+      
+      .col-md-3
+        .card.border-success
+          .card-body.text-center
+            .display-4.text-success
+              i.fas.fa-check-circle
+            h3.mb-0= estadisticas.camasLibres
+            small.text-muted Camas Libres
+      
+      .col-md-3
+        .card.border-danger
+          .card-body.text-center
+            .display-4.text-danger
+              i.fas.fa-user-injured
+            h3.mb-0= estadisticas.camasOcupadas
+            small.text-muted Camas Ocupadas
+    
+    //- SERVICIOS
+    .card
+      .card-header.bg-primary.text-white
+        h5.mb-0
+          i.fas.fa-list.me-2
+          | Servicios en #{sector.nombre}
+      
+      .card-body
+        if servicios && servicios.length > 0
+          .row
+            each servicio in servicios
+              .col-md-6.col-lg-4.mb-3
+                .card.h-100.border-secondary
+                  .card-header.bg-secondary.text-white
+                    strong
+                      i.fas.fa-stethoscope.me-2
+                      = servicio.nombre
+                  
+                  .card-body
+                    p.mb-2
+                      strong Habitaciones: 
+                      span.badge.bg-info= servicio.habitaciones.length
+                    
+                    p.mb-2
+                      strong Total Camas: 
+                      span.badge.bg-dark= servicio.totalCamas
+                    
+                    p.mb-2
+                      strong Libres: 
+                      span.badge.bg-success= servicio.camasLibres
+                    
+                    p.mb-3
+                      strong Ocupadas: 
+                      span.badge.bg-danger= servicio.camasOcupadas
+                    
+                    .list-group.list-group-flush
+                      each habitacion in servicio.habitaciones
+                        a.list-group-item.list-group-item-action(
+                          href=`/medico/sectores/habitacion/${habitacion.id}`
+                        )
+                          .d-flex.justify-content-between.align-items-center
+                            span
+                              i.fas.fa-door-closed.me-2
+                              | Habitación #{habitacion.numero}
+                            - const camas = habitacion.camas || []
+                            - const libres = camas.filter(c => c.estado === 'Libre').length
+                            - const total = camas.length
+                            span.badge(class=libres > 0 ? 'bg-success' : 'bg-secondary')
+                              = `${libres}/${total} libres`
+        else
+          .alert.alert-info
+            i.fas.fa-info-circle.me-2
+            | No hay servicios configurados en este sector

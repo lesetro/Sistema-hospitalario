@@ -11,16 +11,19 @@ router.use(authMiddleware);
 router.get('/', comunicacionesController.renderComunicaciones);
 
 // ========================================
-// APIS - NOTIFICACIONES
+// APIS - NOTIFICACIONES (Mensajes)
 // ========================================
 
-// Obtener notificaciones
+// Obtener notificaciones recibidas (bandeja de entrada)
 router.get('/api/notificaciones', comunicacionesController.obtenerNotificaciones);
+
+// Obtener mensajes enviados
+router.get('/api/mensajes/enviados', comunicacionesController.obtenerMensajesEnviados);
 
 // Obtener estadísticas
 router.get('/api/notificaciones/estadisticas', comunicacionesController.obtenerEstadisticasNotificaciones);
 
-// Crear notificación
+// Crear notificación (enviar mensaje)
 router.post('/api/notificaciones', comunicacionesController.crearNotificacion);
 
 // Marcar notificación como leída
@@ -33,7 +36,7 @@ router.put('/api/notificaciones/marcar-todas-leidas', comunicacionesController.m
 router.delete('/api/notificaciones/:id', comunicacionesController.eliminarNotificacion);
 
 // ========================================
-// APIS - MENSAJES
+// APIS - CONVERSACIONES
 // ========================================
 
 // Obtener conversación con un usuario
@@ -42,34 +45,15 @@ router.get('/api/mensajes/conversacion/:usuario_id', comunicacionesController.ob
 // Obtener lista de conversaciones (últimos mensajes)
 router.get('/api/mensajes/conversaciones', comunicacionesController.obtenerConversaciones);
 
-// Obtener mensajes recibidos (bandeja de entrada)
-router.get('/api/mensajes/recibidos', comunicacionesController.obtenerMensajesRecibidos);
-
-// Obtener mensajes enviados (bandeja de enviados)
-router.get('/api/mensajes/enviados', comunicacionesController.obtenerMensajesEnviados);
-
-// Enviar mensaje
-router.post('/api/mensajes', comunicacionesController.enviarMensaje);
-
-// Marcar mensaje como leído
-router.put('/api/mensajes/:id/leido', comunicacionesController.marcarMensajeLeido);
-
-// Eliminar mensaje
-router.delete('/api/mensajes/:id', comunicacionesController.eliminarMensaje);
-
 // ========================================
 // APIS - USUARIOS - BÚSQUEDA
 // ========================================
 router.get('/api/usuarios/buscar', comunicacionesController.buscarUsuarios);
 
 // ========================================
-// APIS - NOTICIAS - ESPECÍFICAS PRIMERO
+// APIS - NOTICIAS
 // ========================================
 router.get('/api/noticias/:id', comunicacionesController.obtenerNoticiaPorId);
-
-// ========================================
-// APIS - NOTICIAS - GENÉRICAS DESPUÉS
-// ========================================
 router.get('/api/noticias', comunicacionesController.obtenerNoticias);
 
 module.exports = router;

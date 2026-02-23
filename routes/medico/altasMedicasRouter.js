@@ -3,43 +3,52 @@ const router = express.Router();
 const altasMedicasController = require('../../controllers/medico/altasMedicasController');
 const authMiddleware = require('../../middleware/authMiddleware');
 
-// ========================================
-// MIDDLEWARE DE AUTENTICACIÓN
-// ========================================
+// Aplicar middleware de autenticación y verificación de rol
 router.use(authMiddleware);
 
 // ========================================
-// VISTAS
+// RUTAS DE VISTAS
 // ========================================
+// GET - Renderizar vista principal de altas médicas
 router.get('/', altasMedicasController.renderAltasMedicas);
 
 // ========================================
-// APIs - ESPECÍFICAS PRIMERO
+// RUTAS DE API - ESTADÍSTICAS
 // ========================================
-
-// Obtener pendientes de alta
-router.get('/api/altas/pendientes', altasMedicasController.obtenerPendientesAlta);
-
-// Obtener por ID
-router.get('/api/altas/:id', altasMedicasController.obtenerAltaPorId);
+// GET - Obtener estadísticas de altas
+router.get('/estadisticas', altasMedicasController.obtenerEstadisticas);
 
 // ========================================
-// APIs - GENÉRICAS DESPUÉS
+// RUTAS DE API - ALTAS
 // ========================================
+// GET - Obtener listado de altas con filtros y paginación
+router.get('/altas', altasMedicasController.obtenerAltas);
 
-// Listar altas (con filtros y paginación)
-router.get('/api/altas', altasMedicasController.obtenerAltas);
+// GET - Obtener altas recientes
+router.get('/altas/recientes', altasMedicasController.obtenerAltasRecientes);
 
-// Recientes
-router.get('/api/altas/recientes', altasMedicasController.obtenerAltasRecientes);
+// GET - Obtener alta específica por ID
+router.get('/altas/:id', altasMedicasController.obtenerAltaPorId);
 
-// Crear alta
-router.post('/api/altas', altasMedicasController.crearAlta);
+// POST - Crear nueva alta médica
+router.post('/altas', altasMedicasController.crearAlta);
 
-// Pacientes para filtro
-router.get('/api/pacientes-filtro', altasMedicasController.obtenerPacientesParaFiltro);
+// ========================================
+// RUTAS DE API - PENDIENTES
+// ========================================
+// GET - Obtener pendientes de alta (internaciones, admisiones, solicitudes)
+router.get('/pendientes', altasMedicasController.obtenerPendientesAlta);
 
-// Estadísticas
-router.get('/api/estadisticas', altasMedicasController.obtenerEstadisticas);
+// ========================================
+// RUTAS DE API - SOLICITUDES DE ENFERMERÍA
+// ========================================
+// POST - Crear alta desde solicitud de enfermería
+router.post('/solicitud', altasMedicasController.crearAltaDesdeSolicitud);
+
+// ========================================
+// RUTAS DE API - UTILIDADES
+// ========================================
+// GET - Obtener pacientes para filtro
+router.get('/pacientes/filtro', altasMedicasController.obtenerPacientesParaFiltro);
 
 module.exports = router;

@@ -1,59 +1,131 @@
-const { EvaluacionEnfermeria, Paciente, Usuario, Enfermero, ListaEspera, Admision, TipoTurno } = require('../../models');
+const { 
+  EvaluacionEnfermeria,
+  Paciente,
+  Usuario, 
+  Enfermero, 
+  ListaEspera, 
+  TipoTurno ,
+  Sector, 
+  Turno,  
+  Medico,
+  TipoDeServicio 
+} = require('../../models');
 const { Op } = require('sequelize');
 const db = require('../../database/db');
 
 // Listar pacientes en triaje
-exports.listarTriaje = async (req, res) => {
+exports.listarTriaje = async (req, res, next) => {
   try {
-    const { nivel, fecha, estado } = req.query;
+    const { nivel, fecha, estado, mostrar_turnos } = req.query;
     
-    const whereCondition = {
+    console.log('🔍 Iniciando listarTriaje para enfermero:', req.user?.usuario_id);
+    
+    // 1. Obtener el enfermero con su sector
+    const enfermero = await Enfermero.findOne({
+      where: { usuario_id: req.user?.usuario_id },
+      include: [{ 
+        model: Sector, 
+        as: 'sector',
+        attributes: ['id', 'nombre', 'descripcion']
+      }]
+    });
+
+    if (!enfermero) {
+      return res.status(404).render('error', {
+        message: 'Enfermero no encontrado en el sistema'
+      });
+    }
+
+    // Crear objeto enfermeroInfo con valores por defecto
+    const enfermeroInfo = {
+      nombre: req.user?.nombre || 'Enfermero/a',
+      apellido: req.user?.apellido || '',
+      sector: enfermero.sector?.nombre || 'Sin sector asignado',
+      sector_id: enfermero.sector_id,
+      descripcion: enfermero.sector?.descripcion || ''
+    };
+
+    console.log(`✅ Enfermero: ${enfermero.id}, Sector: ${enfermero.sector_id} (${enfermeroInfo.sector})`);
+
+    // 2. Obtener turnos del sector si tiene asignado
+    const fechaFiltro = fecha || new Date().toISOString().split('T')[0];
+    let turnosSector = [];
+    
+    if (enfermero.sector_id) {
+      turnosSector = await Turno.findAll({
+        where: {
+          sector_id: enfermero.sector_id,
+          fecha: fechaFiltro,
+          estado: { [Op.in]: ['PENDIENTE', 'CONFIRMADO'] }
+        },
+        include: [
+          {
+            model: Paciente,
+            as: 'paciente',
+            include: [{
+              model: Usuario,
+              as: 'usuario',
+              attributes: ['nombre', 'apellido', 'dni', 'sexo', 'telefono']
+            }]
+          },
+          {
+            model: Medico,
+            as: 'medico',
+            include: [{
+              model: Usuario,
+              as: 'usuario',
+              attributes: ['nombre', 'apellido']
+            }],
+            required: false
+          },
+          {
+            model: TipoDeServicio,
+            as: 'tipo_servicio',
+            attributes: ['id', 'nombre', 'descripcion']
+          }
+        ],
+        order: [
+          ['hora_inicio', 'ASC']
+        ]
+      });
+    }
+
+    console.log(`📅 Turnos del sector ${enfermeroInfo.sector}: ${turnosSector.length}`);
+
+    // 3. Obtener evaluaciones de triaje
+    const whereTriaje = {
       nivel_triaje: { [Op.ne]: null }
     };
 
-    // Filtros opcionales
-    if (nivel) {
-      whereCondition.nivel_triaje = nivel;
-    }
-
-    if (estado) {
-      whereCondition.tipo_egreso = estado;
-    } else {
-      // Por defecto mostrar solo pendientes
-      whereCondition.tipo_egreso = 'PENDIENTE_EVALUACION';
-    }
-
+    // Filtrar por fecha si se especifica
     if (fecha) {
       const fechaInicio = new Date(fecha);
       fechaInicio.setHours(0, 0, 0, 0);
       const fechaFin = new Date(fecha);
       fechaFin.setHours(23, 59, 59, 999);
-      
-      whereCondition.fecha = {
-        [Op.between]: [fechaInicio, fechaFin]
-      };
+      whereTriaje.fecha = { [Op.between]: [fechaInicio, fechaFin] };
     } else {
-      // Por defecto mostrar del día actual
       const hoy = new Date();
       hoy.setHours(0, 0, 0, 0);
-      whereCondition.fecha = {
-        [Op.gte]: hoy
-      };
+      whereTriaje.fecha = { [Op.gte]: hoy };
+    }
+
+    if (nivel) whereTriaje.nivel_triaje = nivel;
+    if (estado) {
+      whereTriaje.tipo_egreso = estado;
     }
 
     const pacientesTriaje = await EvaluacionEnfermeria.findAll({
-      where: whereCondition,
+      where: whereTriaje,
       include: [
         {
           model: Paciente,
           as: 'paciente',
-          include: [
-            {
-              model: Usuario,
-              as: 'usuario',
-              attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo', 'telefono']
-            }
-          ]
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo', 'telefono']
+          }]
         },
         {
           model: Enfermero,
@@ -65,40 +137,77 @@ exports.listarTriaje = async (req, res) => {
           }]
         }
       ],
-      order: [
-        ['nivel_triaje', 'ASC'], // Rojo primero
-        ['fecha', 'ASC']
-      ]
+      order: [['nivel_triaje', 'ASC'], ['fecha', 'ASC']]
     });
 
-    // Estadísticas de triaje
+    // 4. Obtener estadísticas (con valores por defecto)
     const estadisticas = {
-      total: pacientesTriaje.length,
+      sector: enfermeroInfo.sector,
+      turnosHoy: turnosSector.length,
+      turnosPendientes: turnosSector.filter(t => t.estado === 'PENDIENTE').length,
+      turnosConfirmados: turnosSector.filter(t => t.estado === 'CONFIRMADO').length,
+      triajesHoy: pacientesTriaje.length,
       rojo: pacientesTriaje.filter(p => p.nivel_triaje === 'Rojo').length,
       amarillo: pacientesTriaje.filter(p => p.nivel_triaje === 'Amarillo').length,
       verde: pacientesTriaje.filter(p => p.nivel_triaje === 'Verde').length,
       negro: pacientesTriaje.filter(p => p.nivel_triaje === 'Negro').length
     };
 
+    // 5. Crear objeto de filtros
+    const filtros = { 
+      nivel: nivel || '', 
+      fecha: fechaFiltro, 
+      estado: estado || '',
+      mostrar_turnos: mostrar_turnos || 'false'
+    };
+
+    // 6. Renderizar vista con TODAS las variables necesarias
     res.render('dashboard/enfermero/triaje', {
-      title: 'Triaje',
-      user: req.user,
-      pacientesTriaje,
-      estadisticas,
-      filtros: { nivel, fecha, estado }
+      title: `Triaje - ${enfermeroInfo.sector}`,
+      user: req.user || {},
+      turnosSector: turnosSector || [],
+      pacientesTriaje: pacientesTriaje || [],
+      estadisticas: estadisticas,
+      filtros: filtros,
+      enfermeroInfo: enfermeroInfo,
+      hoy: new Date().toISOString().split('T')[0],
+      mostrarTurnos: mostrar_turnos === 'true' || turnosSector.length > 0,
+      error: null  // Variable por si hay errores
     });
 
   } catch (error) {
-    console.error('Error al listar triaje:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el triaje',
-      error: process.env.NODE_ENV === 'development' ? error : {}
+    console.error('❌ Error en listarTriaje:', error);
+    // Renderizar con error
+    res.render('dashboard/enfermero/triaje', {
+      title: 'Triaje - Error',
+      user: req.user || {},
+      turnosSector: [],
+      pacientesTriaje: [],
+      estadisticas: {
+        sector: 'Error',
+        turnosHoy: 0,
+        turnosPendientes: 0,
+        turnosConfirmados: 0,
+        triajesHoy: 0,
+        rojo: 0,
+        amarillo: 0,
+        verde: 0,
+        negro: 0
+      },
+      filtros: {},
+      enfermeroInfo: {
+        nombre: req.user?.nombre || 'Enfermero/a',
+        sector: 'Error al cargar sector'
+      },
+      hoy: new Date().toISOString().split('T')[0],
+      mostrarTurnos: false,
+      error: 'Error al cargar los datos. Intente nuevamente.'
     });
   }
 };
 
-// Formulario para registrar nuevo triaje
-exports.formularioNuevoTriaje = async (req, res) => {
+// Formulario para nuevo triaje
+exports.formularioNuevoTriaje = async (req, res, next) => {
   try {
     const { paciente_id } = req.query;
     
@@ -115,29 +224,44 @@ exports.formularioNuevoTriaje = async (req, res) => {
 
     res.render('dashboard/enfermero/triaje-nuevo', {
       title: 'Nuevo Triaje',
-      user: req.user,
-      paciente
+      user: req.user || {},
+      paciente: paciente,
+      error: null
     });
 
   } catch (error) {
-    console.error('Error al cargar formulario de triaje:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el formulario',
-      error: process.env.NODE_ENV === 'development' ? error : {}
+    console.error('❌ Error en formularioNuevoTriaje:', error);
+    res.render('dashboard/enfermero/triaje-nuevo', {
+      title: 'Nuevo Triaje - Error',
+      user: req.user || {},
+      paciente: null,
+      error: 'Error al cargar el formulario'
     });
   }
 };
 
 // Registrar nuevo triaje
-exports.registrarTriaje = async (req, res) => {
+exports.registrarTriaje = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
-    const enfermeroId = req.user.enfermero.id;
+    const enfermero = await Enfermero.findOne({
+      where: { usuario_id: req.user?.usuario_id }
+    });
+    
+    if (!enfermero) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'No se pudo identificar al enfermero. Vuelva a iniciar sesión.'
+      });
+    }
+    
+    const enfermeroId = enfermero.id;
+    
     const {
       paciente_id,
       nivel_triaje,
-      signos_vitales,
       motivo_consulta,
       observaciones,
       presion_arterial,
@@ -147,7 +271,23 @@ exports.registrarTriaje = async (req, res) => {
       frecuencia_respiratoria
     } = req.body;
 
-    // Validar que el paciente existe
+    // Validaciones básicas
+    if (!paciente_id) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Debe seleccionar un paciente'
+      });
+    }
+
+    if (!nivel_triaje) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Debe seleccionar un nivel de triaje'
+      });
+    }
+
     const paciente = await Paciente.findByPk(paciente_id, { transaction });
     if (!paciente) {
       await transaction.rollback();
@@ -157,49 +297,46 @@ exports.registrarTriaje = async (req, res) => {
       });
     }
 
-    // Construir signos vitales
+    // Crear texto de signos vitales
     const signosVitalesTexto = `PA: ${presion_arterial || 'N/A'}, FC: ${frecuencia_cardiaca || 'N/A'}, T: ${temperatura || 'N/A'}°C, SpO2: ${saturacion_oxigeno || 'N/A'}%, FR: ${frecuencia_respiratoria || 'N/A'}`;
+    const observacionesTexto = `Motivo: ${motivo_consulta || 'No especificado'}\n${observaciones || ''}`;
 
-    // Crear evaluación de enfermería con triaje
+    // Crear evaluación de triaje
     const evaluacionTriaje = await EvaluacionEnfermeria.create({
-      paciente_id,
-      enfermero_id: enfermeroId,
+      paciente_id: parseInt(paciente_id),
+      enfermero_id: parseInt(enfermeroId),
       fecha: new Date(),
       nivel_triaje,
       signos_vitales: signosVitalesTexto,
-      observaciones: `Motivo: ${motivo_consulta}\n${observaciones || ''}`,
+      observaciones: observacionesTexto,
       tipo_egreso: 'PENDIENTE_EVALUACION'
     }, { transaction });
 
-    // Determinar prioridad según nivel de triaje
-    let prioridad = 'MEDIA';
-    if (nivel_triaje === 'Rojo') prioridad = 'ALTA';
-    else if (nivel_triaje === 'Verde' || nivel_triaje === 'Negro') prioridad = 'BAJA';
-
-    // Buscar tipo de turno "Consulta" o crear uno genérico
-    let tipoTurno = await TipoTurno.findOne({
-      where: { nombre: 'Consulta' },
-      transaction
-    });
-
-    if (!tipoTurno) {
-      tipoTurno = await TipoTurno.create({
-        nombre: 'Consulta',
-        descripcion: 'Consulta médica general',
-        requiere_especialidad: false,
-        requiere_estudio: false
-      }, { transaction });
-    }
-
-    // Crear entrada en lista de espera si es nivel Rojo o Amarillo
+    // Agregar a lista de espera si corresponde
     if (nivel_triaje === 'Rojo' || nivel_triaje === 'Amarillo') {
+      const prioridad = nivel_triaje === 'Rojo' ? 'ALTA' : 'MEDIA';
+      
+      let tipoTurno = await TipoTurno.findOne({
+        where: { nombre: 'Consulta' },
+        transaction
+      });
+
+      if (!tipoTurno) {
+        tipoTurno = await TipoTurno.create({
+          nombre: 'Consulta',
+          descripcion: 'Consulta médica general',
+          requiere_especialidad: false,
+          requiere_estudio: false
+        }, { transaction });
+      }
+
       await ListaEspera.create({
-        paciente_id,
+        paciente_id: parseInt(paciente_id),
         tipo_turno_id: tipoTurno.id,
         prioridad,
         estado: 'PENDIENTE',
         creador_tipo: 'ENFERMERO',
-        creador_id: req.user.id,
+        creador_id: req.user?.usuario_id,
         fecha_registro: new Date()
       }, { transaction });
     }
@@ -210,22 +347,20 @@ exports.registrarTriaje = async (req, res) => {
       success: true,
       message: 'Triaje registrado correctamente',
       evaluacion_id: evaluacionTriaje.id,
-      redirect: '/dashboard/enfermero/triaje'
+      redirect: '/enfermero/triaje'
     });
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al registrar triaje:', error);
+    console.error('❌ Error al registrar triaje:', error);
     res.status(500).json({
       success: false,
-      message: 'Error al registrar el triaje',
-      error: error.message
+      message: 'Error al registrar el triaje. Intente nuevamente.'
     });
   }
 };
 
-// Ver detalle de triaje
-exports.verTriaje = async (req, res) => {
+exports.verTriaje = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -248,18 +383,14 @@ exports.verTriaje = async (req, res) => {
             as: 'usuario',
             attributes: ['nombre', 'apellido']
           }]
-        },
-        {
-          model: ListaEspera,
-          as: 'lista_espera_generada'
         }
       ]
     });
 
     if (!evaluacion) {
-      return res.status(404).render('error', {
-        message: 'Evaluación de triaje no encontrada'
-      });
+      const error = new Error('Evaluación de triaje no encontrada');
+      error.status = 404;
+      return next(error);
     }
 
     res.render('dashboard/enfermero/triaje-detalle', {
@@ -269,26 +400,17 @@ exports.verTriaje = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al ver triaje:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el detalle del triaje',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Actualizar triaje
-exports.actualizarTriaje = async (req, res) => {
+exports.actualizarTriaje = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
     const { id } = req.params;
-    const {
-      nivel_triaje,
-      signos_vitales,
-      observaciones,
-      tipo_egreso
-    } = req.body;
+    const { nivel_triaje, signos_vitales, observaciones, tipo_egreso } = req.body;
 
     const evaluacion = await EvaluacionEnfermeria.findByPk(id, { transaction });
     
@@ -300,7 +422,6 @@ exports.actualizarTriaje = async (req, res) => {
       });
     }
 
-    // Actualizar evaluación
     await evaluacion.update({
       nivel_triaje: nivel_triaje || evaluacion.nivel_triaje,
       signos_vitales: signos_vitales || evaluacion.signos_vitales,
@@ -308,7 +429,6 @@ exports.actualizarTriaje = async (req, res) => {
       tipo_egreso: tipo_egreso || evaluacion.tipo_egreso
     }, { transaction });
 
-    // Si se deriva a urgencia, actualizar lista de espera
     if (tipo_egreso === 'DERIVACION_URGENCIA') {
       const listaEspera = await ListaEspera.findOne({
         where: { paciente_id: evaluacion.paciente_id },
@@ -317,9 +437,7 @@ exports.actualizarTriaje = async (req, res) => {
       });
 
       if (listaEspera) {
-        await listaEspera.update({
-          prioridad: 'ALTA'
-        }, { transaction });
+        await listaEspera.update({ prioridad: 'ALTA' }, { transaction });
       }
     }
 
@@ -328,22 +446,17 @@ exports.actualizarTriaje = async (req, res) => {
     res.json({
       success: true,
       message: 'Triaje actualizado correctamente',
-      redirect: '/dashboard/enfermero/triaje'
+      redirect: '/enfermero/triaje'  
     });
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al actualizar triaje:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar el triaje',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-// Buscar paciente por DNI para triaje
-exports.buscarPacientePorDni = async (req, res) => {
+// Buscar paciente por DNI
+exports.buscarPacientePorDni = async (req, res, next) => {
   try {
     const { dni } = req.query;
 
@@ -371,6 +484,11 @@ exports.buscarPacientePorDni = async (req, res) => {
       });
     }
 
+    // Calcular edad
+    const fechaNac = new Date(paciente.usuario.fecha_nacimiento);
+    const hoy = new Date();
+    const edad = Math.floor((hoy - fechaNac) / (365.25 * 24 * 60 * 60 * 1000));
+
     res.json({
       success: true,
       encontrado: true,
@@ -381,6 +499,7 @@ exports.buscarPacientePorDni = async (req, res) => {
         apellido: paciente.usuario.apellido,
         dni: paciente.usuario.dni,
         fecha_nacimiento: paciente.usuario.fecha_nacimiento,
+        edad,
         sexo: paciente.usuario.sexo,
         telefono: paciente.usuario.telefono,
         email: paciente.usuario.email
@@ -388,87 +507,91 @@ exports.buscarPacientePorDni = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al buscar paciente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al buscar el paciente',
-      error: error.message
-    });
+    next(error);
   }
 };
 
-// Estadísticas de triaje en tiempo real
-exports.estadisticasTriaje = async (req, res) => {
+// Estadísticas de triaje
+exports.estadisticasTriaje = async (req, res, next) => {
   try {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
 
     const [total, rojo, amarillo, verde, negro, atendidos, pendientes] = await Promise.all([
-      EvaluacionEnfermeria.count({
-        where: {
-          nivel_triaje: { [Op.ne]: null },
-          fecha: { [Op.gte]: hoy }
-        }
-      }),
-      EvaluacionEnfermeria.count({
-        where: {
-          nivel_triaje: 'Rojo',
-          fecha: { [Op.gte]: hoy }
-        }
-      }),
-      EvaluacionEnfermeria.count({
-        where: {
-          nivel_triaje: 'Amarillo',
-          fecha: { [Op.gte]: hoy }
-        }
-      }),
-      EvaluacionEnfermeria.count({
-        where: {
-          nivel_triaje: 'Verde',
-          fecha: { [Op.gte]: hoy }
-        }
-      }),
-      EvaluacionEnfermeria.count({
-        where: {
-          nivel_triaje: 'Negro',
-          fecha: { [Op.gte]: hoy }
-        }
-      }),
-      EvaluacionEnfermeria.count({
-        where: {
-          nivel_triaje: { [Op.ne]: null },
-          tipo_egreso: { [Op.ne]: 'PENDIENTE_EVALUACION' },
-          fecha: { [Op.gte]: hoy }
-        }
-      }),
-      EvaluacionEnfermeria.count({
-        where: {
-          nivel_triaje: { [Op.ne]: null },
-          tipo_egreso: 'PENDIENTE_EVALUACION',
-          fecha: { [Op.gte]: hoy }
-        }
-      })
+      EvaluacionEnfermeria.count({ where: { nivel_triaje: { [Op.ne]: null }, fecha: { [Op.gte]: hoy } } }),
+      EvaluacionEnfermeria.count({ where: { nivel_triaje: 'Rojo', fecha: { [Op.gte]: hoy } } }),
+      EvaluacionEnfermeria.count({ where: { nivel_triaje: 'Amarillo', fecha: { [Op.gte]: hoy } } }),
+      EvaluacionEnfermeria.count({ where: { nivel_triaje: 'Verde', fecha: { [Op.gte]: hoy } } }),
+      EvaluacionEnfermeria.count({ where: { nivel_triaje: 'Negro', fecha: { [Op.gte]: hoy } } }),
+      EvaluacionEnfermeria.count({ where: { nivel_triaje: { [Op.ne]: null }, tipo_egreso: { [Op.ne]: 'PENDIENTE_EVALUACION' }, fecha: { [Op.gte]: hoy } } }),
+      EvaluacionEnfermeria.count({ where: { nivel_triaje: { [Op.ne]: null }, tipo_egreso: 'PENDIENTE_EVALUACION', fecha: { [Op.gte]: hoy } } })
     ]);
 
     res.json({
       success: true,
-      estadisticas: {
-        total,
-        rojo,
-        amarillo,
-        verde,
-        negro,
-        atendidos,
-        pendientes
-      }
+      estadisticas: { total, rojo, amarillo, verde, negro, atendidos, pendientes }
     });
 
   } catch (error) {
-    console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener estadísticas'
-    });
+    next(error);
+  }
+};
+exports.completarTriaje = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
+  try {
+    const { id } = req.params;
+    const { observaciones_finales } = req.body;
+
+    const evaluacion = await EvaluacionEnfermeria.findByPk(id, { transaction });
+    
+    if (!evaluacion) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Evaluación no encontrada' });
+    }
+
+    await evaluacion.update({
+      tipo_egreso: 'PROCEDIMIENTO_COMPLETADO',
+      observaciones: `${evaluacion.observaciones || ''}\n\n--- Completado ---\n${observaciones_finales || 'Sin observaciones adicionales'}`
+    }, { transaction });
+
+    await transaction.commit();
+
+    res.json({ success: true, message: 'Triaje completado correctamente' });
+  } catch (error) {
+    await transaction.rollback();
+    next(error);
+  }
+};
+
+// Derivar a médico
+exports.derivarMedico = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
+  try {
+    const { id } = req.params;
+    const { motivo_derivacion, urgente } = req.body;
+
+    const evaluacion = await EvaluacionEnfermeria.findByPk(id, { transaction });
+    
+    if (!evaluacion) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Evaluación no encontrada' });
+    }
+
+    const tipoEgreso = urgente === 'true' ? 'DERIVACION_URGENCIA' : 'DERIVACION_MEDICO';
+
+    await evaluacion.update({
+      tipo_egreso: tipoEgreso,
+      observaciones: `${evaluacion.observaciones || ''}\n\n--- Derivado ---\nMotivo: ${motivo_derivacion}`
+    }, { transaction });
+
+    await transaction.commit();
+
+    res.json({ success: true, message: 'Paciente derivado correctamente' });
+  } catch (error) {
+    await transaction.rollback();
+    next(error);
   }
 };
 

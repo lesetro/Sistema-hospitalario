@@ -19,6 +19,9 @@ block content
       button#btnNuevoSector.btn.btn-primary
         i.fas.fa-plus.me-2
         | Nuevo Sector
+      button#btnAsignarServicio.btn.btn-outline-success
+        i.fas.fa-link.me-2
+        | Asignar Servicio a Sector
 
     //- ESTADÍSTICAS GLOBALES
     .row.mb-4
@@ -193,6 +196,30 @@ block content
           button#btnConfirmarEliminar.btn.btn-danger(type='button')
             i.fas.fa-trash.me-2
             | Sí, Eliminar
+
+  //-MODAL  asignar un servicio a un sector        
+  #modalAsignarServicio.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-link.me-2
+            | Asignar Servicio a Sector
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          .mb-3
+            label.form-label Servicio *
+            select#asignar_servicio_id.form-select
+              option(value='') Cargando...
+          .mb-3
+            label.form-label Sector *
+            select#asignar_sector_id.form-select
+              option(value='') Cargando...
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnGuardarAsignacion.btn.btn-success(type='button')
+            i.fas.fa-save.me-2
+            | Guardar
 
 block scripts
   script(src='/js/admin/infraestructura.js')

@@ -29,19 +29,14 @@ module.exports = (sequelize, DataTypes) => {
       const factura = await sequelize.models.Factura.findByPk(pago.factura_id, { transaction });
       
       if (factura) {
-        // Si la factura es SISTEMA PUBLICO, pago automático
         if (factura.tipo_pago === 'SISTEMA PUBLICO') {
           pago.metodo = 'SISTEMA PUBLICO';
-          pago.estado = 'Completado'; // ✅ Automáticamente completado
-          pago.tipo_pago = 'Sistema Público Automático';
+          pago.estado = 'Completado';
           pago.descripcion = 'Pago automático - Sistema Público';
-        }
-        // Si no se asignó obra_social_id y la factura la tiene, heredar
-        else if (!pago.obra_social_id && factura.obra_social_id) {
+        } else if (!pago.obra_social_id && factura.obra_social_id) {
           pago.obra_social_id = factura.obra_social_id;
         }
         
-        // Validación: Si método es SISTEMA PUBLICO pero factura no lo es
         if (pago.metodo === 'SISTEMA PUBLICO' && factura.tipo_pago !== 'SISTEMA PUBLICO') {
           throw new Error('Método SISTEMA PUBLICO solo aplica a facturas del sistema público');
         }
@@ -54,6 +49,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   });
 
+  
   Pago.afterUpdate(async (pago, options) => {
     if (pago.estado === 'Completado' && pago.previous('estado') !== 'Completado') {
       const transaction = options.transaction || await sequelize.transaction();
@@ -62,14 +58,13 @@ module.exports = (sequelize, DataTypes) => {
         const paciente = await sequelize.models.Paciente.findByPk(factura.paciente_id, { transaction });
         
         if (paciente && paciente.usuario_id) {
-          //  NOTIFICACIÓN 
           let mensaje = '';
           if (pago.metodo === 'SISTEMA PUBLICO') {
-            mensaje = `El sistema público ha procesado automáticamente el pago de $${pago.monto} para la factura #${factura.id}.`;
+            mensaje = `El sistema público ha procesado el pago de $${pago.monto} para la factura #${factura.id}.`;
           } else if (pago.metodo === 'Obra Social') {
-            mensaje = `Su obra social ha procesado el pago de $${pago.monto} para la factura #${factura.id}.`;
+            mensaje = `Su obra social procesó $${pago.monto} para la factura #${factura.id}.`;
           } else {
-            mensaje = `Se ha registrado un pago de $${pago.monto} para la factura #${factura.id}. Método: ${pago.metodo}.`;
+            mensaje = `Registramos su pago de $${pago.monto} para la factura #${factura.id}.`;
           }
 
           await sequelize.models.Notificacion.create({
@@ -79,20 +74,21 @@ module.exports = (sequelize, DataTypes) => {
             created_at: new Date(),
             updated_at: new Date()
           }, { transaction });
-
-          //  ACTUALIZAR ESTADO DE LA FACTURA SI TODOS LOS PAGOS ESTÁN COMPLETADOS
-          const pagosPendientes = await sequelize.models.Pago.count({
-            where: { 
-              factura_id: factura.id,
-              estado: { [sequelize.Op.ne]: 'Completado' }
-            },
-            transaction
-          });
-
-          if (pagosPendientes === 0) {
-            await factura.update({ estado: 'Pagada' }, { transaction });
-          }
         }
+
+        // Lógica para actualizar estado de factura
+        const totalPagado = await sequelize.models.Pago.sum('monto', {
+          where: { 
+            factura_id: factura.id,
+            estado: 'Completado'
+          },
+          transaction
+        }) || 0;
+
+        if (totalPagado >= factura.monto && factura.estado !== 'Pagada') {
+          await factura.update({ estado: 'Pagada' }, { transaction });
+        }
+        
         if (!options.transaction) await transaction.commit();
       } catch (error) {
         if (!options.transaction) await transaction.rollback();
@@ -100,6 +96,34 @@ module.exports = (sequelize, DataTypes) => {
       }
     }
   });
+  Pago.afterCreate(async (pago, options) => {
+  // Si el pago se crea como "Completado", actualizar la factura
+  if (pago.estado === 'Completado') {
+    const transaction = options.transaction || await sequelize.transaction();
+    try {
+      const factura = await sequelize.models.Factura.findByPk(pago.factura_id, { transaction });
+      
+      // Calcular total pagado
+      const totalPagado = await sequelize.models.Pago.sum('monto', {
+        where: { 
+          factura_id: factura.id,
+          estado: 'Completado'
+        },
+        transaction
+      }) || 0;
+
+      // Si se cubre el total, marcar como Pagada
+      if (totalPagado >= factura.monto && factura.estado !== 'Pagada') {
+        await factura.update({ estado: 'Pagada' }, { transaction });
+      }
+      
+      if (!options.transaction) await transaction.commit();
+    } catch (error) {
+      if (!options.transaction) await transaction.rollback();
+      throw error;
+    }
+  }
+});
 
   Pago.associate = function(models) {
     Pago.belongsTo(models.Factura, { foreignKey: 'factura_id', as: 'factura' });

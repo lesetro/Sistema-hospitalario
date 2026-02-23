@@ -11,7 +11,6 @@ router.use(authMiddleware);
 // Rutas principales
 router.get('/', comunicacionesController.listarComunicaciones);
 
-// ✅ CORRECCIÓN: Cambiar el orden para que coincida con el controller
 router.post('/:id/marcar-leida', comunicacionesController.marcarLeida);
 router.post('/marcar-todas-leidas', comunicacionesController.marcarTodasLeidas);
 router.delete('/:id', comunicacionesController.eliminarNotificacion);

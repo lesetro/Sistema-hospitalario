@@ -1,0 +1,88 @@
+
+extends layout
+
+
+block content
+  .container-fluid
+    .row.mb-3
+      .col-12
+        a.btn.btn-secondary(href=`/${user.rol_ruta}/mis-turnos`)
+          i.fas.fa-arrow-left.me-2
+          | Volver a Mis Turnos
+
+    .row
+      .col-lg-6
+        .card.border-0.shadow-sm
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-calendar-alt.me-2
+              | Detalle del Turno
+          .card-body
+            dl.row
+              dt.col-sm-4 Tipo:
+              dd.col-sm-8
+                if turno.tipo === 'Guardia Activa'
+                  span.badge.bg-danger.fs-6 Guardia Activa
+                else if turno.tipo === 'Guardia Pasiva'
+                  span.badge.bg-warning.text-dark.fs-6 Guardia Pasiva
+                else
+                  span.badge.bg-primary.fs-6 #{turno.tipo}
+              
+              dt.col-sm-4 Días:
+              dd.col-sm-8
+                strong #{turno.dias}
+              
+              dt.col-sm-4 Horario:
+              dd.col-sm-8
+                strong #{turno.hora_inicio.substring(0,5)} - #{turno.hora_fin.substring(0,5)}
+              
+              dt.col-sm-4 Sector:
+              dd.col-sm-8 #{turno.sector.nombre}
+
+      .col-lg-6
+        .card.border-0.shadow-sm
+          .card-header.bg-light
+            h5.mb-0
+              i.fas.fa-info-circle.me-2
+              | Información del Turno
+          .card-body
+            if turno.tipo === 'Guardia Activa'
+              .alert.alert-danger
+                h6
+                  i.fas.fa-exclamation-triangle.me-2
+                  | Guardia Activa
+                p.mb-0 Debe permanecer en el hospital durante todo el turno. Disponibilidad inmediata para atención de emergencias.
+            else if turno.tipo === 'Guardia Pasiva'
+              .alert.alert-warning
+                h6
+                  i.fas.fa-phone.me-2
+                  | Guardia Pasiva
+                p.mb-0 Debe estar disponible telefónicamente. Puede ser convocado al hospital si es necesario.
+            else
+              .alert.alert-primary
+                h6
+                  i.fas.fa-user-nurse.me-2
+                  | #{turno.tipo}
+                p.mb-0 Turno regular de atención en el sector asignado.
+
+    .row.mt-4
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-calendar-check.me-2
+              | Próximas Ocurrencias
+          .card-body.p-0
+            .table-responsive
+              table.table.table-hover.mb-0
+                thead.table-light
+                  tr
+                    th Fecha
+                    th Día
+                    th Horario
+                tbody
+                  each ocurrencia in proximasOcurrencias
+                    tr
+                      td #{ocurrencia.fecha}
+                      td.text-capitalize #{ocurrencia.dia}
+                      td #{ocurrencia.hora_inicio.substring(0,5)} - #{ocurrencia.hora_fin.substring(0,5)}

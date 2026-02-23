@@ -3,7 +3,7 @@
 // Marcar notificación como leída
 async function marcarLeida(notifId) {
   try {
-    // ✅ CORRECCIÓN
+   
     const response = await fetch(`/enfermero/comunicaciones/${notifId}/marcar-leida`, {
       method: 'POST'
     });

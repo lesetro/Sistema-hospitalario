@@ -1,0 +1,595 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header con breadcrumb
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/enfermero/camas") Dashboard Camas
+            li.breadcrumb-item.active Camas Disponibles
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-bed.me-2.text-success
+              | Camas Disponibles
+            p.text-muted.mb-0 Encuentra y asigna camas libres para nuevas internaciones
+          div
+            a.btn.btn-outline-secondary(href="/enfermero/camas")
+              i.fas.fa-arrow-left.me-2
+              | Volver
+
+    // Estadísticas rápidas
+    .row.mb-4
+      .col-12
+        .card.border-0.shadow-sm.bg-success.text-white
+          .card-body.py-3
+            .row.align-items-center
+              .col-md-6
+                h3.mb-0
+                  i.fas.fa-bed.me-2
+                  = total
+                  = total === 1 ? ' cama disponible' : ' camas disponibles'
+              .col-md-6.text-end
+                button.btn.btn-light(
+                  type='button'
+                  data-bs-toggle='modal'
+                  data-bs-target='#modalFiltros'
+                )
+                  i.fas.fa-filter.me-2
+                  | Filtrar
+
+    // Camas agrupadas por servicio
+    if camasPorServicio && camasPorServicio.length > 0
+      each grupo in camasPorServicio
+        .row.mb-4
+          .col-12
+            .card.border-0.shadow-sm
+              .card-header.bg-white
+                h5.mb-0
+                  i.fas.fa-heartbeat.me-2.text-primary
+                  = grupo.nombre
+                  span.badge.bg-success.ms-2
+                    = grupo.camas.length
+                    = grupo.camas.length === 1 ? ' cama' : ' camas'
+              
+              .card-body
+                .row.g-3
+                  each cama in grupo.camas
+                    .col-xl-3.col-lg-4.col-md-6
+                      .card.border-success.h-100
+                        .card-header.bg-success.bg-opacity-10.d-flex.justify-content-between.align-items-center
+                          h6.mb-0
+                            i.fas.fa-bed.me-2
+                            | Cama #{cama.numero}
+                          span.badge.bg-success Libre
+                        
+                        .card-body
+                          p.card-text.small.mb-2
+                            i.fas.fa-door-open.me-2.text-muted
+                            strong Habitación: 
+                            = cama.habitacion.numero
+                          
+                          p.card-text.small.mb-2
+                            i.fas.fa-venus-mars.me-2.text-muted
+                            strong Sexo: 
+                            = cama.habitacion.sexo_permitido
+                          
+                          if cama.habitacion.tipo
+                            p.card-text.small.mb-0
+                              i.fas.fa-info-circle.me-2.text-muted
+                              strong Tipo: 
+                              = cama.habitacion.tipo
+                        
+                        .card-footer.bg-white.border-0.pt-0
+                          .d-grid.gap-2
+                            button.btn.btn-success.btn-sm(
+                              type='button'
+                              onclick=`abrirModalAsignar(${cama.id}, '${cama.numero}', '${cama.habitacion.sexo_permitido}', '${grupo.nombre}')`
+                            )
+                              i.fas.fa-user-plus.me-2
+                              | Asignar Paciente
+                            
+                            a.btn.btn-outline-primary.btn-sm(
+                              href=`/enfermero/camas/detalle/${cama.id}`
+                            )
+                              i.fas.fa-eye.me-2
+                              | Ver Detalle
+
+    else
+      .row
+        .col-12
+          .card.border-0.shadow-sm
+            .card-body.text-center.py-5
+              i.fas.fa-bed.fa-4x.text-muted.mb-3
+              h4 No hay camas disponibles
+              p.text-muted Todas las camas están ocupadas o en limpieza
+              button.btn.btn-primary(
+                type='button'
+                data-bs-toggle='modal'
+                data-bs-target='#modalFiltros'
+              )
+                i.fas.fa-filter.me-2
+                | Modificar Filtros
+
+    // Modal de filtros
+    #modalFiltros.modal.fade(tabindex='-1')
+      .modal-dialog
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-filter.me-2
+              | Filtrar Camas Disponibles
+            button.btn-close(type='button' data-bs-dismiss='modal')
+          
+          .modal-body
+            form#formFiltros
+              .mb-3
+                label.form-label(for='filtro_servicio') Tipo de Servicio
+                select#filtro_servicio.form-select(name='tipo_servicio_id')
+                  option(value='') Todos los servicios
+                  if tiposServicio && tiposServicio.length > 0
+                    each servicio in tiposServicio
+                      option(
+                        value=servicio.id
+                        selected=filtros.tipo_servicio_id == servicio.id
+                      )= servicio.nombre
+              
+              .mb-3
+                label.form-label(for='filtro_habitacion') Habitación
+                select#filtro_habitacion.form-select(name='habitacion_id')
+                  option(value='') Todas las habitaciones
+                  if habitaciones && habitaciones.length > 0
+                    each hab in habitaciones
+                      option(
+                        value=hab.id
+                        selected=filtros.habitacion_id == hab.id
+                      )= `Hab. ${hab.numero}${hab.tipoServicio ? ' - ' + hab.tipoServicio.nombre : ''}`
+              
+              .mb-3
+                label.form-label(for='filtro_sexo') Sexo Permitido
+                select#filtro_sexo.form-select(name='sexo')
+                  option(value='Todos' selected=filtros.sexo === 'Todos') Todos
+                  option(value='Masculino' selected=filtros.sexo === 'Masculino') Masculino
+                  option(value='Femenino' selected=filtros.sexo === 'Femenino') Femenino
+                  option(value='Mixto' selected=filtros.sexo === 'Mixto') Mixto
+          
+          .modal-footer
+            button.btn.btn-secondary(type='button' onclick='limpiarFiltros()')
+              i.fas.fa-times.me-2
+              | Limpiar
+            button.btn.btn-primary(type='button' onclick='aplicarFiltros()')
+              i.fas.fa-check.me-2
+              | Aplicar
+
+    // Modal para asignar paciente
+    #modalAsignarPaciente.modal.fade(tabindex='-1')
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-user-plus.me-2
+              | Asignar Paciente a Cama
+            button.btn-close(type='button' data-bs-dismiss='modal')
+          
+          .modal-body
+            // Información de la cama seleccionada
+            #info-cama-seleccionada.alert.alert-info
+              h6.mb-2
+                i.fas.fa-bed.me-2
+                span#info-cama-numero
+              p.mb-0.small
+                span#info-cama-servicio
+            
+            form#formAsignarPaciente
+              input#asignar_cama_id(type='hidden')
+              
+              // Búsqueda de paciente
+              .mb-3
+                label.form-label(for='buscar_paciente') 
+                  | Buscar Paciente 
+                  span.text-danger *
+                  small.text-muted.ms-2 (Solo pacientes con admisión activa)
+                .input-group
+                  input#buscar_paciente.form-control(
+                    type='text'
+                    placeholder='DNI, nombre o apellido...'
+                    autocomplete='off'
+                  )
+                  button.btn.btn-outline-secondary(
+                    type='button'
+                    onclick='buscarPacientes()'
+                  )
+                    i.fas.fa-search
+                
+                // Resultados de búsqueda
+                #resultados-busqueda.mt-2(style='display:none')
+                  .list-group.list-group-flush
+              
+              // Información del paciente seleccionado
+              #paciente-seleccionado.alert.alert-success(style='display:none')
+                h6.mb-2
+                  i.fas.fa-user-check.me-2
+                  | Paciente seleccionado:
+                input#asignar_paciente_id(type='hidden')
+                p.mb-1
+                  strong#paciente-nombre
+                p.mb-1.small
+                  | DNI: 
+                  span#paciente-dni
+                  |  | Sexo: 
+                  span#paciente-sexo
+                  |  | Edad: 
+                  span#paciente-edad
+                p.mb-0.small
+                  | Obra Social: 
+                  span#paciente-obra-social
+                button.btn.btn-sm.btn-outline-danger(
+                  type='button'
+                  onclick='limpiarSeleccionPaciente()'
+                )
+                  i.fas.fa-times.me-1
+                  | Cambiar paciente
+              
+              // Médico responsable
+              .mb-3
+                label.form-label(for='asignar_medico_id') 
+                  | Médico Responsable 
+                  span.text-danger *
+                select#asignar_medico_id.form-select(required)
+                  option(value='') Seleccione un médico...
+                  if medicos && medicos.length > 0
+                    each medico in medicos
+                      option(value=medico.id)
+                        = medico.usuario.apellido + ', ' + medico.usuario.nombre
+              
+              // Tipo de internación - ✅ CORREGIDO
+              .mb-3
+                label.form-label(for='asignar_tipo_internacion_id') 
+                  | Tipo de Internación 
+                  span.text-danger *
+                select#asignar_tipo_internacion_id.form-select(required)
+                  option(value='') Seleccione un tipo...
+                  if tiposInternacion && tiposInternacion.length > 0
+                    each tipo in tiposInternacion
+                      option(value=tipo.id)= tipo.nombre
+              
+              // Prioridad
+              .mb-3
+                label.form-label(for='asignar_prioridad') 
+                  | Prioridad 
+                  span.text-danger *
+                select#asignar_prioridad.form-select(required)
+                  option(value='MEDIA' selected) Media
+                  option(value='ALTA') Alta
+                  option(value='BAJA') Baja
+              
+              // Observaciones
+              .mb-3
+                label.form-label(for='asignar_observaciones') Observaciones
+                textarea#asignar_observaciones.form-control(
+                  rows='3'
+                  placeholder='Observaciones adicionales...'
+                )
+          
+          .modal-footer
+            button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+            button#btn-confirmar-asignar.btn.btn-success(
+              type='button'
+              onclick='confirmarAsignacion()'
+              disabled
+            )
+              i.fas.fa-check.me-2
+              | Asignar Paciente
+
+block scripts
+  script.
+    let camaSeleccionada = null;
+    let pacienteSeleccionado = null;
+    
+    // Aplicar filtros
+    function aplicarFiltros() {
+      const params = new URLSearchParams();
+      const servicio = document.getElementById('filtro_servicio').value;
+      const habitacion = document.getElementById('filtro_habitacion').value;
+      const sexo = document.getElementById('filtro_sexo').value;
+      
+      if (servicio) params.append('tipo_servicio_id', servicio);
+      if (habitacion) params.append('habitacion_id', habitacion);
+      if (sexo && sexo !== 'Todos') params.append('sexo', sexo);
+      
+      window.location.href = `/enfermero/camas/disponibles?${params.toString()}`;
+    }
+    
+    // Limpiar filtros
+    function limpiarFiltros() {
+      window.location.href = '/enfermero/camas/disponibles';
+    }
+    
+    // Abrir modal de asignación
+    function abrirModalAsignar(camaId, camaNumero, sexoPermitido, servicioNombre) {
+      console.log('🏥 Abriendo modal de asignación');
+      console.log('Cama ID:', camaId);
+      console.log('Cama Número:', camaNumero);
+      console.log('Sexo Permitido:', sexoPermitido);
+      console.log('Servicio:', servicioNombre);
+      
+      camaSeleccionada = {
+        id: camaId,
+        numero: camaNumero,
+        sexoPermitido: sexoPermitido
+      };
+      
+      document.getElementById('asignar_cama_id').value = camaId;
+      document.getElementById('info-cama-numero').textContent = `Cama ${camaNumero}`;
+      document.getElementById('info-cama-servicio').textContent = `Servicio: ${servicioNombre} | Sexo: ${sexoPermitido}`;
+      
+      limpiarSeleccionPaciente();
+      
+      const modal = new bootstrap.Modal(document.getElementById('modalAsignarPaciente'));
+      modal.show();
+      console.log('✅ Modal abierto');
+    }
+    
+    // Buscar pacientes con admisión
+    function buscarPacientes() {
+      const input = document.getElementById('buscar_paciente');
+      const termino = input.value.trim();
+      
+      console.log('─────────────────────────────────────');
+      console.log('🔍 INICIANDO BÚSQUEDA DE PACIENTES');
+      console.log('─────────────────────────────────────');
+      console.log('Término ingresado:', termino);
+      console.log('Longitud del término:', termino.length);
+      
+      if (termino.length < 3) {
+        console.warn('⚠️ Término muy corto (mínimo 3 caracteres)');
+        alert('Ingrese al menos 3 caracteres para buscar');
+        return;
+      }
+      
+      const url = `/enfermero/camas/api/buscar-pacientes?termino=${encodeURIComponent(termino)}`;
+      console.log('📡 URL de la petición:', url);
+      console.log('🌐 Realizando fetch...');
+      
+      fetch(url)
+        .then(response => {
+          console.log('📥 Respuesta recibida');
+          console.log('Status:', response.status);
+          console.log('Status Text:', response.statusText);
+          
+          if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+          }
+          
+          return response.json();
+        })
+        .then(data => {
+          console.log('✅ Datos JSON parseados:', data);
+          console.log('Success:', data.success);
+          console.log('Cantidad de pacientes:', data.pacientes ? data.pacientes.length : 0);
+          
+          if (data.pacientes && data.pacientes.length > 0) {
+            console.log('📋 Lista de pacientes encontrados:');
+            data.pacientes.forEach((p, index) => {
+              console.log(`  ${index + 1}. ${p.nombre} - DNI: ${p.dni}`);
+            });
+          }
+          
+          if (data.success) {
+            mostrarResultadosBusqueda(data.pacientes);
+          } else {
+            console.error('❌ Error en la respuesta:', data.message);
+            alert('Error al buscar pacientes: ' + (data.message || 'Error desconocido'));
+          }
+        })
+        .catch(error => {
+          console.error('─────────────────────────────────────');
+          console.error('❌ ERROR EN LA BÚSQUEDA');
+          console.error('─────────────────────────────────────');
+          console.error('Tipo de error:', error.name);
+          console.error('Mensaje:', error.message);
+          console.error('Stack:', error.stack);
+          alert('Error al buscar pacientes: ' + error.message);
+        });
+    }
+    
+    // Mostrar resultados de búsqueda
+    function mostrarResultadosBusqueda(pacientes) {
+      console.log('📄 Mostrando resultados en pantalla');
+      
+      const contenedor = document.getElementById('resultados-busqueda');
+      const lista = contenedor.querySelector('.list-group');
+      
+      if (!contenedor || !lista) {
+        console.error('❌ No se encontró el contenedor de resultados');
+        return;
+      }
+      
+      if (pacientes.length === 0) {
+        console.log('ℹ️ No se encontraron pacientes');
+        lista.innerHTML = `
+          <div class="list-group-item text-center text-muted">
+            <i class="fas fa-info-circle me-2"></i>
+            No se encontraron pacientes con admisión activa
+          </div>
+        `;
+      } else {
+        console.log(`✅ Mostrando ${pacientes.length} paciente(s)`);
+        lista.innerHTML = pacientes.map(p => `
+          <a href="#" class="list-group-item list-group-item-action" onclick="seleccionarPaciente(${p.id}, '${p.nombre}', '${p.dni}', '${p.sexo}', ${p.edad}, '${p.obra_social}', ${p.admision_id}); return false;">
+            <div class="d-flex justify-content-between align-items-center">
+              <div>
+                <h6 class="mb-1">${p.nombre}</h6>
+                <small class="text-muted">DNI: ${p.dni} | Sexo: ${p.sexo} | Edad: ${p.edad} años</small>
+                <br>
+                <small class="text-muted">${p.obra_social}</small>
+              </div>
+              <i class="fas fa-arrow-right text-primary"></i>
+            </div>
+          </a>
+        `).join('');
+      }
+      
+      contenedor.style.display = 'block';
+      console.log('✅ Resultados mostrados correctamente');
+    }
+    
+    // Seleccionar paciente
+    function seleccionarPaciente(id, nombre, dni, sexo, edad, obraSocial, admisionId) {
+      console.log('👤 Seleccionando paciente:', nombre);
+      console.log('Validando sexo...');
+      console.log('Sexo permitido en cama:', camaSeleccionada.sexoPermitido);
+      console.log('Sexo del paciente:', sexo);
+      
+      // Validar sexo compatible
+      if (camaSeleccionada.sexoPermitido !== 'Mixto' && camaSeleccionada.sexoPermitido !== sexo) {
+        console.warn('⚠️ Sexo incompatible');
+        alert(`La cama solo permite pacientes de sexo ${camaSeleccionada.sexoPermitido}`);
+        return;
+      }
+      
+      console.log('✅ Sexo compatible');
+      
+      pacienteSeleccionado = {
+        id: id,
+        nombre: nombre,
+        dni: dni,
+        sexo: sexo,
+        edad: edad,
+        obraSocial: obraSocial,
+        admisionId: admisionId
+      };
+      
+      document.getElementById('asignar_paciente_id').value = id;
+      document.getElementById('paciente-nombre').textContent = nombre;
+      document.getElementById('paciente-dni').textContent = dni;
+      document.getElementById('paciente-sexo').textContent = sexo;
+      document.getElementById('paciente-edad').textContent = edad;
+      document.getElementById('paciente-obra-social').textContent = obraSocial;
+      
+      document.getElementById('resultados-busqueda').style.display = 'none';
+      document.getElementById('paciente-seleccionado').style.display = 'block';
+      document.getElementById('buscar_paciente').value = '';
+      
+      console.log('✅ Paciente seleccionado correctamente');
+      validarFormulario();
+    }
+    
+    // Limpiar selección de paciente
+    function limpiarSeleccionPaciente() {
+      console.log('🧹 Limpiando selección de paciente');
+      pacienteSeleccionado = null;
+      document.getElementById('asignar_paciente_id').value = '';
+      document.getElementById('paciente-seleccionado').style.display = 'none';
+      document.getElementById('resultados-busqueda').style.display = 'none';
+      document.getElementById('buscar_paciente').value = '';
+      validarFormulario();
+    }
+    
+    // Validar formulario
+    function validarFormulario() {
+      const pacienteId = document.getElementById('asignar_paciente_id').value;
+      const medicoId = document.getElementById('asignar_medico_id').value;
+      const tipoId = document.getElementById('asignar_tipo_internacion_id').value;
+      
+      console.log('✓ Validando formulario...');
+      console.log('Paciente ID:', pacienteId || 'NO SELECCIONADO');
+      console.log('Médico ID:', medicoId || 'NO SELECCIONADO');
+      console.log('Tipo Internación ID:', tipoId || 'NO SELECCIONADO');
+      
+      const valido = pacienteId && medicoId && tipoId;
+      document.getElementById('btn-confirmar-asignar').disabled = !valido;
+      
+      console.log('Formulario válido:', valido ? 'SÍ' : 'NO');
+    }
+    
+    // Confirmar asignación
+    function confirmarAsignacion() {
+      console.log('─────────────────────────────────────');
+      console.log('💾 CONFIRMANDO ASIGNACIÓN');
+      console.log('─────────────────────────────────────');
+      
+      if (!confirm('¿Confirma la asignación de este paciente a la cama seleccionada?')) {
+        console.log('❌ Asignación cancelada por el usuario');
+        return;
+      }
+      
+      const datos = {
+        paciente_id: document.getElementById('asignar_paciente_id').value,
+        cama_id: document.getElementById('asignar_cama_id').value,
+        medico_id: document.getElementById('asignar_medico_id').value,
+        tipo_internacion_id: document.getElementById('asignar_tipo_internacion_id').value,
+        prioridad: document.getElementById('asignar_prioridad').value,
+        observaciones: document.getElementById('asignar_observaciones').value,
+        admision_id: pacienteSeleccionado.admisionId
+      };
+      
+      console.log('📤 Datos a enviar:', datos);
+      
+      fetch('/enfermero/camas/api/asignar-paciente', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(datos)
+      })
+      .then(response => {
+        console.log('📥 Respuesta recibida:', response.status);
+        return response.json();
+      })
+      .then(data => {
+        console.log('📋 Resultado:', data);
+        if (data.success) {
+          console.log('✅ Asignación exitosa');
+          alert(data.message);
+          window.location.reload();
+        } else {
+          console.error('❌ Error en asignación:', data.message);
+          alert('Error: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('❌ Error en la petición:', error);
+        alert('Error al asignar paciente: ' + error.message);
+      });
+    }
+    
+    // Event listeners
+    document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 Página camas-disponibles cargada');
+      console.log('Verificando elementos del DOM...');
+      
+      const medicoSelect = document.getElementById('asignar_medico_id');
+      const tipoSelect = document.getElementById('asignar_tipo_internacion_id');
+      const buscarInput = document.getElementById('buscar_paciente');
+      
+      console.log('Select médico:', medicoSelect ? 'ENCONTRADO' : 'NO ENCONTRADO');
+      console.log('Select tipo internación:', tipoSelect ? 'ENCONTRADO' : 'NO ENCONTRADO');
+      console.log('Input búsqueda:', buscarInput ? 'ENCONTRADO' : 'NO ENCONTRADO');
+      
+      // Validar al cambiar médico o tipo
+      medicoSelect?.addEventListener('change', function() {
+        console.log('Médico seleccionado:', this.value);
+        validarFormulario();
+      });
+      
+      tipoSelect?.addEventListener('change', function() {
+        console.log('Tipo internación seleccionado:', this.value);
+        validarFormulario();
+      });
+      
+      // Buscar al presionar Enter
+      buscarInput?.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+          console.log('⌨️ Enter presionado en búsqueda');
+          e.preventDefault();
+          buscarPacientes();
+        }
+      });
+      
+      console.log('✅ Event listeners registrados');
+    });

@@ -24,23 +24,20 @@ const {
 /**
  * Vista principal de consulta
  */
-const getVistaProcedimientosEstudios = async (req, res) => {
+const getVistaProcedimientosEstudios = async (req, res, next) => {
   try {
     res.render('dashboard/admin/procedimiento/consulta', {
       title: 'Consulta de Procedimientos y Estudios'
     });
   } catch (error) {
-    console.error('Error al cargar vista:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar la página de consulta'
-    });
+    next(error);
   }
 };
 
 /**
  * Buscar paciente por DNI
  */
-const buscarPacientePorDNI = async (req, res) => {
+const buscarPacientePorDNI = async (req, res, next) => {
   try {
     const { dni } = req.query;
 
@@ -112,19 +109,14 @@ const buscarPacientePorDNI = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al buscar paciente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al buscar paciente',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener estudios solicitados de un paciente
  */
-const getEstudiosPaciente = async (req, res) => {
+const getEstudiosPaciente = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { page = 1, limit = 10, estado = '' } = req.query;
@@ -200,19 +192,14 @@ const getEstudiosPaciente = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener estudios:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener estudios del paciente',
-      error: error.message
-    });
+   next(error);
   }
 };
 
 /**
  * Obtener evaluaciones médicas de un paciente
  */
-const getEvaluacionesPaciente = async (req, res) => {
+const getEvaluacionesPaciente = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { page = 1, limit = 10 } = req.query;
@@ -275,19 +262,14 @@ const getEvaluacionesPaciente = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener evaluaciones:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener evaluaciones',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener procedimientos pre-quirúrgicos de un paciente
  */
-const getProcedimientosPreQuirurgicos = async (req, res) => {
+const getProcedimientosPreQuirurgicos = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { page = 1, limit = 10, estado = '' } = req.query;
@@ -360,18 +342,14 @@ const getProcedimientosPreQuirurgicos = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener procedimientos pre-quirúrgicos:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener procedimientos',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener procedimientos de enfermería de un paciente
  */
-const getProcedimientosEnfermeria = async (req, res) => {
+const getProcedimientosEnfermeria = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { page = 1, limit = 10 } = req.query;
@@ -428,19 +406,14 @@ const getProcedimientosEnfermeria = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener procedimientos de enfermería:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener procedimientos',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener intervenciones quirúrgicas de un paciente
  */
-const getIntervencionesPaciente = async (req, res) => {
+const getIntervencionesPaciente = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { page = 1, limit = 10 } = req.query;
@@ -502,18 +475,14 @@ const getIntervencionesPaciente = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener intervenciones:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener intervenciones',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener timeline completo del paciente
  */
-const getTimelinePaciente = async (req, res) => {
+const getTimelinePaciente = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -592,11 +561,7 @@ const getTimelinePaciente = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener timeline:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener timeline',
-      error: error.message
-    });
+    next(error);
   }
 };
 

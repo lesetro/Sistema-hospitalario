@@ -121,7 +121,7 @@ block content
                         td
                           small Dr. #{proc.evaluacion_medica.medico.usuario.nombre} #{proc.evaluacion_medica.medico.usuario.apellido}
                         td
-                          small= new Date(proc.created_at).toLocaleDateString('es-AR')
+                          small= proc.createdAt ? new Date(proc.createdAt).toLocaleDateString('es-AR') : 'Sin fecha'
                         td
                           if proc.evaluacion_enfermeria
                             small= `${proc.evaluacion_enfermeria.enfermero.usuario.nombre} ${proc.evaluacion_enfermeria.enfermero.usuario.apellido}`

@@ -1,0 +1,66 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .pagos-paciente
+    .page-header.mb-4
+      h2
+        i.fas.fa-credit-card.text-primary.me-2
+        | Historial de Pagos
+      p.text-muted Registro de pagos realizados
+
+    .row.mb-4
+      .col-md-4.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-primary.text-white.mb-2
+              i.fas.fa-list.fa-2x
+            h3.stat-number.text-primary #{estadisticas.total}
+            p.stat-label.mb-0 Total Pagos
+      .col-md-4.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-success.text-white.mb-2
+              i.fas.fa-check.fa-2x
+            h3.stat-number.text-success #{estadisticas.completados}
+            p.stat-label.mb-0 Completados
+      .col-md-4.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-info.text-white.mb-2
+              i.fas.fa-dollar-sign.fa-2x
+            h3.stat-number.text-info $#{totalPagado.toFixed(2)}
+            p.stat-label.mb-0 Total Pagado
+
+    .card.border-0.shadow-sm
+      .card-header.bg-light
+        h5.mb-0
+          i.fas.fa-list.me-2
+          | Lista de Pagos
+      .card-body
+        if pagos && pagos.length > 0
+          .table-responsive
+            table.table.table-hover
+              thead
+                tr
+                  th Estado
+                  th Fecha
+                  th Factura
+                  th Método
+                  th Monto
+              tbody
+                each pago in pagos
+                  tr
+                    td
+                      span.badge(class=pago.estado === 'Completado' ? 'bg-success' : pago.estado === 'Pendiente' ? 'bg-warning' : 'bg-danger')
+                        | #{pago.estado}
+                    td #{new Date(pago.fecha).toLocaleDateString('es-AR')}
+                    td
+                      a(href=`/paciente/facturas/${pago.factura.id}`) ##{pago.factura.id}
+                    td
+                      span.badge.bg-secondary #{pago.metodo}
+                    td.text-end
+                      strong $#{parseFloat(pago.monto).toFixed(2)}
+        else
+          .text-center.py-5
+            i.fas.fa-credit-card.fa-4x.text-muted.mb-3
+            h5.text-muted No tienes pagos registrados

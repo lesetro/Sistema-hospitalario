@@ -68,6 +68,7 @@ block content
                   option(value='Critico' selected=(filtros.estado_paciente === 'Critico')) Crítico
                   option(value='Grave' selected=(filtros.estado_paciente === 'Grave')) Grave
                   option(value='Estable' selected=(filtros.estado_paciente === 'Estable')) Estable
+                  option(value='Fallecido' selected=(filtros.estado_paciente === 'Fallecido')) Fallecido
                   option(value='Sin_Evaluar' selected=(filtros.estado_paciente === 'Sin_Evaluar')) Sin Evaluar
               
               .col-md-3
@@ -150,31 +151,41 @@ block content
                           br
                           small.text-muted= internacion.cama.habitacion.sector.nombre
                         td
-                          small Dr. #{internacion.medico.usuario.nombre} #{internacion.medico.usuario.apellido}
+                          if internacion.medico && internacion.medico.usuario
+                            small Dr. #{internacion.medico.usuario.nombre} #{internacion.medico.usuario.apellido}
+                          else
+                            small.text-muted Sin asignar
                         td
-                          small= internacion.tipoInternacion.nombre
+                          if internacion.tipoInternacion
+                            small= internacion.tipoInternacion.nombre
+                          else
+                            small.text-muted N/A
                         td
-                          span.badge.bg-info= `${internacion.dias_internado} días`
+                          if internacion.dias_internado !== undefined && internacion.dias_internado !== null
+                            span.badge.bg-info= `${internacion.dias_internado} días`
+                          else
+                            span.badge.bg-secondary 0 días
                         td
                           if internacion.ultima_evaluacion
-                            small= new Date(internacion.ultima_evaluacion.fecha).toLocaleString('es-AR')
-                            br
-                            small.text-muted= internacion.ultima_evaluacion.enfermero.usuario.nombre
+                            div
+                              small= new Date(internacion.ultima_evaluacion.fecha).toLocaleString('es-AR')
+                            if internacion.ultima_evaluacion.enfermero && internacion.ultima_evaluacion.enfermero.usuario
+                              small.text-muted= internacion.ultima_evaluacion.enfermero.usuario.nombre
+                            else
+                              small.text-muted (Sin enfermero)
                           else
                             small.text-muted Sin evaluación
                         td.text-center
                           .btn-group.btn-group-sm(role='group')
                             a.btn.btn-outline-info(href=`/enfermero/internados/${internacion.id}` title='Ver detalle')
                               i.fas.fa-eye
-                            button.btn.btn-outline-primary(onclick=`registrarEvolucion(${internacion.id})` title='Evolución')
+                            button.btn.btn-outline-primary(type='button' onclick=`registrarEvolucion(${internacion.id})` title='Evolución')
                               i.fas.fa-notes-medical
-                            button.btn.btn-outline-warning(onclick=`cambiarEstado(${internacion.id})` title='Cambiar estado')
+                            button.btn.btn-outline-warning(type='button' onclick=`cambiarEstado(${internacion.id})` title='Cambiar estado')
                               i.fas.fa-edit
             else
-              .p-5.text-center.text-muted
-                i.fas.fa-bed.fa-4x.mb-3
-                h5 No hay pacientes internados
-                p.mb-0 No se encontraron pacientes con los filtros aplicados
+              .text-center.p-4
+                p.text-muted.mb-0 No hay pacientes internados
 
     // Modal cambiar estado
     #modalCambiarEstado.modal.fade(tabindex='-1')
@@ -184,7 +195,7 @@ block content
             h5.modal-title
               i.fas.fa-edit.me-2
               | Cambiar Estado del Paciente
-            button.btn-close(data-bs-dismiss='modal')
+            button.btn-close(type='button' data-bs-dismiss='modal')
           .modal-body
             form#form-cambiar-estado
               input(type='hidden' id='estado-internacion-id')
@@ -203,8 +214,8 @@ block content
                 textarea.form-control(id='estado-observaciones' rows='4' required placeholder='Describa el motivo del cambio de estado...')
           
           .modal-footer
-            button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
-            button.btn.btn-primary(onclick='guardarEstado()') Guardar
+            button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+            button.btn.btn-primary(type='button' onclick='guardarEstado()') Guardar
 
     // Modal evolución
     #modalEvolucion.modal.fade(tabindex='-1')
@@ -214,7 +225,7 @@ block content
             h5.modal-title
               i.fas.fa-notes-medical.me-2
               | Registrar Evolución de Enfermería
-            button.btn-close(data-bs-dismiss='modal')
+            button.btn-close(type='button' data-bs-dismiss='modal')
           .modal-body
             form#form-evolucion
               input(type='hidden' id='evolucion-internacion-id')
@@ -241,8 +252,8 @@ block content
                 small.form-text.text-danger Si hay cambios importantes, se notificará al médico
           
           .modal-footer
-            button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
-            button.btn.btn-primary(onclick='guardarEvolucion()') Registrar Evolución
+            button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+            button.btn.btn-primary(type='button' onclick='guardarEvolucion()') Registrar Evolución
 
 block scripts
   script(src='/js/enfermero/internados.js')

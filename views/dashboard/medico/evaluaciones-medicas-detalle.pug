@@ -1,0 +1,414 @@
+extends layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/medico") Dashboard
+            li.breadcrumb-item
+              a(href="/medico/evaluaciones-medicas") Evaluaciones Médicas
+            li.breadcrumb-item.active Detalle
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-stethoscope.me-2
+              | Evaluación Médica
+            p.text-muted.mb-0 Evaluación ##{evaluacion.id}
+          div
+            a.btn.btn-outline-secondary(href="/medico/evaluaciones")
+              i.fas.fa-arrow-left.me-2
+              | Volver a la lista
+
+    .row
+      // Información principal
+      .col-lg-8
+        // Datos del paciente
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-user.me-2
+              | Datos del Paciente
+          .card-body
+            if evaluacion.paciente && evaluacion.paciente.usuario
+              .row
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-id-card.me-2
+                    | Nombre Completo:
+                  p.mb-0= evaluacion.paciente.usuario.nombre + ' ' + evaluacion.paciente.usuario.apellido
+                
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-hashtag.me-2
+                    | DNI:
+                  p.mb-0= evaluacion.paciente.usuario.dni
+                
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-calendar.me-2
+                    | Fecha de Nacimiento:
+                  p.mb-0= new Date(evaluacion.paciente.usuario.fecha_nacimiento).toLocaleDateString('es-AR')
+                
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-birthday-cake.me-2
+                    | Edad:
+                  p.mb-0= edadPaciente ? `${edadPaciente} años` : 'No disponible'
+                
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-venus-mars.me-2
+                    | Sexo:
+                  p.mb-0= evaluacion.paciente.usuario.sexo
+                
+                if evaluacion.paciente.usuario.telefono
+                  .col-md-6.mb-3
+                    strong
+                      i.fas.fa-phone.me-2
+                      | Teléfono:
+                    p.mb-0= evaluacion.paciente.usuario.telefono
+            else
+              .alert.alert-warning.mb-0
+                i.fas.fa-exclamation-triangle.me-2
+                | Datos del paciente no disponibles
+
+        // Diagnóstico
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-diagnoses.me-2
+              | Diagnóstico
+          .card-body
+            if evaluacion.diagnostico
+              .row
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-code.me-2
+                    | Código:
+                  p.mb-0
+                    span.badge.bg-info.fs-6= evaluacion.diagnostico.codigo
+                
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-tag.me-2
+                    | Nombre:
+                  p.mb-0= evaluacion.diagnostico.nombre
+                
+                if evaluacion.diagnostico.descripcion
+                  .col-12
+                    strong
+                      i.fas.fa-align-left.me-2
+                      | Descripción:
+                    p.mb-0= evaluacion.diagnostico.descripcion
+            else
+              .text-muted
+                i.fas.fa-info-circle.me-2
+                | Sin diagnóstico registrado
+
+            if evaluacion.observaciones_diagnostico
+              hr
+              strong
+                i.fas.fa-notes-medical.me-2
+                | Observaciones del Diagnóstico:
+              p.mb-0(style="white-space: pre-wrap;")= evaluacion.observaciones_diagnostico
+
+        // Tratamiento
+        if evaluacion.tratamiento
+          .card.border-0.shadow-sm.mb-4
+            .card-header.bg-white
+              h5.mb-0
+                i.fas.fa-pills.me-2
+                | Tratamiento
+            .card-body
+              .row
+                .col-12.mb-3
+                  strong
+                    i.fas.fa-prescription.me-2
+                    | Nombre:
+                  p.mb-0= evaluacion.tratamiento.nombre
+                
+                if evaluacion.tratamiento.descripcion
+                  .col-12
+                    strong
+                      i.fas.fa-align-left.me-2
+                      | Descripción:
+                    p.mb-0(style="white-space: pre-wrap;")= evaluacion.tratamiento.descripcion
+
+        // ✅ Evaluaciones de Enfermería
+        if evaluacion.evaluaciones_enfermeria && evaluacion.evaluaciones_enfermeria.length > 0
+          .card.border-0.shadow-sm.mb-4
+            .card-header.bg-info.text-white
+              h5.mb-0
+                i.fas.fa-clipboard-check.me-2
+                | Evaluaciones de Enfermería
+            .card-body
+              each eval in evaluacion.evaluaciones_enfermeria
+                .mb-3.pb-3.border-bottom
+                  .row
+                    .col-md-6
+                      p.mb-2
+                        strong
+                          i.fas.fa-user-nurse.me-1
+                          | Enfermero/a:
+                        br
+                        = eval.enfermero ? `${eval.enfermero.usuario.nombre} ${eval.enfermero.usuario.apellido}` : 'No asignado'
+                      
+                      p.mb-0
+                        strong
+                          i.fas.fa-calendar.me-1
+                          | Fecha:
+                        br
+                        = new Date(eval.fecha).toLocaleString('es-AR')
+                    
+                    .col-md-6
+                      p.mb-2
+                        strong
+                          i.fas.fa-stethoscope.me-1
+                          | Observaciones:
+                        br
+                        small= eval.observaciones ? eval.observaciones.substring(0, 100) + '...' : 'Sin observaciones'
+
+        // ✅ Controles de Enfermería
+        if evaluacion.controles_enfermeria && evaluacion.controles_enfermeria.length > 0
+          .card.border-0.shadow-sm.mb-4
+            .card-header.bg-success.text-white
+              h5.mb-0
+                i.fas.fa-flask.me-2
+                | Controles de Enfermería (Laboratorios)
+            .card-body
+              each control in evaluacion.controles_enfermeria
+                .mb-4.pb-4.border-bottom
+                  .row
+                    .col-md-3
+                      p.mb-2
+                        strong Estado:
+                        br
+                        case control.estado
+                          when 'SOLICITADO'
+                            span.badge.bg-secondary SOLICITADO
+                          when 'PENDIENTE'
+                            span.badge.bg-warning.text-dark PENDIENTE
+                          when 'COMPLETADO'
+                            span.badge.bg-success COMPLETADO
+                          when 'CANCELADO'
+                            span.badge.bg-danger CANCELADO
+                    
+                    .col-md-3
+                      p.mb-2
+                        strong Grupo Sanguíneo:
+                        br
+                        = control.grupo_sanguineo ? `${control.grupo_sanguineo} ${control.factor_rh || ''}` : 'N/A'
+                    
+                    .col-md-3
+                      p.mb-2
+                        strong Peso/Altura:
+                        br
+                        = `${control.peso || 'N/A'} kg / ${control.altura || 'N/A'} cm`
+                    
+                    .col-md-3
+                      p.mb-2
+                        strong Fecha:
+                        br
+                        = new Date(control.createdAt).toLocaleString('es-AR')
+                  
+                  // Signos vitales
+                  .row.mt-3
+                    .col-md-3
+                      p.mb-0
+                        strong.text-danger
+                          i.fas.fa-heartbeat.me-1
+                          | P.A.:
+                        br
+                        small= control.presion_arterial || 'N/A'
+                    
+                    .col-md-3
+                      p.mb-0
+                        strong.text-danger
+                          i.fas.fa-heart.me-1
+                          | F.C.:
+                        br
+                        small= control.frecuencia_cardiaca || 'N/A'
+                    
+                    .col-md-3
+                      p.mb-0
+                        strong.text-danger
+                          i.fas.fa-thermometer.me-1
+                          | Temp:
+                        br
+                        small= control.temperatura ? `${control.temperatura}°C` : 'N/A'
+                    
+                    .col-md-3
+                      p.mb-0
+                        strong.text-danger
+                          i.fas.fa-lungs.me-1
+                          | O2:
+                        br
+                        small= control.nivel_oxigeno ? `${control.nivel_oxigeno}%` : 'N/A'
+                  
+                  // Laboratorios
+                  if control.nivel_glucosa || control.nivel_colesterol || control.nivel_hb
+                    .row.mt-3
+                      .col-md-3
+                        p.mb-0
+                          strong.small Glucosa:
+                          br
+                          small.text-monospace= control.nivel_glucosa || 'N/A'
+                      
+                      .col-md-3
+                        p.mb-0
+                          strong.small Colesterol:
+                          br
+                          small.text-monospace= control.nivel_colesterol || 'N/A'
+                      
+                      .col-md-3
+                        p.mb-0
+                          strong.small Hemoglobina:
+                          br
+                          small.text-monospace= control.nivel_hb || 'N/A'
+                      
+                      .col-md-3
+                        p.mb-0
+                          strong.small Creatinina:
+                          br
+                          small.text-monospace= control.nivel_creatinina || 'N/A'
+                  
+                  // Botón ver completo
+                  if control.estado === 'COMPLETADO'
+                    a.btn.btn-sm.btn-info.mt-2(href=`/enfermero/controles/${control.id}`)
+                      i.fas.fa-eye.me-1
+                      | Ver Detalles Completos
+        else
+          .alert.alert-info.mb-4
+            i.fas.fa-info-circle.me-2
+            | No hay controles de enfermería solicitados
+
+        // Procedimientos de enfermería
+        if evaluacion.procedimientos_enfermeria && evaluacion.procedimientos_enfermeria.length > 0
+          .card.border-0.shadow-sm.mb-4
+            .card-header.bg-warning
+              h5.mb-0
+                i.fas.fa-syringe.me-2
+                | Procedimientos de Enfermería
+            .card-body
+              each proc in evaluacion.procedimientos_enfermeria
+                .mb-3.pb-3.border-bottom
+                  .d-flex.justify-content-between.align-items-start
+                    div
+                      strong= proc.nombre
+                      if proc.descripcion
+                        p.mb-0.text-muted= proc.descripcion
+                    div
+                      if proc.prioridad === 'ALTA'
+                        span.badge.bg-danger= proc.prioridad
+                      else if proc.prioridad === 'MEDIA'
+                        span.badge.bg-warning.text-dark= proc.prioridad
+                      else
+                        span.badge.bg-secondary= proc.prioridad
+                  if proc.fecha_orden
+                    small.text-muted
+                      i.fas.fa-calendar.me-1
+                      = new Date(proc.fecha_orden).toLocaleDateString('es-AR')
+
+        // Procedimientos pre-quirúrgicos
+        if evaluacion.procedimientos_pre_quirurgicos && evaluacion.procedimientos_pre_quirurgicos.length > 0
+          .card.border-0.shadow-sm.mb-4
+            .card-header.bg-danger.text-white
+              h5.mb-0
+                i.fas.fa-user-md.me-2
+                | Procedimientos Pre-quirúrgicos
+            .card-body
+              each proc in evaluacion.procedimientos_pre_quirurgicos
+                .mb-3.pb-3.border-bottom
+                  .d-flex.justify-content-between.align-items-start
+                    div
+                      strong= proc.nombre
+                      if proc.descripcion
+                        p.mb-0.text-muted= proc.descripcion
+                    div
+                      if proc.estado === 'Completado'
+                        span.badge.bg-success= proc.estado
+                      else
+                        span.badge.bg-warning.text-dark= proc.estado
+
+        // Recetas y Certificados
+        if evaluacion.recetas_certificados && evaluacion.recetas_certificados.length > 0
+          .card.border-0.shadow-sm.mb-4
+            .card-header.bg-white
+              h5.mb-0
+                i.fas.fa-file-prescription.me-2
+                | Recetas y Certificados
+            .card-body
+              each doc in evaluacion.recetas_certificados
+                .mb-3.pb-3.border-bottom
+                  .d-flex.justify-content-between.align-items-start
+                    div
+                      span.badge.bg-info.me-2= doc.tipo
+                      if doc.contenido
+                        p.mb-0(style="white-space: pre-wrap;")= doc.contenido.substring(0, 200) + (doc.contenido.length > 200 ? '...' : '')
+                    div
+                      small.text-muted= new Date(doc.createdAt).toLocaleDateString('es-AR')
+
+      // Sidebar
+      .col-lg-4
+        // Información de la evaluación
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-info-circle.me-2
+              | Información
+          .card-body
+            dl.row.mb-0
+              dt.col-sm-5 Fecha:
+              dd.col-sm-7= new Date(evaluacion.fecha).toLocaleString('es-AR')
+              
+              dt.col-sm-5 Médico:
+              dd.col-sm-7
+                if evaluacion.medico && evaluacion.medico.usuario
+                  = `Dr. ${evaluacion.medico.usuario.nombre} ${evaluacion.medico.usuario.apellido}`
+                else
+                  | No especificado
+
+        //  Resumen de Estudios y Controles
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-chart-bar.me-2
+              | Resumen
+          .card-body
+            .row.text-center
+              .col-6.mb-3
+                h6.text-muted.small Evaluaciones Enfermería
+                h3.mb-0.text-info= (evaluacion.evaluaciones_enfermeria && evaluacion.evaluaciones_enfermeria.length) || 0
+
+              
+              .col-6.mb-3
+                h6.text-muted.small Controles Completados
+                h3.mb-0.text-success= (evaluacion.controles_enfermeria && evaluacion.controles_enfermeria.filter(c => c.estado === 'COMPLETADO').length) || 0
+
+              
+              .col-6.mb-3
+                h6.text-muted.small Procedimientos Enf.
+                h3.mb-0.text-warning= (evaluacion.procedimientos_enfermeria && evaluacion.procedimientos_enfermeria.length) || 0
+              
+              .col-6.mb-3
+                h6.text-muted.small Recetas/Cert.
+                h3.mb-0.text-primary= (evaluacion.recetas_certificados && evaluacion.recetas_certificados.length) || 0
+
+        
+
+        // Turno asociado
+        if evaluacion.turno_id
+          .card.border-0.shadow-sm.mt-4
+            .card-header.bg-white
+              h5.mb-0
+                i.fas.fa-calendar-check.me-2
+                | Turno Asociado
+            .card-body
+              a.btn.btn-outline-secondary.w-100(href=`/medico/turnos/${evaluacion.turno_id}`)
+                i.fas.fa-eye.me-2
+                | Ver Turno

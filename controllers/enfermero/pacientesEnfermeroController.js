@@ -12,9 +12,9 @@ const { Op } = require('sequelize');
 const db = require('../../database/db');
 
 // Listar pacientes atendidos por el enfermero
-exports.listarMisPacientes = async (req, res) => {
+exports.listarMisPacientes = async (req, res, next) => {
   try {
-    // ✅ CORRECCIÓN
+    
     const enfermeroId = req.user.id;
     const { busqueda, fecha_desde, fecha_hasta, estado } = req.query;
 
@@ -101,17 +101,14 @@ exports.listarMisPacientes = async (req, res) => {
 
   } catch (error) {
     console.error('Error al listar pacientes:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar pacientes',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Ver ficha completa de paciente
-exports.verPaciente = async (req, res) => {
+exports.verPaciente = async (req, res, next) => {
   try {
-    // ✅ CORRECCIÓN
+    
     const enfermeroId = req.user.id;
     const { id } = req.params;
 
@@ -207,17 +204,14 @@ exports.verPaciente = async (req, res) => {
 
   } catch (error) {
     console.error('Error al ver paciente:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el paciente',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Historial completo de evaluaciones
-exports.historialEvaluaciones = async (req, res) => {
+exports.historialEvaluaciones = async (req, res, next) => {
   try {
-    // ✅ CORRECCIÓN
+    
     const enfermeroId = req.user.id;
     const { id } = req.params;
 
@@ -252,17 +246,14 @@ exports.historialEvaluaciones = async (req, res) => {
 
   } catch (error) {
     console.error('Error al ver historial:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el historial',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Búsqueda rápida de pacientes
-exports.busquedaRapida = async (req, res) => {
+exports.busquedaRapida = async (req, res, next) => {
   try {
-    // ✅ CORRECCIÓN
+    
     const enfermeroId = req.user.id;
     const { q } = req.query;
 
@@ -312,17 +303,14 @@ exports.busquedaRapida = async (req, res) => {
 
   } catch (error) {
     console.error('Error en búsqueda rápida:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error en la búsqueda'
-    });
+    next(error);
   }
 };
 
 // Obtener resumen de paciente
-exports.resumenPaciente = async (req, res) => {
+exports.resumenPaciente = async (req, res, next) => {
   try {
-    // ✅ CORRECCIÓN
+    
     const enfermeroId = req.user.id;
     const { id } = req.params;
 
@@ -412,17 +400,14 @@ exports.resumenPaciente = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener resumen:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener resumen'
-    });
+    next(error);
   }
 };
 
 // Estadísticas del enfermero
-exports.misEstadisticas = async (req, res) => {
+exports.misEstadisticas = async (req, res, next) => {
   try {
-    // ✅ CORRECCIÓN
+    
     const enfermeroId = req.user.id;
 
     const hoy = new Date();
@@ -475,10 +460,7 @@ exports.misEstadisticas = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener estadísticas'
-    });
+    next(error);
   }
 };
 

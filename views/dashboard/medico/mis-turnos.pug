@@ -1,177 +1,246 @@
 extends layout
 
 block content
-  .container-fluid.py-4
+  .container-fluid
+    h1.mb-4 Mis Turnos
+
+    // Tarjeta de Turno Actual
+    if turnoActual
+      .card.bg-success.text-white.mb-4
+        .card-body
+          .d-flex.justify-content-between.align-items-center
+            div
+              h4.mb-1 🟢 EN TURNO AHORA
+              p.mb-1
+                strong Sector: 
+                | #{turnoActual.sector.nombre}
+              p.mb-1
+                strong Horario: 
+                | #{turnoActual.hora_inicio} - #{turnoActual.hora_fin}
+              p.mb-0
+                strong Tipo: 
+                | #{turnoActual.tipo}
+            .text-end
+              h5 Hoy
+              p.mb-0 #{moment().format('DD/MM/YYYY')}
+
     .row
-      .col-12
-        .page-header.mb-4
-          h2
-            i.fas.fa-calendar-check.me-2
-            | Mis Turnos
-          p.text-muted Gestiona tus turnos médicos
-
-    // Tarjetas de Estadísticas
-    .row.g-3.mb-4#estadisticas-turnos
-      .col-lg-3.col-md-6
-        .card.border-start.border-warning.border-4
-          .card-body
-            .d-flex.justify-content-between
-              div
-                small.text-muted Pendientes
-                h3.mb-0.text-warning#stat-pendientes
-                  .spinner-border.spinner-border-sm
-              i.fas.fa-clock.fa-2x.text-warning
-      
-      .col-lg-3.col-md-6
-        .card.border-start.border-success.border-4
-          .card-body
-            .d-flex.justify-content-between
-              div
-                small.text-muted Confirmados
-                h3.mb-0.text-success#stat-confirmados
-                  .spinner-border.spinner-border-sm
-              i.fas.fa-check-circle.fa-2x.text-success
-      
-      .col-lg-3.col-md-6
-        .card.border-start.border-info.border-4
-          .card-body
-            .d-flex.justify-content-between
-              div
-                small.text-muted Completados
-                h3.mb-0.text-info#stat-completados
-                  .spinner-border.spinner-border-sm
-              i.fas.fa-calendar-check.fa-2x.text-info
-      
-      .col-lg-3.col-md-6
-        .card.border-start.border-danger.border-4
-          .card-body
-            .d-flex.justify-content-between
-              div
-                small.text-muted Cancelados
-                h3.mb-0.text-danger#stat-cancelados
-                  .spinner-border.spinner-border-sm
-              i.fas.fa-times-circle.fa-2x.text-danger
-
-    // Filtros
-    .card.shadow-sm.mb-4
-      .card-header.bg-white
-        h5.mb-0
-          i.fas.fa-filter.me-2
-          | Filtros de Búsqueda
-      .card-body
-        form#formFiltros
-          .row.g-3
-            .col-md-3
-              label.form-label
-                i.fas.fa-calendar.me-1
-                | Fecha
-              input.form-control(
-                type='date'
-                id='filtroFecha'
-                name='fecha'
-              )
-            
-            .col-md-3
-              label.form-label
-                i.fas.fa-list.me-1
-                | Estado
-              select.form-select(id='filtroEstado' name='estado')
-                option(value='TODOS') Todos los estados
-                option(value='PENDIENTE') Pendiente
-                option(value='CONFIRMADO') Confirmado
-                option(value='COMPLETADO') Completado
-                option(value='CANCELADO') Cancelado
-            
-            .col-md-4
-              label.form-label
-                i.fas.fa-user.me-1
-                | Paciente (Nombre/DNI)
-              input.form-control(
-                type='text'
-                id='filtroPaciente'
-                name='paciente'
-                placeholder='Buscar por nombre o DNI'
-              )
-            
-            .col-md-2.d-flex.align-items-end
-              button.btn.btn-primary.w-100(type='submit')
-                i.fas.fa-search.me-2
-                | Buscar
-              button.btn.btn-secondary.ms-2(type='button' onclick='limpiarFiltros()')
-                i.fas.fa-times
-
-    // Tabla de Turnos
-    .card.shadow-sm
-      .card-header.bg-white.d-flex.justify-content-between.align-items-center
-        h5.mb-0
-          i.fas.fa-list.me-2
-          | Listado de Turnos
-        button.btn.btn-sm.btn-outline-primary(onclick='actualizarTabla()')
-          i.fas.fa-sync-alt.me-2
-          | Actualizar
-      
-      .card-body
-        #loading-turnos.text-center.py-4
-          .spinner-border.text-primary
-          p.mt-2.text-muted Cargando turnos...
-        
-        #tabla-turnos.d-none
-          .table-responsive
-            table.table.table-hover.align-middle#tablaTurnos
-              thead
+      // Calendario
+      .col-lg-8.mb-4
+        .card
+          .card-header.d-flex.justify-content-between.align-items-center
+            h5.mb-0 Calendario - #{nombreMes}
+            div
+              a.btn.btn-sm.btn-outline-secondary(href=`?mes=${mesActual-1}&anio=${anioActual}`) ←
+              span.mx-2 #{nombreMes}
+              a.btn.btn-sm.btn-outline-secondary(href=`?mes=${mesActual+1}&anio=${anioActual}`) →
+          .card-body.p-0
+            table.table.table-bordered.mb-0
+              thead.table-light
                 tr
-                  th Fecha/Hora
-                  th Paciente
-                  th Estado
-                  th Tipo
-                  th Acciones
-              tbody#tbody-turnos
-          
-          // Paginación
-          nav.mt-3#paginacion-container
-            ul.pagination.justify-content-center#paginacion
+                  th Lunes
+                  th Martes
+                  th Miércoles
+                  th Jueves
+                  th Viernes
+                  th Sábado
+                  th Domingo
+              tbody
+                each semana in calendario
+                  tr
+                    each dia in semana
+                      td(class=dia.esHoy ? 'bg-primary bg-opacity-10' : '' style="height: 120px;")
+                        if dia.dia
+                          .d-flex.justify-content-between
+                            span(class=dia.esHoy ? 'badge bg-primary' : '')
+                              | #{dia.dia}
+                            small.text-muted #{dia.fecha}
+                          if dia.turnos && dia.turnos.length > 0
+                            .mt-2
+                              each turno in dia.turnos
+                                .card.mb-1.border-info
+                                  .card-body.py-1.px-2
+                                    small
+                                      strong #{turno.hora_inicio.substring(0,5)}-#{turno.hora_fin.substring(0,5)}
+                                      br
+                                      span.text-muted #{turno.tipo}
+                                      br
+                                      span.text-success #{turno.sector}
 
-  // Modal Detalle Turno
-  #modalDetalleTurno.modal.fade(tabindex='-1')
-    .modal-dialog.modal-lg
-      .modal-content
-        .modal-header
-          h5.modal-title
-            i.fas.fa-info-circle.me-2
-            | Detalle del Turno
-          button.btn-close(data-bs-dismiss='modal')
-        .modal-body#modalDetalleTurnoBody
-          .text-center.py-4
-            .spinner-border.text-primary
-        .modal-footer
-          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+      // Mis Horarios Fijos
+      .col-lg-4
+        .card.mb-4
+          .card-header
+            h5.mb-0 Mis Horarios Fijos
+          .card-body
+            if turnos && turnos.length > 0
+              .list-group
+                each turno in turnos
+                  button.btn.list-group-item.list-group-item-action.text-start(
+                    type="button"
+                    data-bs-toggle="modal"
+                    data-bs-target="#turnoModal"
+                    data-turno-id=turno.id
+                    data-turno-tipo=turno.tipo
+                    data-turno-dias=turno.dias.join(', ')
+                    data-turno-horario=turno.horario
+                    data-turno-sector=turno.sector_nombre
+                  )
+                    .d-flex.w-100.justify-content-between
+                      h6.mb-1 #{turno.tipo}
+                      small #{turno.horario}
+                    p.mb-1
+                      strong Días: 
+                      | #{turno.dias.join(', ')}
+                    small.text-muted
+                      strong Sector: 
+                      | #{turno.sector_nombre}
+            else
+              p.text-center.text-muted.py-3 No tienes turnos asignados
 
-  // Modal Cancelar Turno
-  #modalCancelarTurno.modal.fade(tabindex='-1')
-    .modal-dialog
-      .modal-content
-        .modal-header.bg-danger.text-white
-          h5.modal-title
-            i.fas.fa-times-circle.me-2
-            | Cancelar Turno
-          button.btn-close.btn-close-white(data-bs-dismiss='modal')
-        .modal-body
-          form#formCancelarTurno
-            input(type='hidden' id='cancelarTurnoId')
-            .mb-3
-              label.form-label Motivo de Cancelación
-              textarea.form-control(
-                id='motivoCancelacion'
-                name='motivo'
-                rows='3'
-                required
-                placeholder='Ingrese el motivo de la cancelación'
-              )
-        .modal-footer
-          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
-          button.btn.btn-danger(type='submit' form='formCancelarTurno')
-            i.fas.fa-check.me-2
-            | Confirmar Cancelación
+        // Estadísticas
+        .card
+          .card-header
+            h5.mb-0 Estadísticas
+          .card-body
+            .row.text-center
+              .col-6.mb-3
+                .p-3.bg-light.rounded
+                  h3.text-primary #{estadisticas.total_turnos}
+                  small Total Turnos
+              .col-6.mb-3
+                .p-3.bg-light.rounded
+                  h3.text-success #{estadisticas.guardias_activas}
+                  small Guardias Activas
+              .col-6
+                .p-3.bg-light.rounded
+                  h3.text-warning #{estadisticas.guardias_pasivas}
+                  small Guardias Pasivas
+              .col-6
+                .p-3.bg-light.rounded
+                  h3.text-info #{estadisticas.atencion}
+                  small Atención
+
+    // MODAL PARA DETALLE DE TURNO
+    .modal.fade#turnoModal(tabindex="-1" aria-labelledby="turnoModalLabel" aria-hidden="true")
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header.bg-primary.text-white
+            h5.modal-title#turnoModalLabel Detalle del Turno
+            button.btn-close.btn-close-white(type="button" data-bs-dismiss="modal" aria-label="Close")
+          .modal-body
+            .text-center.p-5
+              .spinner-border.text-primary(role="status")
+                span.visually-hidden Cargando...
+          .modal-footer
+            button.btn.btn-secondary(type="button" data-bs-dismiss="modal") Cerrar
 
 block scripts
-  script(src='/js/medico/mis-turnos.js')
+  script(src="https://cdn.jsdelivr.net/npm/moment@2.29.1/moment.min.js")
+  script(src="https://cdn.jsdelivr.net/npm/moment@2.29.1/locale/es.js")
+  script.
+    moment.locale('es');
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      const turnoModal = document.getElementById('turnoModal');
+      const userRolRuta = '#{user.rol_ruta}';
+      
+      turnoModal.addEventListener('show.bs.modal', function(event) {
+        const button = event.relatedTarget;
+        const turnoId = button.getAttribute('data-turno-id');
+        const tipo = button.getAttribute('data-turno-tipo');
+        const dias = button.getAttribute('data-turno-dias');
+        const horario = button.getAttribute('data-turno-horario');
+        const sector = button.getAttribute('data-turno-sector');
+        
+        // Actualizar título
+        const modalTitle = turnoModal.querySelector('.modal-title');
+        modalTitle.textContent = `Detalle: ${tipo}`;
+        
+        // Mostrar datos básicos
+        const modalBody = turnoModal.querySelector('.modal-body');
+        modalBody.innerHTML = `
+          <div class="row">
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm mb-3">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0">Información del Turno</h6>
+                </div>
+                <div class="card-body">
+                  <dl class="mb-0">
+                    <dt>Tipo:</dt>
+                    <dd>
+                      <span class="badge ${tipo === 'Guardia Activa' ? 'bg-danger' : tipo === 'Guardia Pasiva' ? 'bg-warning text-dark' : 'bg-primary'} fs-6">
+                        ${tipo}
+                      </span>
+                    </dd>
+                    <dt>Días:</dt>
+                    <dd><strong>${dias}</strong></dd>
+                    <dt>Horario:</dt>
+                    <dd><strong>${horario}</strong></dd>
+                    <dt>Sector:</dt>
+                    <dd>${sector}</dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <div class="card border-0 shadow-sm">
+                <div class="card-header bg-light">
+                  <h6 class="mb-0">Próximas Ocurrencias</h6>
+                </div>
+                <div class="card-body">
+                  <div class="text-center py-3" id="loading-fechas">
+                    <div class="spinner-border text-primary" role="status">
+                      <span class="visually-hidden">Cargando...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Cargando próximas fechas...</p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        // Cargar fechas via AJAX
+        cargarProximasFechas(turnoId, userRolRuta);
+      });
+      
+      function cargarProximasFechas(turnoId, rolRuta) {
+        fetch(`/${rolRuta}/mis-turnos-personal/api/proximas-fechas/${turnoId}`)
+          .then(response => response.json())
+          .then(data => {
+            const loadingDiv = document.getElementById('loading-fechas');
+            if (loadingDiv) {
+              if (data.success && data.proximasOcurrencias && data.proximasOcurrencias.length > 0) {
+                let fechasHTML = '<div class="table-responsive"><table class="table table-sm table-hover mb-0"><thead class="table-light"><tr><th>Fecha</th><th>Día</th><th>Horario</th></tr></thead><tbody>';
+                data.proximasOcurrencias.forEach(ocurrencia => {
+                  const fecha = moment(ocurrencia.fecha);
+                  fechasHTML += `
+                    <tr>
+                      <td>${fecha.format('DD/MM/YYYY')}</td>
+                      <td class="text-capitalize">${fecha.format('dddd')}</td>
+                      <td>${ocurrencia.hora_inicio.substring(0,5)} - ${ocurrencia.hora_fin.substring(0,5)}</td>
+                    </tr>
+                  `;
+                });
+                fechasHTML += '</tbody></table></div>';
+                loadingDiv.outerHTML = fechasHTML;
+              } else {
+                loadingDiv.outerHTML = '<div class="alert alert-info"><i class="fas fa-info-circle me-2"></i>No hay próximas ocurrencias programadas.</div>';
+              }
+            }
+          })
+          .catch(error => {
+            const loadingDiv = document.getElementById('loading-fechas');
+            if (loadingDiv) {
+              loadingDiv.outerHTML = '<div class="alert alert-danger"><i class="fas fa-exclamation-triangle me-2"></i>Error al cargar las fechas.</div>';
+            }
+          });
+      }
+      
+      // Actualizar cada minuto
+      setTimeout(function() {
+        window.location.reload();
+      }, 60000);
+    });

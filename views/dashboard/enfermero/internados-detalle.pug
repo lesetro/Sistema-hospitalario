@@ -1,155 +1,267 @@
 extends ../../layouts/enfermero-layout
 
 block content
-  .container-fluid
-    .row.mb-3
+  .container-fluid.p-4
+    // Header
+    .row.mb-4
       .col-12
-        a.btn.btn-secondary(href='/enfermero/internados')
-          i.fas.fa-arrow-left.me-2
-          | Volver
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-bed.me-2
+              | Detalle de Internación
+            p.text-muted.mb-0 Información completa del paciente internado
+          div
+            a.btn.btn-outline-secondary(href='/enfermero/internados')
+              i.fas.fa-arrow-left.me-2
+              | Volver
 
     .row
       // Información del paciente
-      .col-lg-4.mb-4
-        .card.border-0.shadow-sm
-          .card-header(class=internacion.estado_paciente === 'Critico' ? 'bg-danger text-white' : internacion.estado_paciente === 'Grave' ? 'bg-warning' : 'bg-success text-white')
+      .col-lg-8
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
             h5.mb-0
-              i.fas.fa-user-injured.me-2
-              | Paciente Internado
+              i.fas.fa-user.me-2
+              | Información del Paciente
           .card-body
-            .text-center.mb-3
-              h4= `${internacion.paciente.usuario.nombre} ${internacion.paciente.usuario.apellido}`
-              p.text-muted.mb-0 DNI: #{internacion.paciente.usuario.dni}
-            
-            dl.row.mb-0
-              dt.col-sm-5 Estado:
-              dd.col-sm-7
-                case internacion.estado_paciente
-                  when 'Critico'
-                    span.badge.bg-danger.fs-6 Crítico
-                  when 'Grave'
-                    span.badge.bg-warning.text-dark.fs-6 Grave
-                  when 'Estable'
-                    span.badge.bg-success.fs-6 Estable
-                  default
-                    span.badge.bg-secondary.fs-6= internacion.estado_paciente
+            .row
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-id-card.me-2
+                  | Nombre Completo:
+                p.mb-0= internacion.paciente.usuario.nombre + ' ' + internacion.paciente.usuario.apellido
               
-              dt.col-sm-5 Días internado:
-              dd.col-sm-7
-                strong= `${diasInternado} días`
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-hashtag.me-2
+                  | DNI:
+                p.mb-0= internacion.paciente.usuario.dni
               
-              dt.col-sm-5 Ubicación:
-              dd.col-sm-7
-                strong Habitación #{internacion.cama.habitacion.numero}
-                br
-                | Cama #{internacion.cama.numero}
-                br
-                small.text-muted= internacion.cama.habitacion.sector.nombre
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-calendar.me-2
+                  | Fecha de Nacimiento:
+                p.mb-0= new Date(internacion.paciente.usuario.fecha_nacimiento).toLocaleDateString('es-AR')
               
-              dt.col-sm-5 Médico:
-              dd.col-sm-7 Dr. #{internacion.medico.usuario.nombre} #{internacion.medico.usuario.apellido}
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-venus-mars.me-2
+                  | Sexo:
+                p.mb-0= internacion.paciente.usuario.sexo
               
-              dt.col-sm-5 Tipo:
-              dd.col-sm-7= internacion.tipoInternacion.nombre
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-phone.me-2
+                  | Teléfono:
+                p.mb-0= internacion.paciente.usuario.telefono || 'No registrado'
               
-              dt.col-sm-5 Fecha ingreso:
-              dd.col-sm-7= new Date(internacion.fecha_inicio).toLocaleDateString('es-AR')
-              
-              if internacion.estado_operacion !== 'No aplica'
-                dt.col-sm-5 Operación:
-                dd.col-sm-7
-                  span.badge.bg-info= internacion.estado_operacion
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-user-md.me-2
+                  | Médico a Cargo:
+                p.mb-0= internacion.medico ? `Dr. ${internacion.medico.usuario.nombre} ${internacion.medico.usuario.apellido}` : 'No asignado'
 
-        // Acciones rápidas
-        .card.border-0.shadow-sm.mt-3
+        // Datos de la internación
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-hospital.me-2
+              | Datos de la Internación
+            //  BOTÓN PARA VER ÓRDENES MÉDICAS
+            a.btn.btn-primary.btn-sm(href=`/enfermero/internados/paciente/${internacion.paciente_id}/ordenes`)
+              i.fas.fa-clipboard-list.me-2
+              | Ver Órdenes Médicas
+          
           .card-body
-            button.btn.btn-primary.w-100.mb-2(onclick=`registrarEvolucion(${internacion.id})`)
+            .row
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-bed.me-2
+                  | Ubicación:
+                p.mb-0 Sector #{internacion.cama.habitacion.sector.nombre} - Hab. #{internacion.cama.habitacion.numero} - Cama #{internacion.cama.numero}
+              
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-calendar-plus.me-2
+                  | Fecha de Ingreso:
+                p.mb-0= new Date(internacion.fecha_inicio).toLocaleString('es-AR')
+              
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-heartbeat.me-2
+                  | Estado del Paciente:
+                if internacion.estado_paciente === 'Critico'
+                  span.badge.bg-danger.p-2 Crítico
+                else if internacion.estado_paciente === 'Grave'
+                  span.badge.bg-warning.text-dark.p-2 Grave
+                else if internacion.estado_paciente === 'Estable'
+                  span.badge.bg-success.p-2 Estable
+                else
+                  span.badge.bg-secondary.p-2= internacion.estado_paciente
+              
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-notes-medical.me-2
+                  | Motivo:
+                p.mb-0= internacion.motivo || 'No especificado'
+              
+              if internacion.tipo_internacion
+                .col-12.mb-3
+                  strong
+                    i.fas.fa-tag.me-2
+                    | Tipo de Internación:
+                  p.mb-0= internacion.tipo_internacion.nombre
+
+        // Botones de acción
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-tasks.me-2
+              | Acciones
+          .card-body
+            .row.g-3
+              .col-md-6
+                button.btn.btn-success.w-100(
+                  type="button"
+                  data-bs-toggle="modal"
+                  data-bs-target="#modalRegistrarEvolucion"
+                )
+                  i.fas.fa-notes-medical.me-2
+                  | Registrar Evolución
+              
+              .col-md-6
+                button.btn.btn-warning.w-100(
+                  type="button"
+                  data-bs-toggle="modal"
+                  data-bs-target="#modalActualizarEstado"
+                )
+                  i.fas.fa-heartbeat.me-2
+                  | Actualizar Estado
+
+      // Sidebar con información adicional
+      .col-lg-4
+        // Controles recientes
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-chart-line.me-2
+              | Controles Recientes
+          .card-body
+            if controles && controles.length > 0
+              each control in controles.slice(0, 5)
+                .mb-3.pb-3.border-bottom
+                  small.text-muted= new Date(control.fecha_control).toLocaleString('es-AR')
+                  p.mb-1
+                    strong Presión:
+                    |  #{control.presion_arterial || 'N/A'}
+                  p.mb-1
+                    strong Temp:
+                    |  #{control.temperatura || 'N/A'}°C
+                  p.mb-0
+                    strong Saturación:
+                    |  #{control.saturacion_oxigeno || 'N/A'}%
+            else
+              p.text-muted.text-center Sin controles registrados
+            
+            hr
+            a.btn.btn-outline-primary.w-100(href=`/enfermero/internados/${internacion.id}/controles`)
+              i.fas.fa-list.me-2
+              | Ver Todos los Controles
+
+        // Evoluciones recientes
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-file-medical.me-2
+              | Evoluciones del Paciente
+          .card-body
+            if internacion.observaciones && internacion.observaciones.trim()
+              pre.bg-light.p-3.rounded(style="white-space: pre-wrap; font-family: inherit; font-size: 0.9rem; max-height: 400px; overflow-y: auto;")= internacion.observaciones
+            else
+              p.text-muted.text-center Sin evoluciones registradas
+
+  //  MODAL PARA VER ÓRDENES MÉDICAS
+  #modalOrdenesMedicas.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-clipboard-list.me-2
+            | Órdenes Médicas
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        
+        .modal-body
+          #contenido-ordenes-medicas
+            .text-center.py-4
+              .spinner-border.text-primary(role='status')
+                span.visually-hidden Cargando...
+        
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal')
+            i.fas.fa-times.me-2
+            | Cerrar
+
+  // Modal para registrar evolución
+  #modalRegistrarEvolucion.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        form#form-registrar-evolucion(action=`/enfermero/internados/${internacion.id}/registrar-evolucion` method='POST')
+          .modal-header.bg-success.text-white
+            h5.modal-title
               i.fas.fa-notes-medical.me-2
               | Registrar Evolución
-            button.btn.btn-warning.w-100.mb-2(onclick=`cambiarEstado(${internacion.id})`)
-              i.fas.fa-edit.me-2
-              | Cambiar Estado
-            a.btn.btn-success.w-100(href=`/enfermero/signos-vitales/registro?paciente_id=${internacion.paciente_id}`)
+            button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+          
+          .modal-body
+            .mb-3
+              label.form-label Observaciones
+              textarea.form-control(
+                name='observaciones'
+                rows='5'
+                required
+                placeholder='Evolución del paciente, cambios observados, procedimientos realizados...'
+              )
+          
+          .modal-footer
+            button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+            button.btn.btn-success(type='submit')
+              i.fas.fa-save.me-2
+              | Guardar Evolución
+
+  // Modal para actualizar estado
+  #modalActualizarEstado.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        form#form-actualizar-estado(action=`/enfermero/internados/${internacion.id}/actualizar-estado` method='POST')
+          .modal-header.bg-warning
+            h5.modal-title
               i.fas.fa-heartbeat.me-2
-              | Signos Vitales
-
-      // Historial
-      .col-lg-8.mb-4
-        // Evaluaciones de enfermería
-        .card.border-0.shadow-sm.mb-3
-          .card-header.bg-white
-            h5.mb-0
-              i.fas.fa-clipboard-check.me-2
-              | Evaluaciones de Enfermería
-          .card-body.p-0
-            if evaluacionesEnfermeria.length > 0
-              .list-group.list-group-flush
-                each evaluacion in evaluacionesEnfermeria
-                  .list-group-item
-                    .d-flex.justify-content-between.align-items-start
-                      div
-                        strong= new Date(evaluacion.fecha).toLocaleString('es-AR')
-                        br
-                        small.text-muted Enf. #{evaluacion.enfermero.usuario.nombre} #{evaluacion.enfermero.usuario.apellido}
-                        if evaluacion.signos_vitales
-                          br
-                          small= evaluacion.signos_vitales
-                        if evaluacion.observaciones
-                          br
-                          small.text-muted= evaluacion.observaciones.substring(0, 150) + '...'
-                      div
-                        case evaluacion.tipo_egreso
-                          when 'PROCEDIMIENTO_COMPLETADO'
-                            span.badge.bg-success Completado
-                          when 'DERIVACION_MEDICO'
-                            span.badge.bg-primary Médico notificado
-                          when 'DERIVACION_URGENCIA'
-                            span.badge.bg-danger Urgencia
-                          default
-                            span.badge.bg-warning Pendiente
-            else
-              .p-3.text-center.text-muted
-                p.mb-0 No hay evaluaciones registradas
-
-        // Controles
-        .card.border-0.shadow-sm
-          .card-header.bg-white
-            h5.mb-0
-              i.fas.fa-temperature-high.me-2
-              | Controles de Enfermería
-          .card-body.p-0
-            if controles.length > 0
-              .table-responsive
-                table.table.table-sm.mb-0
-                  thead.table-light
-                    tr
-                      th Fecha
-                      th Enfermero
-                      th Peso/Altura
-                      th P.A.
-                      th Temp.
-                  tbody
-                    each control in controles
-                      tr
-                        td
-                          small= new Date(control.created_at).toLocaleString('es-AR')
-                        td
-                          small= `${control.evaluacion.enfermero.usuario.nombre} ${control.evaluacion.enfermero.usuario.apellido}`
-                        td
-                          if control.peso && control.altura
-                            small= `${control.peso}kg / ${control.altura}cm`
-                          else
-                            small.text-muted N/A
-                        td
-                          small= control.presion_arterial || 'N/A'
-                        td
-                          small= control.temperatura ? `${control.temperatura}°C` : 'N/A'
-            else
-              .p-3.text-center.text-muted
-                p.mb-0 No hay controles registrados
+              | Actualizar Estado del Paciente
+            button.btn-close(type='button' data-bs-dismiss='modal')
+          
+          .modal-body
+            .mb-3
+              label.form-label Estado del Paciente
+              select.form-select(name='estado_paciente' required)
+                option(value='Estable' selected=internacion.estado_paciente === 'Estable') Estable
+                option(value='Grave' selected=internacion.estado_paciente === 'Grave') Grave
+                option(value='Critico' selected=internacion.estado_paciente === 'Critico') Crítico
+                option(value='En recuperación' selected=internacion.estado_paciente === 'En recuperación') En recuperación
+            
+            .mb-3
+              label.form-label Observaciones
+              textarea.form-control(
+                name='observaciones'
+                rows='3'
+                placeholder='Motivo del cambio de estado...'
+              )
+          
+          .modal-footer
+            button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+            button.btn.btn-warning(type='submit')
+              i.fas.fa-save.me-2
+              | Actualizar Estado
 
 block scripts
-  script.
-    // Incluir funciones del modal desde internados.js
-    const internacionId = !{internacion.id};
-  script(src='/js/enfermero/internados.js')
+  script(src='/js/enfermero/internados.detalle.js')

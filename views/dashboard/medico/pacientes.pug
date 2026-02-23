@@ -61,7 +61,6 @@ block content
                 name='busqueda'
                 placeholder='Nombre, Apellido o DNI'
               )
-            
             .col-md-3
               label.form-label
                 i.fas.fa-list.me-1
@@ -71,14 +70,12 @@ block content
                 option(value='Activo' selected) Activo
                 option(value='Inactivo') Inactivo
                 option(value='Baja') Baja
-            
             .col-md-3
               label.form-label
                 i.fas.fa-hospital.me-1
                 | Obra Social
               select.form-select(id='filtroObraSocial' name='obraSocial')
                 option(value='TODAS') Todas
-            
             .col-md-2.d-flex.align-items-end
               button.btn.btn-primary.w-100(type='submit')
                 i.fas.fa-search.me-2
@@ -92,15 +89,13 @@ block content
         h5.mb-0
           i.fas.fa-list.me-2
           | Listado de Pacientes
-        button.btn.btn-sm.btn-outline-primary(onclick='actualizarTabla()')
+        button.btn.btn-sm.btn-outline-primary(onclick='cargarPacientes()')
           i.fas.fa-sync-alt.me-2
           | Actualizar
-      
       .card-body
         #loading-pacientes.text-center.py-4
           .spinner-border.text-primary
           p.mt-2.text-muted Cargando pacientes...
-        
         #tabla-pacientes.d-none
           .table-responsive
             table.table.table-hover.align-middle#tablaPacientes
@@ -113,12 +108,10 @@ block content
                   th Última Consulta
                   th Acciones
               tbody#tbody-pacientes
-          
-          // Paginación
           nav.mt-3#paginacion-container
             ul.pagination.justify-content-center#paginacion
 
-  // Modal Detalle Paciente
+  // ✅ Modal Detalle Paciente — header único
   #modalDetallePaciente.modal.fade(tabindex='-1')
     .modal-dialog.modal-xl
       .modal-content
@@ -147,6 +140,37 @@ block content
             .spinner-border.text-primary
         .modal-footer
           button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+  // Modal Solicitar Controles de Enfermería
+  #modalSolicitarControles.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-warning
+          h5.modal-title
+            i.fas.fa-heartbeat.me-2
+            | Solicitar Controles de Enfermería
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body
+          input(type='hidden' id='controlPacienteId')
+          .alert.alert-warning.mb-3
+            i.fas.fa-info-circle.me-2
+            | Se notificará a los enfermeros del sector para realizar controles básicos al paciente.
+          p.mb-2
+            strong Paciente:
+            br
+            span#controlPacienteNombre.text-muted -
+          p.mb-0
+            strong Se solicitará:
+          ul.mt-2
+            li Signos vitales (presión, temperatura, pulso)
+            li Análisis de sangre básico
+            li Alergias conocidas
+            li Medicación actual
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-warning(onclick='confirmarSolicitarControles()')
+            i.fas.fa-check.me-2
+            | Confirmar Solicitud
 
 block scripts
   script(src='/js/medico/pacientes.js')

@@ -7,14 +7,17 @@ const {
   EvaluacionMedica,
   TurnoEstudio,
   ListaEspera,
-  sequelize
+  Especialidad,
+  ObraSocial,
+  Diagnostico
 } = require('../../models');
 const { Op } = require('sequelize');
+const db = require('../../database/db');
 
 // ========================================
 // RENDERIZAR VISTA
 // ========================================
-exports.renderEstudiosSolicitados = async (req, res) => {
+exports.renderEstudiosSolicitados = async (req, res, next) => {
   try {
     console.log('🔍 renderEstudiosSolicitados - usuario_id:', req.user.usuario_id);
     
@@ -24,7 +27,7 @@ exports.renderEstudiosSolicitados = async (req, res) => {
           model: Medico,
           as: 'medico',
           include: [
-            { model: require('../../models').Especialidad, as: 'especialidad' }
+            { model: Especialidad, as: 'especialidad' }
           ]
         }
       ]
@@ -48,127 +51,55 @@ exports.renderEstudiosSolicitados = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al renderizar:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: error.message
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ESTUDIOS
 // ========================================
-exports.obtenerEstudios = async (req, res) => {
+exports.obtenerEstudios = async (req, res, next) => {
   try {
-    console.log('📋 obtenerEstudios - usuario_id:', req.user.usuario_id);
-    
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
-    });
+    const medico = await Medico.findOne({ where: { usuario_id: req.user.usuario_id } });
+    if (!medico) return res.status(404).json({ success: false, message: 'Médico no encontrado' });
 
-    if (!medico) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
-      });
-    }
-
-    const { 
-      paciente_id, 
-      tipoEstudio,
-      estado,
-      urgencia,
-      fechaDesde,
-      fechaHasta,
-      page = 1, 
-      limit = 10 
-    } = req.query;
+    const { paciente_id, tipoEstudio, estado, urgencia, fechaDesde, fechaHasta, page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
 
-    const whereClause = {};
+    const whereClause = { medico_id: medico.id }; 
 
-    if (paciente_id) {
-      whereClause.paciente_id = paciente_id;
-    }
-
-    if (tipoEstudio && tipoEstudio !== 'TODOS') {
-      whereClause.tipo_estudio_id = tipoEstudio;
-    }
-
-    if (estado && estado !== 'TODOS') {
-      whereClause.estado = estado;
-    }
-
-    if (urgencia && urgencia !== 'TODAS') {
-      whereClause.urgencia = urgencia;
-    }
-
-    if (fechaDesde && fechaHasta) {
-      whereClause.created_at = {
-        [Op.between]: [fechaDesde, fechaHasta]
-      };
-    }
+    if (paciente_id) whereClause.paciente_id = paciente_id;
+    if (tipoEstudio && tipoEstudio !== 'TODOS') whereClause.tipo_estudio_id = tipoEstudio;
+    if (estado && estado !== 'TODOS') whereClause.estado = estado;
+    if (urgencia && urgencia !== 'TODAS') whereClause.urgencia = urgencia;
+    if (fechaDesde && fechaHasta) whereClause.created_at = { [Op.between]: [fechaDesde, fechaHasta] };
 
     const { count, rows: estudios } = await EstudioSolicitado.findAndCountAll({
       where: whereClause,
       include: [
         {
-          model: Paciente,
-          as: 'paciente',
-          include: [
-            {
-              model: Usuario,
-              as: 'usuario',
-              attributes: ['id', 'nombre', 'apellido', 'dni']
-            }
-          ]
+          model: Paciente, as: 'paciente',
+          include: [{ model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'apellido', 'dni'] }]
         },
-        {
-          model: TipoEstudio,
-          as: 'tipo_estudio',
-          attributes: ['id', 'nombre', 'categoria', 'requiere_ayuno']
-        },
-        {
-          model: EvaluacionMedica,
-          as: 'evaluacion_medica',
-          where: { medico_id: medico.id },
-          attributes: ['id', 'fecha'],
-          required: true
-        },
-        {
-          model: TurnoEstudio,
-          as: 'turno_estudio',
-          attributes: ['id', 'fecha', 'hora', 'estado', 'resultado'],
-          required: false
-        }
+        { model: TipoEstudio, as: 'tipo_estudio', attributes: ['id', 'nombre', 'categoria', 'requiere_ayuno'] },
+        { model: EvaluacionMedica, as: 'evaluacion_medica', attributes: ['id', 'fecha'], required: false }, 
+        { model: TurnoEstudio, as: 'turno_estudio', attributes: ['id', 'fecha', 'hora', 'estado', 'resultado'], required: false }
       ],
       order: [['created_at', 'DESC']],
       limit: parseInt(limit),
       offset: parseInt(offset)
     });
 
-    res.json({
-      success: true,
-      data: estudios,
-      pagination: {
-        total: count,
-        page: parseInt(page),
-        totalPages: Math.ceil(count / limit)
-      }
-    });
+    res.json({ success: true, data: estudios, pagination: { total: count, page: parseInt(page), totalPages: Math.ceil(count / limit) } });
   } catch (error) {
     console.error('❌ Error al obtener estudios:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
-
 // ========================================
 // OBTENER ESTUDIO POR ID
 // ========================================
-exports.obtenerEstudioPorId = async (req, res) => {
+exports.obtenerEstudioPorId = async (req, res, next) => {
   try {
     console.log('🔍 obtenerEstudioPorId - usuario_id:', req.user.usuario_id);
     
@@ -184,7 +115,7 @@ exports.obtenerEstudioPorId = async (req, res) => {
     }
 
     const estudio = await EstudioSolicitado.findOne({
-      where: { id: req.params.id },
+      where: { id: req.params.id, medico_id: medico.id },
       include: [
         {
           model: Paciente,
@@ -196,7 +127,7 @@ exports.obtenerEstudioPorId = async (req, res) => {
               attributes: { exclude: ['password'] }
             },
             {
-              model: require('../../models').ObraSocial,
+              model: ObraSocial,
               as: 'obraSocial',
               attributes: ['id', 'nombre']
             }
@@ -210,9 +141,10 @@ exports.obtenerEstudioPorId = async (req, res) => {
           model: EvaluacionMedica,
           as: 'evaluacion_medica',
           where: { medico_id: medico.id },
+          required: false,
           include: [
             {
-              model: require('../../models').Diagnostico,
+              model: Diagnostico,
               as: 'diagnostico',
               attributes: ['codigo', 'nombre']
             }
@@ -245,107 +177,203 @@ exports.obtenerEstudioPorId = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener estudio:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
-// CREAR ESTUDIO
+// BUSCAR PACIENTES (POR DNI O NOMBRE)
 // ========================================
-exports.crearEstudio = async (req, res) => {
-  const transaction = await sequelize.transaction();
-
+exports.buscarPacientes = async (req, res, next) => {
   try {
-    console.log('✅ crearEstudio - usuario_id:', req.user.usuario_id);
+    console.log('🔍 buscarPacientes - usuario_id:', req.user.usuario_id);
+    
+    const { busqueda } = req.query;
+    
+    if (!busqueda || busqueda.length < 2) {
+      return res.json({
+        success: true,
+        data: [],
+        message: 'Ingrese al menos 2 caracteres para buscar'
+      });
+    }
+
+    // Buscar pacientes por DNI o nombre
+    const pacientes = await Paciente.findAll({
+      include: [
+        {
+          model: Usuario,
+          as: 'usuario',
+          attributes: ['id', 'nombre', 'apellido', 'dni'],
+          where: {
+            [Op.or]: [
+              { dni: { [Op.like]: `%${busqueda}%` } },
+              { nombre: { [Op.like]: `%${busqueda}%` } },
+              { apellido: { [Op.like]: `%${busqueda}%` } }
+            ]
+          }
+        }
+      ],
+      limit: 10
+    });
+
+    const resultado = pacientes.map(p => ({
+      id: p.id,
+      nombre: p.usuario?.nombre || 'N/A',
+      apellido: p.usuario?.apellido || '',
+      dni: p.usuario?.dni || 'N/A'
+    }));
+
+    console.log('✅ Pacientes encontrados:', resultado.length);
+
+    res.json({
+      success: true,
+      data: resultado
+    });
+  } catch (error) {
+    console.error('❌ Error al buscar pacientes:', error.message);
+    next(error);
+  }
+};
+
+// ========================================
+// OBTENER EVALUACIONES DE UN PACIENTE (del médico actual)
+// ========================================
+exports.obtenerEvaluacionesPaciente = async (req, res, next) => {
+  try {
+    const { pacienteId } = req.params;
+    console.log('🔍 obtenerEvaluacionesPaciente - paciente:', pacienteId);
     
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
 
     if (!medico) {
-      await transaction.rollback();
       return res.status(404).json({ 
         success: false,
         message: 'Médico no encontrado' 
       });
     }
 
-    const {
-      evaluacion_medica_id,
-      paciente_id,
-      tipo_estudio_id,
-      urgencia,
-      observaciones
-    } = req.body;
-
-    const evaluacion = await EvaluacionMedica.findOne({
-      where: {
-        id: evaluacion_medica_id,
-        medico_id: medico.id
+    // Obtener evaluaciones del médico para este paciente
+    const evaluaciones = await EvaluacionMedica.findAll({
+      where: { 
+        medico_id: medico.id,
+        paciente_id: pacienteId
       },
-      transaction
+      order: [['fecha', 'DESC']],
+      limit: 20
     });
 
-    if (!evaluacion) {
-      await transaction.rollback();
-      return res.status(404).json({ 
-        success: false,
-        message: 'Evaluación médica no encontrada' 
-      });
-    }
+    // También obtener info del paciente
+    const paciente = await Paciente.findByPk(pacienteId, {
+      include: [
+        {
+          model: Usuario,
+          as: 'usuario',
+          attributes: ['nombre', 'apellido', 'dni']
+        }
+      ]
+    });
 
-    const paciente = await Paciente.findByPk(paciente_id, { transaction });
-    if (!paciente) {
-      await transaction.rollback();
-      return res.status(404).json({ 
-        success: false,
-        message: 'Paciente no encontrado' 
-      });
-    }
-
-    const tipoEstudio = await TipoEstudio.findByPk(tipo_estudio_id, { transaction });
-    if (!tipoEstudio) {
-      await transaction.rollback();
-      return res.status(404).json({ 
-        success: false,
-        message: 'Tipo de estudio no encontrado' 
-      });
-    }
-
-    const estudio = await EstudioSolicitado.create({
-      evaluacion_medica_id,
-      paciente_id,
-      tipo_estudio_id,
-      urgencia: urgencia || 'Normal',
-      estado: 'Pendiente',
-      observaciones
-    }, { transaction });
-
-    await transaction.commit();
+    console.log('✅ Evaluaciones encontradas:', evaluaciones.length);
 
     res.json({
       success: true,
-      message: 'Estudio solicitado correctamente',
-      data: estudio
+      data: {
+        paciente: paciente ? {
+          id: paciente.id,
+          nombre: paciente.usuario?.nombre,
+          apellido: paciente.usuario?.apellido,
+          dni: paciente.usuario?.dni
+        } : null,
+        evaluaciones: evaluaciones.map(e => ({
+          id: e.id,
+          fecha: e.fecha,
+          motivo: e.motivo_consulta || 'Sin motivo especificado'
+        })),
+        tieneEvaluaciones: evaluaciones.length > 0
+      }
     });
   } catch (error) {
+    console.error('❌ Error:', error.message);
+    next(error);
+  }
+};
+// ========================================
+// CREAR ESTUDIO
+// ========================================
+// Solo para médicos (estricto)
+exports.crearEstudio = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  try {
+    if (req.user.rol !== 'MEDICO' && req.user.rol_id !== 2) {
+      await transaction.rollback();
+      return res.status(403).json({ success: false, message: 'Solo médicos pueden solicitar estudios' });
+    }
+
+    const medico = await Medico.findOne({ where: { usuario_id: req.user.usuario_id }, transaction });
+    if (!medico) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Médico no encontrado' });
+    }
+
+    const { evaluacion_medica_id, paciente_id, tipo_estudio_id, urgencia, observaciones } = req.body;
+
+    //  Solo paciente y tipo son requeridos
+    if (!paciente_id || !tipo_estudio_id) {
+      await transaction.rollback();
+      return res.status(400).json({ success: false, message: 'Faltan campos requeridos: paciente_id, tipo_estudio_id' });
+    }
+
+    //  Si viene evaluacion_medica_id, validar que pertenezca al médico
+    if (evaluacion_medica_id) {
+      const evaluacion = await EvaluacionMedica.findOne({
+        where: { id: parseInt(evaluacion_medica_id), medico_id: medico.id },
+        transaction
+      });
+      if (!evaluacion) {
+        await transaction.rollback();
+        return res.status(404).json({ success: false, message: 'Evaluación médica no encontrada o no pertenece al médico' });
+      }
+    }
+
+    const paciente = await Paciente.findByPk(parseInt(paciente_id), { transaction });
+    if (!paciente) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Paciente no encontrado' });
+    }
+
+    const tipoEstudio = await TipoEstudio.findByPk(parseInt(tipo_estudio_id), { transaction });
+    if (!tipoEstudio) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Tipo de estudio no encontrado' });
+    }
+
+    const estudio = await EstudioSolicitado.create({
+      evaluacion_medica_id: evaluacion_medica_id ? parseInt(evaluacion_medica_id) : null, // ✅ opcional
+      paciente_id: parseInt(paciente_id),
+      tipo_estudio_id: parseInt(tipo_estudio_id),
+      medico_id: medico.id, //  guardar siempre
+      urgencia: urgencia || 'Normal',
+      estado: 'Pendiente',
+      observaciones: observaciones || null
+    }, { transaction });
+
+    await transaction.commit();
+    return res.status(201).json({ success: true, message: 'Estudio solicitado correctamente', data: estudio });
+  } catch (error) {
     await transaction.rollback();
-    console.error('❌ Error al crear estudio:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    console.error('❌ Error al crear estudio:', error);
+    return res.status(500).json({ success: false, message: 'Error interno del servidor', error: process.env.NODE_ENV === 'development' ? error.message : undefined });
   }
 };
 
 // ========================================
 // ACTUALIZAR ESTUDIO
 // ========================================
-exports.actualizarEstudio = async (req, res) => {
-  const transaction = await sequelize.transaction();
+exports.actualizarEstudio = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
 
   try {
     console.log('🔄 actualizarEstudio - usuario_id:', req.user.usuario_id);
@@ -362,13 +390,15 @@ exports.actualizarEstudio = async (req, res) => {
       });
     }
 
+    // Buscar estudio verificando que pertenezca al médico
     const estudio = await EstudioSolicitado.findOne({
-      where: { id: req.params.id },
+      where: { id: req.params.id, medico_id: medico.id },
       include: [
         {
           model: EvaluacionMedica,
           as: 'evaluacion_medica',
-          where: { medico_id: medico.id }
+          where: { medico_id: medico.id },
+          required: false,
         }
       ],
       transaction
@@ -378,10 +408,11 @@ exports.actualizarEstudio = async (req, res) => {
       await transaction.rollback();
       return res.status(404).json({ 
         success: false,
-        message: 'Estudio no encontrado' 
+        message: 'Estudio no encontrado o no autorizado' 
       });
     }
 
+    // Validar estado
     if (estudio.estado !== 'Pendiente') {
       await transaction.rollback();
       return res.status(400).json({ 
@@ -390,12 +421,48 @@ exports.actualizarEstudio = async (req, res) => {
       });
     }
 
-    const { urgencia, observaciones } = req.body;
+    // Validar campos permitidos para actualización
+    const { urgencia, observaciones, tipo_estudio_id } = req.body;
+    
+    const updateData = {};
+    
+    if (urgencia && ['Normal', 'Alta'].includes(urgencia)) {
+      updateData.urgencia = urgencia;
+    }
+    
+    if (observaciones !== undefined) {
+      updateData.observaciones = observaciones;
+    }
+    
+    // Solo permitir cambiar tipo de estudio si no tiene turno asignado
+    if (tipo_estudio_id) {
+      const turno = await TurnoEstudio.findOne({
+        where: { estudio_solicitado_id: estudio.id },
+        transaction
+      });
+      
+      if (turno) {
+        await transaction.rollback();
+        return res.status(400).json({ 
+          success: false,
+          message: 'No se puede cambiar el tipo de estudio cuando ya tiene un turno asignado' 
+        });
+      }
+      
+      const tipoEstudio = await TipoEstudio.findByPk(tipo_estudio_id, { transaction });
+      if (!tipoEstudio) {
+        await transaction.rollback();
+        return res.status(404).json({ 
+          success: false,
+          message: 'Tipo de estudio no encontrado' 
+        });
+      }
+      
+      updateData.tipo_estudio_id = tipo_estudio_id;
+    }
 
-    await estudio.update({
-      urgencia,
-      observaciones
-    }, { transaction });
+    // Actualizar estudio
+    await estudio.update(updateData, { transaction });
 
     await transaction.commit();
 
@@ -407,41 +474,70 @@ exports.actualizarEstudio = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('❌ Error al actualizar estudio:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // CANCELAR ESTUDIO
 // ========================================
-exports.cancelarEstudio = async (req, res) => {
-  const transaction = await sequelize.transaction();
-
+exports.cancelarEstudio = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
   try {
-    console.log('❌ cancelarEstudio - usuario_id:', req.user.usuario_id);
-    
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
+    const medico = await Medico.findOne({ where: { usuario_id: req.user.usuario_id } });
+    if (!medico) { await transaction.rollback(); return res.status(404).json({ success: false, message: 'Médico no encontrado' }); }
+
+    const estudio = await EstudioSolicitado.findOne({
+      where: { id: req.params.id, medico_id: medico.id }, 
+      transaction
     });
 
+    if (!estudio) { await transaction.rollback(); return res.status(404).json({ success: false, message: 'Estudio no encontrado o no autorizado' }); }
+    if (estudio.estado === 'Cancelado') { await transaction.rollback(); return res.status(400).json({ success: false, message: 'El estudio ya está cancelado' }); }
+    if (estudio.estado === 'Realizado') { await transaction.rollback(); return res.status(400).json({ success: false, message: 'No se puede cancelar un estudio realizado' }); }
+
+    const turno = await TurnoEstudio.findOne({ where: { estudio_solicitado_id: estudio.id }, transaction });
+    if (turno) await turno.update({ estado: 'Cancelado' }, { transaction });
+
+    await estudio.update({ estado: 'Cancelado' }, { transaction });
+    await transaction.commit();
+    res.json({ success: true, message: 'Estudio cancelado correctamente' });
+  } catch (error) {
+    await transaction.rollback();
+    next(error);
+  }
+};
+
+// ========================================
+// COMPLETAR ESTUDIO
+// ========================================
+
+exports.completarEstudio = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
+  try {
+    console.log(' completarEstudio - usuario_id:', req.user.usuario_id);
+    
+    const medico = await Medico.findOne({ 
+      where: { usuario_id: req.user.usuario_id } 
+    });
+    
     if (!medico) {
       await transaction.rollback();
       return res.status(404).json({ 
-        success: false,
+        success: false, 
         message: 'Médico no encontrado' 
       });
     }
 
     const estudio = await EstudioSolicitado.findOne({
-      where: { id: req.params.id },
+      where: { id: req.params.id, medico_id: medico.id },
       include: [
-        {
-          model: EvaluacionMedica,
-          as: 'evaluacion_medica',
-          where: { medico_id: medico.id }
+        { 
+          model: EvaluacionMedica, 
+          as: 'evaluacion_medica', 
+          where: { medico_id: medico.id },
+          required: false,
         }
       ],
       transaction
@@ -450,49 +546,71 @@ exports.cancelarEstudio = async (req, res) => {
     if (!estudio) {
       await transaction.rollback();
       return res.status(404).json({ 
-        success: false,
-        message: 'Estudio no encontrado' 
+        success: false, 
+        message: 'Estudio no encontrado o no autorizado' 
       });
     }
 
-    if (estudio.estado === 'Cancelado') {
+    if (estudio.estado !== 'Pendiente') {
       await transaction.rollback();
       return res.status(400).json({ 
-        success: false,
-        message: 'El estudio ya está cancelado' 
+        success: false, 
+        message: 'Solo se pueden completar estudios pendientes' 
       });
     }
 
-    if (estudio.estado === 'Realizado') {
+    const { resultados } = req.body;
+    
+    if (!resultados || resultados.trim() === '') {
       await transaction.rollback();
       return res.status(400).json({ 
-        success: false,
-        message: 'No se puede cancelar un estudio realizado' 
+        success: false, 
+        message: 'Los resultados son obligatorios' 
       });
     }
 
-    await estudio.update({ estado: 'Cancelado' }, { transaction });
+ 
+    await estudio.update({ 
+      estado: 'Realizado',
+      resultados: resultados.trim(),
+      fecha_realizacion: new Date()
+    }, { transaction });
+
+    // Si tiene turno, marcarlo como completado también
+    const turno = await TurnoEstudio.findOne({
+      where: { estudio_solicitado_id: estudio.id },
+      transaction
+    });
+
+    if (turno) {
+      await turno.update({ 
+        estado: 'Realizado',
+        resultado: resultados.trim()
+      }, { transaction });
+    }
 
     await transaction.commit();
 
-    res.json({
-      success: true,
-      message: 'Estudio cancelado correctamente'
+    console.log('✅ Estudio completado:', estudio.id);
+
+    res.json({ 
+      success: true, 
+      message: 'Estudio completado correctamente', 
+      data: estudio 
     });
   } catch (error) {
     await transaction.rollback();
-    console.error('❌ Error al cancelar estudio:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    console.error('❌ Error al completar estudio:', error.message);
+    next(error);
   }
 };
+
+
 
 // ========================================
 // OBTENER TIPOS DE ESTUDIO
 // ========================================
-exports.obtenerTiposEstudio = async (req, res) => {
+exports.obtenerTiposEstudio = async (req, res, next) => {
   try {
     console.log('🔍 obtenerTiposEstudio');
     
@@ -521,189 +639,68 @@ exports.obtenerTiposEstudio = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener tipos de estudio:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ESTADÍSTICAS
 // ========================================
-exports.obtenerEstadisticas = async (req, res) => {
+exports.obtenerEstadisticas = async (req, res, next) => {
   try {
-    console.log('📊 obtenerEstadisticas - usuario_id:', req.user.usuario_id);
-    
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
-    });
+    const medico = await Medico.findOne({ where: { usuario_id: req.user.usuario_id } });
+    if (!medico) return res.status(404).json({ success: false, message: 'Médico no encontrado' });
 
-    if (!medico) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
-      });
-    }
+    const whereBase = { medico_id: medico.id };
 
-    console.log('🔍 Obteniendo estudios por estado...');
     const estudiosData = await EstudioSolicitado.findAll({
-      include: [
-        {
-          model: EvaluacionMedica,
-          as: 'evaluacion_medica',
-          where: { medico_id: medico.id },
-          attributes: []
-        }
-      ],
-      attributes: ['estado'],
-      raw: true
+      where: whereBase, attributes: ['estado'], raw: true
     });
 
-    const result = {
-      Pendiente: 0,
-      Realizado: 0,
-      Cancelado: 0
-    };
+    const result = { Pendiente: 0, Realizado: 0, Cancelado: 0 };
+    estudiosData.forEach(e => { if (result.hasOwnProperty(e.estado)) result[e.estado]++; });
 
-    estudiosData.forEach(estudio => {
-      if (result.hasOwnProperty(estudio.estado)) {
-        result[estudio.estado]++;
-      }
-    });
-
-    console.log('🔍 Obteniendo estudios por urgencia...');
     const urgenciaData = await EstudioSolicitado.findAll({
-      include: [
-        {
-          model: EvaluacionMedica,
-          as: 'evaluacion_medica',
-          where: { medico_id: medico.id },
-          attributes: []
-        }
-      ],
-      attributes: ['urgencia'],
-      raw: true
+      where: whereBase, attributes: ['urgencia'], raw: true
     });
 
-    const urgenciaResult = {
-      Normal: 0,
-      Alta: 0
-    };
+    const urgenciaResult = { Normal: 0, Alta: 0 };
+    urgenciaData.forEach(e => { if (urgenciaResult.hasOwnProperty(e.urgencia)) urgenciaResult[e.urgencia]++; });
 
-    urgenciaData.forEach(estudio => {
-      if (urgenciaResult.hasOwnProperty(estudio.urgencia)) {
-        urgenciaResult[estudio.urgencia]++;
-      }
-    });
-
-    const totalEstudios = Object.values(result).reduce((a, b) => a + b, 0);
-
-    console.log('🔍 Contando estudios del mes...');
     const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const estudiosMes = await EstudioSolicitado.count({
-      include: [
-        {
-          model: EvaluacionMedica,
-          as: 'evaluacion_medica',
-          where: { medico_id: medico.id },
-          attributes: []
-        }
-      ],
-      where: {
-        created_at: { [Op.gte]: inicioMes }
-      }
+      where: { ...whereBase, created_at: { [Op.gte]: inicioMes } }
     });
 
-    const finalResult = {
-      ...result,
-      totalEstudios,
-      estudiosMes,
-      porUrgencia: urgenciaResult
-    };
-
-    console.log('✅ Estadísticas calculadas:', finalResult);
-
-    res.json({
-      success: true,
-      data: finalResult
-    });
+    const finalResult = { ...result, totalEstudios: Object.values(result).reduce((a, b) => a + b, 0), estudiosMes, porUrgencia: urgenciaResult };
+    res.json({ success: true, data: finalResult });
   } catch (error) {
-    console.error('❌ Error al obtener estadísticas:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ESTUDIOS POR CATEGORÍA
 // ========================================
-// ✅ CORREGIDO - SIN sequelize.query()
-exports.obtenerEstudiosPorCategoria = async (req, res) => {
+exports.obtenerEstudiosPorCategoria = async (req, res, next) => {
   try {
-    console.log('📊 obtenerEstudiosPorCategoria - usuario_id:', req.user.usuario_id);
-    
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
-    });
+    const medico = await Medico.findOne({ where: { usuario_id: req.user.usuario_id } });
+    if (!medico) return res.status(404).json({ success: false, message: 'Médico no encontrado' });
 
-    if (!medico) {
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
-      });
-    }
-
-    console.log('🔍 Obteniendo estudios por categoría...');
-    // ✅ SIN GROUP BY - traer todo
     const estudios = await EstudioSolicitado.findAll({
-      include: [
-        {
-          model: TipoEstudio,
-          as: 'tipo_estudio',
-          attributes: ['categoria']
-        },
-        {
-          model: EvaluacionMedica,
-          as: 'evaluacion_medica',
-          where: { medico_id: medico.id },
-          attributes: []
-        }
-      ],
-      attributes: ['id'],
+      where: { medico_id: medico.id },
+      include: [{ model: TipoEstudio, as: 'tipo_estudio', attributes: ['categoria'] }],
       raw: true
     });
 
-    console.log('✅ Estudios obtenidos:', estudios.length);
+    const distribucion = estudios.reduce((acc, e) => {
+      const categoria = e['tipo_estudio.categoria'];
+      if (categoria) acc[categoria] = (acc[categoria] || 0) + 1;
+      return acc;
+    }, {});
 
-    // ✅ CONTAR EN JAVASCRIPT
-    const categoriaMap = new Map();
-    estudios.forEach(estudio => {
-      const categoria = estudio['tipo_estudio.categoria'];
-      if (!categoriaMap.has(categoria)) {
-        categoriaMap.set(categoria, 0);
-      }
-      categoriaMap.set(categoria, categoriaMap.get(categoria) + 1);
-    });
-
-    const distribucion = Array.from(categoriaMap.entries()).map(([categoria, total]) => ({
-      categoria,
-      total
-    }));
-
-    console.log('✅ Distribución procesada:', distribucion);
-
-    res.json({
-      success: true,
-      data: distribucion
-    });
+    res.json({ success: true, data: Object.entries(distribucion).map(([categoria, total]) => ({ categoria, total })) });
   } catch (error) {
-    console.error('❌ Error al obtener distribución:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };

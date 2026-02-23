@@ -1,200 +1,316 @@
-// Gestión de Camas
-
-// Limpiar filtros
-function limpiarFiltros() {
-  const form = document.getElementById('form-filtros');
-  form.querySelectorAll('input, select').forEach(input => {
-    input.value = '';
+// Funciones para gestión de camas
+document.addEventListener('DOMContentLoaded', function() {
+  // Inicializar tooltips
+  const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+  tooltipTriggerList.map(function(tooltipTriggerEl) {
+    return new bootstrap.Tooltip(tooltipTriggerEl);
   });
-  form.submit();
-}
 
-// Cambiar vista
+  // Vista cards/table
+  const vistaCards = document.getElementById('vista-cards');
+  const vistaTabla = document.getElementById('vista-tabla');
+  const btnTabla = document.getElementById('btn-tabla');
+  const btnCards = document.getElementById('btn-cards');
+
+  if (btnTabla && btnCards) {
+    btnTabla.addEventListener('click', vistaTablaFunc);
+    btnCards.addEventListener('click', vistaCardsFunc);
+  }
+});
+
 function vistaTabla() {
   document.getElementById('vista-cards').style.display = 'none';
   document.getElementById('vista-tabla').style.display = 'block';
-  document.getElementById('btn-cards').classList.remove('active');
   document.getElementById('btn-tabla').classList.add('active');
+  document.getElementById('btn-cards').classList.remove('active');
 }
 
 function vistaCards() {
-  document.getElementById('vista-tabla').style.display = 'none';
   document.getElementById('vista-cards').style.display = 'block';
+  document.getElementById('vista-tabla').style.display = 'none';
   document.getElementById('btn-tabla').classList.remove('active');
   document.getElementById('btn-cards').classList.add('active');
 }
 
-// Cambiar estado de cama
-function cambiarEstado(camaId) {
-  document.getElementById('estado-cama-id').value = camaId;
-  const modal = new bootstrap.Modal(document.getElementById('modalCambiarEstado'));
+function limpiarFiltros() {
+  document.getElementById('form-filtros').reset();
+  window.location.href = '/enfermero/camas';
+}
+
+// Ver camas disponibles
+function verDisponibles() {
+  const modal = new bootstrap.Modal(document.getElementById('modalDisponibles'));
+  const contenido = document.getElementById('contenido-disponibles');
+  
+  contenido.innerHTML = `
+    <div class="text-center">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+    </div>
+  `;
+  
   modal.show();
-}
-
-// Guardar estado
-async function guardarEstado() {
-  const camaId = document.getElementById('estado-cama-id').value;
-  const datos = {
-    nuevo_estado: document.getElementById('nuevo-estado').value,
-    motivo: document.getElementById('estado-motivo').value
-  };
   
-  if (!datos.nuevo_estado) {
-    alert('Seleccione un estado');
-    return;
-  }
-  
-  try {
-    const response = await fetch(`/enfermero/camas/${camaId}/cambiar-estado`, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify(datos)
+  fetch('/enfermero/camas/disponibles')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        let html = `
+          <div class="row">
+            <div class="col-12">
+              <div class="alert alert-success">
+                <i class="fas fa-bed me-2"></i>
+                <strong>${data.total} camas disponibles</strong>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        if (data.camas.length > 0) {
+          html += `
+            <div class="row g-3">
+          `;
+          
+          data.camas.forEach(cama => {
+            html += `
+              <div class="col-md-4 col-sm-6">
+                <div class="card border-success h-100">
+                  <div class="card-body text-center">
+                    <i class="fas fa-bed fa-2x text-success mb-2"></i>
+                    <h5 class="card-title">Cama ${cama.numero}</h5>
+                    <p class="card-text">
+                      <small class="text-muted">Hab. ${cama.habitacion}</small><br>
+                      <small class="text-muted">${cama.sector}</small><br>
+                      <small class="text-muted">${cama.tipo_servicio}</small>
+                    </p>
+                    <a href="/enfermero/camas/${cama.id}" class="btn btn-outline-success btn-sm">
+                      <i class="fas fa-eye me-1"></i>Ver Detalle
+                    </a>
+                  </div>
+                </div>
+              </div>
+            `;
+          });
+          
+          html += `</div>`;
+        } else {
+          html += `
+            <div class="text-center py-5 text-muted">
+              <i class="fas fa-bed fa-4x mb-3"></i>
+              <h5>No hay camas disponibles</h5>
+              <p>Todas las camas están ocupadas o en limpieza</p>
+            </div>
+          `;
+        }
+        
+        contenido.innerHTML = html;
+      } else {
+        contenido.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Error: ${data.message}
+          </div>
+        `;
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      contenido.innerHTML = `
+        <div class="alert alert-danger">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Error al cargar las camas disponibles
+        </div>
+      `;
     });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      alert(result.message);
-      window.location.href = result.redirect;
-    } else {
-      alert(result.message || 'Error al cambiar estado');
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    alert('Error al guardar el estado');
-  }
 }
 
-// Liberar cama
-async function liberarCama(camaId) {
-  if (!confirm('¿Confirma que la limpieza ha finalizado?')) {
-    return;
-  }
+// Ver camas por limpiar
+function verCamasPorLimpiar() {
+  const modal = new bootstrap.Modal(document.getElementById('modalPorLimpiar'));
+  const contenido = document.getElementById('contenido-por-limpiar');
   
-  try {
-    const response = await fetch(`/enfermero/camas/${camaId}/liberar`, {
+  contenido.innerHTML = `
+    <div class="text-center">
+      <div class="spinner-border text-primary" role="status">
+        <span class="visually-hidden">Cargando...</span>
+      </div>
+    </div>
+  `;
+  
+  modal.show();
+  
+  fetch('/enfermero/camas/por-limpiar')
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        let html = `
+          <div class="row">
+            <div class="col-12">
+              <div class="alert alert-warning">
+                <i class="fas fa-broom me-2"></i>
+                <strong>${data.total} camas por limpiar</strong>
+              </div>
+            </div>
+          </div>
+        `;
+        
+        if (data.camas.length > 0) {
+          html += `
+            <div class="table-responsive">
+              <table class="table table-hover">
+                <thead class="table-light">
+                  <tr>
+                    <th>Cama</th>
+                    <th>Habitación</th>
+                    <th>Sector</th>
+                    <th>Tiempo Restante</th>
+                    <th>Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+          `;
+          
+          data.camas.forEach(cama => {
+            html += `
+              <tr>
+                <td><strong>${cama.numero}</strong></td>
+                <td>${cama.habitacion}</td>
+                <td>${cama.sector}</td>
+                <td>
+                  ${cama.tiempo_restante} minutos
+                  <br>
+                  <small class="text-muted">${new Date(cama.fecha_fin_estimada).toLocaleTimeString('es-AR')}</small>
+                </td>
+                <td>
+                  <button class="btn btn-sm btn-success" onclick="liberarCamaDesdeModal(${cama.id})">
+                    <i class="fas fa-check"></i> Liberar
+                  </button>
+                </td>
+              </tr>
+            `;
+          });
+          
+          html += `
+                </tbody>
+              </table>
+            </div>
+          `;
+        } else {
+          html += `
+            <div class="text-center py-5 text-muted">
+              <i class="fas fa-check-circle fa-4x mb-3 text-success"></i>
+              <h5>Todas las camas están limpias</h5>
+              <p>No hay camas pendientes de limpieza</p>
+            </div>
+          `;
+        }
+        
+        contenido.innerHTML = html;
+      } else {
+        contenido.innerHTML = `
+          <div class="alert alert-danger">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Error: ${data.message}
+          </div>
+        `;
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      contenido.innerHTML = `
+        <div class="alert alert-danger">
+          <i class="fas fa-exclamation-triangle me-2"></i>
+          Error al cargar las camas por limpiar
+        </div>
+      `;
+    });
+}
+
+function liberarCamaDesdeModal(id) {
+  if (confirm('¿Está seguro de marcar esta cama como limpia?')) {
+    fetch(`/enfermero/camas/${id}/liberar`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       }
+    })
+    .then(response => response.json())
+    .then(data => {
+      if (data.success) {
+        alert('Cama liberada correctamente');
+        verCamasPorLimpiar(); // Recargar la lista
+      } else {
+        alert('Error: ' + data.message);
+      }
+    })
+    .catch(error => {
+      console.error('Error:', error);
+      alert('Error al liberar la cama');
     });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      alert(result.message);
-      window.location.href = result.redirect;
-    } else {
-      alert(result.message || 'Error al liberar cama');
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    alert('Error al liberar la cama');
   }
 }
 
-// Ver camas disponibles
-async function verDisponibles() {
-  const modal = new bootstrap.Modal(document.getElementById('modalDisponibles'));
+// Función para cambiar estado desde la vista cards
+function cambiarEstado(id) {
+  document.getElementById('estado-cama-id').value = id;
+  const modal = new bootstrap.Modal(document.getElementById('modalCambiarEstado'));
   modal.show();
-  
-  try {
-    const response = await fetch('/enfermero/camas/api/buscar-disponibles');
-    const data = await response.json();
-    
-    if (data.success) {
-      mostrarDisponibles(data.camas);
-    } else {
-      document.getElementById('contenido-disponibles').innerHTML = '<p class="text-center text-muted">No hay camas disponibles</p>';
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    document.getElementById('contenido-disponibles').innerHTML = '<p class="text-center text-danger">Error al cargar datos</p>';
-  }
 }
 
-// Mostrar camas disponibles
-function mostrarDisponibles(camas) {
-  if (camas.length === 0) {
-    document.getElementById('contenido-disponibles').innerHTML = '<p class="text-center text-muted">No hay camas disponibles</p>';
+// Función para guardar cambio de estado
+function guardarEstado() {
+  const camaId = document.getElementById('estado-cama-id').value;
+  const nuevoEstado = document.getElementById('nuevo-estado').value;
+  const motivo = document.getElementById('estado-motivo').value;
+
+  if (!nuevoEstado) {
+    alert('Seleccione un estado');
     return;
   }
-  
-  let html = '<div class="row g-3">';
-  
-  camas.forEach(cama => {
-    html += `
-      <div class="col-md-4">
-        <div class="card border-success">
-          <div class="card-body text-center">
-            <i class="fas fa-bed fa-2x text-success mb-2"></i>
-            <h5>Habitación ${cama.habitacion} - Cama ${cama.numero}</h5>
-            <p class="mb-1"><small>${cama.sector}</small></p>
-            <p class="mb-0"><small class="text-muted">${cama.tipo_servicio}</small></p>
-            <a href="/enfermero/camas/${cama.id}" class="btn btn-sm btn-success mt-2">
-              <i class="fas fa-eye me-1"></i> Ver Detalle
-            </a>
-          </div>
-        </div>
-      </div>
-    `;
-  });
-  
-  html += '</div>';
-  document.getElementById('contenido-disponibles').innerHTML = html;
-}
 
-// Ver camas por limpiar
-async function verCamasPorLimpiar() {
-  const modal = new bootstrap.Modal(document.getElementById('modalPorLimpiar'));
-  modal.show();
-  
-  try {
-    const response = await fetch('/enfermero/camas/api/por-limpiar');
-    const data = await response.json();
-    
+  fetch(`/enfermero/camas/${camaId}/cambiar-estado`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      nuevo_estado: nuevoEstado,
+      motivo: motivo
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
     if (data.success) {
-      mostrarPorLimpiar(data.camas);
+      alert(data.message);
+      window.location.reload();
     } else {
-      document.getElementById('contenido-por-limpiar').innerHTML = '<p class="text-center text-muted">No hay camas en limpieza</p>';
+      alert('Error: ' + data.message);
     }
-  } catch (error) {
+  })
+  .catch(error => {
     console.error('Error:', error);
-    document.getElementById('contenido-por-limpiar').innerHTML = '<p class="text-center text-danger">Error al cargar datos</p>';
-  }
-}
-
-// Mostrar camas por limpiar
-function mostrarPorLimpiar(camas) {
-  if (camas.length === 0) {
-    document.getElementById('contenido-por-limpiar').innerHTML = '<p class="text-center text-muted">No hay camas en limpieza</p>';
-    return;
-  }
-  
-  let html = '<div class="list-group">';
-  
-  camas.forEach(cama => {
-    const tiempoRestante = cama.tiempo_restante ? `${cama.tiempo_restante} min restantes` : 'Tiempo excedido';
-    const alertClass = cama.tiempo_restante && cama.tiempo_restante > 30 ? '' : 'list-group-item-warning';
-    
-    html += `
-      <div class="list-group-item ${alertClass}">
-        <div class="d-flex justify-content-between align-items-center">
-          <div>
-            <h6 class="mb-1">Habitación ${cama.habitacion} - Cama ${cama.numero}</h6>
-            <p class="mb-0"><small>${cama.sector}</small></p>
-            <p class="mb-0"><small class="text-muted">${tiempoRestante}</small></p>
-          </div>
-          <button class="btn btn-sm btn-success" onclick="liberarCama(${cama.id})">
-            <i class="fas fa-check me-1"></i> Liberar
-          </button>
-        </div>
-      </div>
-    `;
+    alert('Error al cambiar estado');
   });
+
+}
+// ===========================================================================
+// ASIGNAR PACIENTE A CAMA
+// ===========================================================================
+
+function abrirModalAsignarDesdeDisponibles(camaId, camaNumero, sexoPermitido, servicioNombre) {
+  // Cerrar modal de disponibles si está abierto
+  const modalDisponibles = bootstrap.Modal.getInstance(document.getElementById('modalDisponibles'));
+  if (modalDisponibles) {
+    modalDisponibles.hide();
+  }
   
-  html += '</div>';
-  document.getElementById('contenido-por-limpiar').innerHTML = html;
+  // Abrir modal de asignación (debe existir en la página principal)
+  setTimeout(() => {
+    if (typeof abrirModalAsignar === 'function') {
+      abrirModalAsignar(camaId, camaNumero, sexoPermitido, servicioNombre);
+    } else {
+      window.location.href = `/enfermero/camas/disponibles?asignar=${camaId}`;
+    }
+  }, 300);
 }

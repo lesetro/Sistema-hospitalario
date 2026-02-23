@@ -8,8 +8,8 @@ block content
           h2
             i.fas.fa-stethoscope.me-2
             | Evaluaciones Médicas
-          p.text-muted Gestiona las evaluaciones médicas de tus pacientes
-
+          p.text-muted Gestiona las evaluaciones médicas de tus pacientes 
+          
     // Estadísticas
     .row.g-3.mb-4#estadisticas-evaluaciones
       .col-lg-3.col-md-6
@@ -88,6 +88,7 @@ block content
                     type='date'
                     id='filtroFechaHasta'
                     name='fechaHasta'
+                    
                   )
                 
                 .col-md-3
@@ -118,6 +119,7 @@ block content
             div
               button.btn.btn-sm.btn-success.me-2(onclick='mostrarModalNuevaEvaluacion()')
                 i.fas.fa-plus.me-2
+
                 | Nueva Evaluación
               button.btn.btn-sm.btn-outline-primary(onclick='actualizarTabla()')
                 i.fas.fa-sync-alt.me-2
@@ -127,6 +129,7 @@ block content
             #loading-evaluaciones.text-center.py-4
               .spinner-border.text-primary
               p.mt-2.text-muted Cargando evaluaciones...
+              
             
             #tabla-evaluaciones.d-none
               .table-responsive
@@ -137,6 +140,7 @@ block content
                       th Paciente
                       th Diagnóstico
                       th Tratamiento
+                      th IDs
                       th Acciones
                   tbody#tbody-evaluaciones
               
@@ -158,8 +162,8 @@ block content
             .row.g-3
               .col-md-6
                 label.form-label Paciente *
-                select.form-select(id='nuevoPaciente' name='paciente_id' required)
-                  option(value='') Seleccione un paciente
+                input.form-control(type="text" id="busquedaPaciente" placeholder="DNI, nombre o apellido" autocomplete="off")
+                select.form-select.mt-3(id="nuevoPaciente" name="paciente_id")
               
               .col-md-6
                 label.form-label Turno (Opcional)
@@ -245,5 +249,84 @@ block content
             i.fas.fa-save.me-2
             | Actualizar
 
+  // Modal Solicitar Control de Enfermería
+  #modalSolicitarControl.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5.modal-title
+            i.fas.fa-clipboard-check.me-2
+            | Solicitar Control de Enfermería
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          input(type='hidden' id='solicitarControlEvaluacionId')
+          
+          .alert.alert-info
+            i.fas.fa-info-circle.me-2
+            | Se solicitará un control de enfermería para esta evaluación.
+            br
+            strong El enfermero completará los datos de laboratorio y signos vitales.
+          
+          p.mb-2
+            strong Evaluación:
+            br
+            span#solicitarControlEvaluacionInfo.text-muted N/A
+          
+          p.mb-0
+            strong Estado del Control:
+            br
+            span.badge.bg-secondary
+              i.fas.fa-clock.me-1
+              | SOLICITADO
+        
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-info(onclick='confirmarSolicitarControl()')
+            i.fas.fa-check.me-2
+            | Confirmar Solicitud
+
 block scripts
   script(src='/js/medico/evaluaciones.js')
+  script.
+    // ✅ Función para solicitar control
+    function abrirModalSolicitarControl(evaluacionId, pacienteName) {
+      document.getElementById('solicitarControlEvaluacionId').value = evaluacionId;
+      document.getElementById('solicitarControlEvaluacionInfo').textContent = pacienteName;
+      
+      const modal = new bootstrap.Modal(document.getElementById('modalSolicitarControl'));
+      modal.show();
+    }
+
+    // ✅ Confirmar solicitud de control
+    function confirmarSolicitarControl() {
+      const evaluacionId = document.getElementById('solicitarControlEvaluacionId').value;
+      
+      if (!evaluacionId) {
+        alert('Error: ID de evaluación no válido');
+        return;
+      }
+
+      fetch(`/medico/evaluaciones/${evaluacionId}/solicitar-control`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          evaluacion_medica_id: evaluacionId
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert('Control de enfermería solicitado correctamente');
+          bootstrap.Modal.getInstance(document.getElementById('modalSolicitarControl')).hide();
+          actualizarTabla(); // Recargar tabla
+        } else {
+          alert('Error: ' + (data.message || 'No se pudo solicitar el control'));
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error al solicitar el control');
+      });
+    }

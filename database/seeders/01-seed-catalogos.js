@@ -60,10 +60,40 @@ module.exports = {
       // TIPOS DE SERVICIO
       // ===================================
       await queryInterface.bulkInsert('tiposdeservicio', [
-        { id: 1, nombre: 'Clínico', descripcion: 'Servicio de clínica médica', created_at: new Date(), updated_at: new Date() },
-        { id: 2, nombre: 'Quirúrgico', descripcion: 'Servicio quirúrgico', created_at: new Date(), updated_at: new Date() },
-        { id: 3, nombre: 'Cuidados Intensivos', descripcion: 'UTI y cuidados críticos', created_at: new Date(), updated_at: new Date() },
-        { id: 4, nombre: 'Ambulatorio', descripcion: 'Atención sin internación', created_at: new Date(), updated_at: new Date() }
+      // Sector 1: Emergencias (24hs)
+      { id: 1, nombre: 'Guardia Activa', descripcion: 'Atención de urgencias 24hs', sector_id: 1, created_at: new Date(), updated_at: new Date() },
+      { id: 2, nombre: 'Triage', descripcion: 'Clasificación de urgencias', sector_id: 1, created_at: new Date(), updated_at: new Date() },
+      { id: 19, nombre: 'Intervenciones Quirurgicas', descripcion: 'Se operan pacientes de emergencia', sector_id: 1, created_at: new Date(), updated_at: new Date() },
+  
+      // Sector 2: Consultorios Externos
+      { id: 3, nombre: 'Consulta General', descripcion: 'Consultas médicas generales', sector_id: 2, created_at: new Date(), updated_at: new Date() },
+      { id: 4, nombre: 'Pediatría', descripcion: 'Consultas pediátricas', sector_id: 2, created_at: new Date(), updated_at: new Date() },
+      { id: 5, nombre: 'Ginecología', descripcion: 'Consultas ginecológicas', sector_id: 2, created_at: new Date(), updated_at: new Date() },
+  
+      // Sector 3: Internación
+      { id: 6, nombre: 'Clínica Médica', descripcion: 'Internación clínica general', sector_id: 3, created_at: new Date(), updated_at: new Date() },
+      { id: 7, nombre: 'Observación', descripcion: 'Internación breve por observación', sector_id: 3, created_at: new Date(), updated_at: new Date() },
+  
+      // Sector 4: Quirófano
+      { id: 8, nombre: 'Cirugía Programada', descripcion: 'Cirugías electivas programadas', sector_id: 4, created_at: new Date(), updated_at: new Date() },
+      { id: 9, nombre: 'Cirugía de Urgencia', descripcion: 'Cirugías de emergencia', sector_id: 4, created_at: new Date(), updated_at: new Date() },
+  
+      // Sector 5: UTI
+      { id: 10, nombre: 'Terapia Intensiva Adultos', descripcion: 'UTI para pacientes adultos', sector_id: 5, created_at: new Date(), updated_at: new Date() },
+      { id: 11, nombre: 'Terapia Intensiva Pediátrica', descripcion: 'UTI para pacientes pediátricos', sector_id: 5, created_at: new Date(), updated_at: new Date() },
+  
+      // Sector 6: Laboratorio
+      { id: 12, nombre: 'Análisis de Sangre', descripcion: 'Extracción y análisis sanguíneos', sector_id: 6, created_at: new Date(), updated_at: new Date() },
+      { id: 13, nombre: 'Cultivos', descripcion: 'Estudios microbiológicos', sector_id: 6, created_at: new Date(), updated_at: new Date() },
+  
+      // Sector 7: Imagenología
+      { id: 14, nombre: 'Radiografía', descripcion: 'Estudios radiológicos', sector_id: 7, created_at: new Date(), updated_at: new Date() },
+      { id: 15, nombre: 'Ecografía', descripcion: 'Estudios ecográficos', sector_id: 7, created_at: new Date(), updated_at: new Date() },
+      { id: 16, nombre: 'Tomografía', descripcion: 'Estudios tomográficos', sector_id: 7, created_at: new Date(), updated_at: new Date() },
+      
+      // Sector 8: Administración
+      { id: 17, nombre: 'Atención al Paciente', descripcion: 'Gestión administrativa de pacientes', sector_id: 8, created_at: new Date(), updated_at: new Date() },
+      { id: 18, nombre: 'Facturación', descripcion: 'Gestión de facturación y cobranza', sector_id: 8, created_at: new Date(), updated_at: new Date() },
       ], { transaction });
 
       // ===================================
@@ -104,7 +134,9 @@ module.exports = {
         { id: 1, nombre: 'Consulta', descripcion: 'Consulta médica general', requiere_especialidad: true, requiere_estudio: false, created_at: new Date(), updated_at: new Date() },
         { id: 2, nombre: 'Estudio', descripcion: 'Realización de estudios', requiere_especialidad: false, requiere_estudio: true, created_at: new Date(), updated_at: new Date() },
         { id: 3, nombre: 'Guardia', descripcion: 'Atención de urgencia', requiere_especialidad: false, requiere_estudio: false, created_at: new Date(), updated_at: new Date() },
-        { id: 4, nombre: 'Programado', descripcion: 'Procedimiento programado', requiere_especialidad: true, requiere_estudio: false, created_at: new Date(), updated_at: new Date() }
+        { id: 4, nombre: 'Programado', descripcion: 'Procedimiento programado', requiere_especialidad: true, requiere_estudio: false, created_at: new Date(), updated_at: new Date() },
+        { id: 5, nombre: 'URGENCIA', descripcion: 'Atención de urgencias y emergencias', requiere_especialidad: false, requiere_estudio: false, created_at: new Date(), updated_at: new Date() },
+        { id: 6, nombre: 'CIRUGIA', descripcion: 'Intervención quirúrgica', requiere_especialidad: true, requiere_estudio: false, created_at: new Date(), updated_at: new Date() }
       ], { transaction });
 
       // ===================================

@@ -4,15 +4,15 @@ const {
   Usuario,
   Medico,
   MotivoConsulta,
-  Admision,
-  sequelize
+  Admision
 } = require('../../models');
 const { Op } = require('sequelize');
+const db = require('../../database/db');
 
 // ========================================
 // RENDERIZAR VISTA
 // ========================================
-exports.renderHistorialClinico = async (req, res) => {
+exports.renderHistorialClinico = async (req, res, next) => {
   try {
     console.log('🔍 renderHistorialClinico - usuario_id:', req.user.usuario_id);
     
@@ -46,17 +46,14 @@ exports.renderHistorialClinico = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al renderizar historial clínico:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: error.message
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER HISTORIAL DEL PACIENTE
 // ========================================
-exports.obtenerHistorialPaciente = async (req, res) => {
+exports.obtenerHistorialPaciente = async (req, res, next) => {
   try {
     console.log('📋 obtenerHistorialPaciente - usuario_id:', req.user.usuario_id);
     
@@ -119,17 +116,14 @@ exports.obtenerHistorialPaciente = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener historial:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER INFORMACIÓN DEL PACIENTE
 // ========================================
-exports.obtenerInfoPaciente = async (req, res) => {
+exports.obtenerInfoPaciente = async (req, res, next) => {
   try {
     console.log('👤 obtenerInfoPaciente');
     
@@ -164,17 +158,14 @@ exports.obtenerInfoPaciente = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener información del paciente:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER LÍNEA DE TIEMPO COMPLETA
 // ========================================
-exports.obtenerLineaTiempo = async (req, res) => {
+exports.obtenerLineaTiempo = async (req, res, next) => {
   try {
     console.log('⏱️ obtenerLineaTiempo - usuario_id:', req.user.usuario_id);
     
@@ -379,18 +370,15 @@ exports.obtenerLineaTiempo = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener línea de tiempo:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // CREAR ENTRADA EN HISTORIAL
 // ========================================
-exports.crearEntradaHistorial = async (req, res) => {
-  const transaction = await sequelize.transaction();
+exports.crearEntradaHistorial = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
 
   try {
     console.log('✅ crearEntradaHistorial - usuario_id:', req.user.usuario_id);
@@ -433,18 +421,15 @@ exports.crearEntradaHistorial = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('❌ Error al crear entrada:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message || 'Error al crear entrada en historial' 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER RESUMEN DEL HISTORIAL
 // ========================================
-// ✅ CORREGIDO - SIN sequelize.fn() y .get()
-exports.obtenerResumenHistorial = async (req, res) => {
+
+exports.obtenerResumenHistorial = async (req, res, next) => {
   try {
     console.log('📊 obtenerResumenHistorial');
     
@@ -506,9 +491,6 @@ exports.obtenerResumenHistorial = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener resumen:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };

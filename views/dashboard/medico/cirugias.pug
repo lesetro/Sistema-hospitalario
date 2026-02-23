@@ -1,0 +1,302 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          .d-flex.justify-content-between.align-items-center
+            div
+              h2
+                i.fas.fa-scalpel.me-2
+                | Mis Cirugías
+              p.text-muted Pacientes programados y urgencias quirúrgicas
+            div
+              button.btn.btn-outline-primary.me-2(onclick='actualizarTodo()')
+                i.fas.fa-sync-alt.me-2
+                | Actualizar
+
+    //- Estadísticas
+    .row.g-3.mb-4#estadisticas-cirugias
+      .col-lg-2.col-md-4.col-6
+        .card.border-start.border-danger.border-4.h-100
+          .card-body.py-3
+            .d-flex.justify-content-between.align-items-center
+              div
+                small.text-muted Urgencias
+                h3.mb-0.text-danger#stat-urgencias
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-ambulance.fa-2x.text-danger
+      
+      .col-lg-2.col-md-4.col-6
+        .card.border-start.border-warning.border-4.h-100
+          .card-body.py-3
+            .d-flex.justify-content-between.align-items-center
+              div
+                small.text-muted En Curso
+                h3.mb-0.text-warning#stat-en-curso
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-procedures.fa-2x.text-warning
+      
+      .col-lg-2.col-md-4.col-6
+        .card.border-start.border-info.border-4.h-100
+          .card-body.py-3
+            .d-flex.justify-content-between.align-items-center
+              div
+                small.text-muted Programadas
+                h3.mb-0.text-info#stat-programadas
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-calendar-check.fa-2x.text-info
+      
+      .col-lg-2.col-md-4.col-6
+        .card.border-start.border-success.border-4.h-100
+          .card-body.py-3
+            .d-flex.justify-content-between.align-items-center
+              div
+                small.text-muted Hoy
+                h3.mb-0.text-success#stat-hoy
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-check-circle.fa-2x.text-success
+      
+      .col-lg-2.col-md-4.col-6
+        .card.border-start.border-primary.border-4.h-100
+          .card-body.py-3
+            .d-flex.justify-content-between.align-items-center
+              div
+                small.text-muted Este Mes
+                h3.mb-0.text-primary#stat-mes
+                  .spinner-border.spinner-border-sm
+              i.fas.fa-chart-bar.fa-2x.text-primary
+
+    //- Filtros
+    .row.mb-4
+      .col-12
+        .card.shadow-sm
+          .card-body.py-3
+            form#formFiltros.row.g-3.align-items-end
+              .col-md-3
+                label.form-label
+                  i.fas.fa-filter.me-1
+                  | Origen
+                select.form-select(name='origen' id='filtroOrigen')
+                  option(value='TODOS') Todos
+                  option(value='URGENCIA') 🚨 Urgencias
+                  option(value='PROGRAMADA') 📅 Programadas
+              
+              .col-md-3
+                label.form-label
+                  i.fas.fa-heartbeat.me-1
+                  | Estado
+                select.form-select(name='estado' id='filtroEstado')
+                  option(value='TODOS') Todos
+                  option(value='PENDIENTE') Pendientes
+                  option(value='PRE_OPERATORIO') Pre-Operatorio
+                  option(value='EN_CIRUGIA') En Cirugía
+                  option(value='POST_OPERATORIO') Post-Operatorio
+              
+              .col-md-3
+                label.form-label
+                  i.fas.fa-exclamation-triangle.me-1
+                  | Prioridad
+                select.form-select(name='prioridad' id='filtroPrioridad')
+                  option(value='TODOS') Todas
+                  option(value='URGENTE') 🔴 Urgente
+                  option(value='ALTA') 🟠 Alta
+                  option(value='MEDIA') 🟡 Media
+                  option(value='BAJA') 🟢 Baja
+              
+              .col-md-3
+                button.btn.btn-primary.w-100(type='submit')
+                  i.fas.fa-search.me-2
+                  | Filtrar
+
+    //- Listado de Pacientes
+    .row
+      .col-12
+        .card.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Pacientes para Cirugía
+            span.badge.bg-secondary#total-pacientes 0
+          
+          .card-body
+            #loading-pacientes.text-center.py-4
+              .spinner-border.text-primary
+              p.mt-2.text-muted Cargando pacientes...
+            
+            #lista-pacientes.d-none
+              .table-responsive
+                table.table.table-hover.align-middle
+                  thead.table-light
+                    tr
+                      th(width='5%') Origen
+                      th(width='20%') Paciente
+                      th(width='10%') Triage
+                      th(width='15%') Estado
+                      th(width='10%') Prioridad
+                      th(width='15%') Procedimiento
+                      th(width='10%') Evaluación
+                      th(width='15%') Acciones
+                  tbody#tbody-pacientes
+            
+            #sin-pacientes.d-none.text-center.py-5
+              i.fas.fa-inbox.fa-4x.text-muted.mb-3
+              h5.text-muted No hay pacientes pendientes
+              p.text-muted No hay cirugías programadas ni urgencias en este momento
+
+  //- Modal Detalle Paciente
+  #modalDetallePaciente.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header.bg-primary.text-white
+          h5.modal-title
+            i.fas.fa-user.me-2
+            | Detalle del Paciente
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body#modalDetallePacienteBody
+          .text-center.py-4
+            .spinner-border.text-primary
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+  //- Modal Crear Intervención
+  #modalCrearIntervencion.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-scalpel.me-2
+            | Iniciar Cirugía
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#formCrearIntervencion
+            input(type='hidden' id='crear-paciente-id')
+            input(type='hidden' id='crear-lista-espera-id')
+            input(type='hidden' id='crear-evaluacion-id')
+            
+            .row.g-3
+              .col-md-6
+                label.form-label Paciente
+                input.form-control(type='text' id='crear-paciente-nombre' readonly)
+              
+              .col-md-6
+                label.form-label Tipo de Procedimiento *
+                input.form-control(
+                  type='text'
+                  id='crear-tipo-procedimiento'
+                  placeholder='Ej: Apendicectomía, Colecistectomía...'
+                  required
+                )
+              
+              .col-md-6
+                label.form-label Quirófano *
+                select.form-select(id='crear-quirofano' required)
+                  option(value='') Seleccione quirófano...
+              
+              .col-md-6
+                label.form-label Fecha y Hora
+                input.form-control(
+                  type='datetime-local'
+                  id='crear-fecha-inicio'
+                )
+              
+              .col-12
+                .form-check
+                  input.form-check-input(type='checkbox' id='crear-es-urgencia')
+                  label.form-check-label(for='crear-es-urgencia')
+                    i.fas.fa-ambulance.text-danger.me-1
+                    | Es cirugía de urgencia
+              
+              .col-12
+                .form-check
+                  input.form-check-input(type='checkbox' id='crear-iniciar-inmediato')
+                  label.form-check-label(for='crear-iniciar-inmediato')
+                    i.fas.fa-play.text-success.me-1
+                    | Iniciar inmediatamente
+              
+              .col-12
+                label.form-label Observaciones
+                textarea.form-control(
+                  id='crear-observaciones'
+                  rows='3'
+                  placeholder='Notas adicionales...'
+                )
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-success(type='button' onclick='confirmarCrearIntervencion()')
+            i.fas.fa-scalpel.me-2
+            | Crear Intervención
+
+  //- Modal Actualizar Estado
+  #modalActualizarEstado.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-warning
+          h5.modal-title
+            i.fas.fa-edit.me-2
+            | Actualizar Estado
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body
+          form#formActualizarEstado
+            input(type='hidden' id='actualizar-intervencion-id')
+            
+            .mb-3
+              label.form-label Nuevo Estado
+              select.form-select(id='actualizar-estado' required)
+                option(value='PRE_OPERATORIO') Pre-Operatorio
+                option(value='EN_CIRUGIA') En Cirugía
+                option(value='POST_OPERATORIO') Post-Operatorio
+            
+            .mb-3
+              label.form-label Notas
+              textarea.form-control(
+                id='actualizar-notas'
+                rows='3'
+                placeholder='Observaciones del cambio de estado...'
+              )
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-warning(type='button' onclick='confirmarActualizarEstado()')
+            i.fas.fa-save.me-2
+            | Actualizar
+
+  //- Modal Finalizar Cirugía
+  #modalFinalizarCirugia.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-check-circle.me-2
+            | Finalizar Cirugía
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          form#formFinalizarCirugia
+            input(type='hidden' id='finalizar-intervencion-id')
+            
+            .mb-3
+              label.form-label Resultado de la Cirugía *
+              select.form-select(id='finalizar-resultado' required)
+                option(value='') Seleccione resultado...
+                option(value='EXITOSA') ✅ Exitosa
+                option(value='EXITOSA_CON_COMPLICACIONES') ⚠️ Exitosa con complicaciones
+                option(value='REQUIERE_INTERNACION') 🏥 Requiere internación
+                option(value='REQUIERE_UCI') 🚨 Requiere UCI
+                option(value='FALLECIDO') ❌ Paciente fallecido
+            
+            .mb-3
+              label.form-label Notas Post-Operatorias
+              textarea.form-control(
+                id='finalizar-notas'
+                rows='4'
+                placeholder='Descripción del procedimiento, hallazgos, indicaciones...'
+              )
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-success(type='button' onclick='confirmarFinalizarCirugia()')
+            i.fas.fa-check.me-2
+            | Finalizar
+
+block scripts
+  script(src='/js/medico/intervenciones.js')
+ 

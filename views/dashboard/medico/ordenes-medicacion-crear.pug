@@ -1,0 +1,195 @@
+extends layout
+
+block content
+  .container-fluid
+    // Breadcrumb y header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/medico") Dashboard
+            li.breadcrumb-item
+              a(href="/medico/ordenes-medicacion") Órdenes de Medicación
+            li.breadcrumb-item.active Crear Orden
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-pills.me-2
+              | Crear Orden de Medicación
+            p.text-muted.mb-0 Complete la receta médica para administración de enfermería
+          div
+            a.btn.btn-outline-secondary(href="/medico/ordenes-medicacion")
+              i.fas.fa-arrow-left.me-2
+              | Volver
+
+    // Formulario
+    .row
+      .col-lg-8.mx-auto
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-prescription.me-2
+              | Receta Médica
+          
+          .card-body
+            form#form-crear-medicacion(method="POST" action="/medico/ordenes-medicacion/crear")
+              
+              // Selección de paciente
+              .mb-4
+                label.form-label
+                  i.fas.fa-user.me-2
+                  | Paciente
+                  span.text-danger *
+                if paciente
+                  .alert.alert-info
+                    strong #{paciente.usuario.nombre} #{paciente.usuario.apellido}
+                    br
+                    small DNI: #{paciente.usuario.dni}
+                  input(type="hidden" name="paciente_id" value=paciente.id)
+                  if evaluacion
+                    input(type="hidden" name="evaluacion_medica_id" value=evaluacion.id)
+                else
+                  input.form-control(
+                    type="text"
+                    id="buscar-paciente"
+                    placeholder="Buscar paciente por nombre, apellido o DNI..."
+                    autocomplete="off"
+                  )
+                  input(type="hidden" name="paciente_id" id="paciente_id" required)
+                  #resultados-paciente.list-group.mt-2(style="display: none;")
+
+              
+              .mb-4#evaluaciones-container(style="display: none;")
+                label.form-label(for="evaluacion_medica_id")
+                  i.fas.fa-stethoscope.me-2
+                  | Evaluación Médica Asociada
+                select.form-select(id="evaluacion_medica_id" name="evaluacion_medica_id")
+                  option(value="" selected) -- Sin evaluación asociada --
+                .form-text Opcional: Seleccione la evaluación médica relacionada con esta medicación
+
+              
+              .mb-4#alergias-container(style="display: none;")
+                .alert.alert-danger
+                  i.fas.fa-exclamation-triangle.me-2
+                  strong ¡ATENCIÓN - ALERGIAS DEL PACIENTE!
+                  p#alergias-texto.mb-0.mt-2
+                  .form-text.mt-2 Verifique que los medicamentos prescritos no contengan estos componentes.
+
+              hr
+
+              // Medicamentos
+              .mb-3
+                label.form-label(for="medicamentos")
+                  i.fas.fa-pills.me-2
+                  | Medicamentos a Administrar
+                  span.text-danger *
+                textarea.form-control(
+                  id="medicamentos"
+                  name="medicamentos"
+                  rows="5"
+                  placeholder="Ejemplo:&#10;1. Ampicilina 1g IV c/8hs por 7 días&#10;2. Omeprazol 40mg VO c/12hs&#10;3. Paracetamol 1g VO s/n (máx 4g/día)"
+                  required
+                )
+                .form-text Liste todos los medicamentos con dosis, vía y frecuencia
+
+              .row
+                // Vía de administración
+                .col-md-6.mb-3
+                  label.form-label(for="via_administracion")
+                    i.fas.fa-syringe.me-2
+                    | Vía Principal de Administración
+                  select.form-select(id="via_administracion" name="via_administracion")
+                    option(value="") Seleccionar...
+                    option(value="Intravenosa (IV)") Intravenosa (IV)
+                    option(value="Intramuscular (IM)") Intramuscular (IM)
+                    option(value="Subcutánea (SC)") Subcutánea (SC)
+                    option(value="Oral (VO)") Oral (VO)
+                    option(value="Sublingual (SL)") Sublingual (SL)
+                    option(value="Tópica") Tópica
+                    option(value="Inhalatoria") Inhalatoria
+                    option(value="Rectal") Rectal
+                    option(value="Mixta") Mixta
+
+                // Frecuencia
+                .col-md-6.mb-3
+                  label.form-label(for="frecuencia")
+                    i.fas.fa-clock.me-2
+                    | Frecuencia de Administración
+                  input.form-control(
+                    type="text"
+                    id="frecuencia"
+                    name="frecuencia"
+                    placeholder="Ej: c/8hs, c/12hs, 3 veces al día"
+                  )
+
+              // Duración del tratamiento
+              .mb-3
+                label.form-label(for="duracion_tratamiento")
+                  i.fas.fa-calendar-days.me-2
+                  | Duración del Tratamiento
+                input.form-control(
+                  type="text"
+                  id="duracion_tratamiento"
+                  name="duracion_tratamiento"
+                  placeholder="Ej: 7 días, 14 días, Hasta mejoría clínica"
+                )
+
+              // Observaciones especiales
+              .mb-3
+                label.form-label(for="observaciones_especiales")
+                  i.fas.fa-exclamation-circle.me-2
+                  | Observaciones Especiales
+                textarea.form-control(
+                  id="observaciones_especiales"
+                  name="observaciones_especiales"
+                  rows="3"
+                  placeholder="Precauciones, interacciones conocidas, efectos adversos a vigilar..."
+                )
+
+              .row
+                // Prioridad
+                .col-md-6.mb-3
+                  label.form-label(for="prioridad")
+                    i.fas.fa-flag.me-2
+                    | Prioridad
+                    span.text-danger *
+                  select.form-select(id="prioridad" name="prioridad" required)
+                    option(value="NORMAL" selected) Normal
+                    option(value="ALTA") Alta
+                    option(value="URGENTE") Urgente
+
+                // Requiere monitoreo
+                .col-md-6.mb-3
+                  .mt-4
+                    .form-check
+                      input.form-check-input(
+                        type="checkbox"
+                        id="requiere_monitoreo"
+                        name="requiere_monitoreo"
+                        value="true"
+                      )
+                      label.form-check-label(for="requiere_monitoreo")
+                        i.fas.fa-heartbeat.me-2
+                        | Requiere monitoreo estricto de signos vitales
+
+              .alert.alert-warning
+                i.fas.fa-exclamation-triangle.me-2
+                strong Importante:
+                | Asegúrese de verificar alergias del paciente antes de prescribir. El enfermero controlará signos vitales pre y post administración.
+
+              hr
+
+              // Botones
+              .d-grid.gap-2.d-md-flex.justify-content-md-end
+                button.btn.btn-secondary(type="button" onclick="window.history.back()")
+                  i.fas.fa-times.me-2
+                  | Cancelar
+                button.btn.btn-primary(type="submit")
+                  i.fas.fa-save.me-2
+                  | Crear Receta
+
+block scripts
+  script(src="/js/medico/ordenes-medicacion.js")
+  

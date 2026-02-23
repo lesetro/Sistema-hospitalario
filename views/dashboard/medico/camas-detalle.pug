@@ -1,0 +1,316 @@
+extends layout
+
+block content
+  .container-fluid
+    // Encabezado
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/medico/camas") Camas
+            li.breadcrumb-item.active Detalle
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-bed.me-2
+              | Detalle de Cama
+            p.text-muted.mb-0 Información completa de la cama y su ocupación
+          div
+            a.btn.btn-outline-secondary(href="/medico/camas")
+              i.fas.fa-arrow-left.me-2
+              | Volver
+
+    // Información de la cama
+    .row.mb-4
+      .col-lg-8
+        .card.border-0.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-info-circle.me-2
+              | Información de la Cama
+            .btn-group
+              if cama.estado === 'EnLimpieza'
+                button.btn.btn-sm.btn-success(onclick=`liberarCama(${cama.id})`)
+                  i.fas.fa-check.me-1
+                  | Liberar
+              else if cama.estado === 'Libre'
+                button.btn.btn-sm.btn-warning(data-bs-toggle="modal" data-bs-target="#modalCambiarEstado")
+                  i.fas.fa-edit.me-1
+                  | Cambiar Estado
+          .card-body
+            .row
+              .col-md-3.text-center.mb-3
+                if cama.estado === 'Libre'
+                  .p-4.bg-success.bg-opacity-10.rounded
+                    i.fas.fa-bed.fa-3x.text-success.mb-3
+                    h4.text-success Libre
+                else if cama.estado === 'Ocupada'
+                  .p-4.bg-danger.bg-opacity-10.rounded
+                    i.fas.fa-bed.fa-3x.text-danger.mb-3
+                    h4.text-danger Ocupada
+                else
+                  .p-4.bg-warning.bg-opacity-10.rounded
+                    i.fas.fa-broom.fa-3x.text-warning.mb-3
+                    h4.text-warning En Limpieza
+              
+              .col-md-9
+                .row
+                  .col-md-6
+                    table.table.table-sm
+                      tr
+                        td.fw-bold Habitación:
+                        td= cama.habitacion.numero
+                      tr
+                        td.fw-bold Cama:
+                        td= cama.numero
+                      tr
+                        td.fw-bold Sector:
+                        td= cama.habitacion.sector.nombre
+                      tr
+                        td.fw-bold Tipo Servicio:
+                        td= cama.habitacion.tipoServicio.nombre
+                  
+                  .col-md-6
+                    table.table.table-sm
+                      tr
+                        td.fw-bold Estado:
+                        td
+                          if cama.estado === 'Libre'
+                            span.badge.bg-success Libre
+                          else if cama.estado === 'Ocupada'
+                            span.badge.bg-danger Ocupada
+                          else
+                            span.badge.bg-warning.text-dark En Limpieza
+                      tr
+                        td.fw-bold Tipo Habitación:
+                        td
+                          case cama.habitacion.tipo
+                            when 'Individual'
+                              span.text-primary
+                                i.fas.fa-user.me-1
+                                | Individual
+                            when 'Doble'
+                              span.text-info
+                                i.fas.fa-user-friends.me-1
+                                | Doble
+                            when 'Colectiva'
+                              span.text-success
+                                i.fas.fa-users.me-1
+                                | Colectiva
+                            default
+                              = cama.habitacion.tipo
+                      tr
+                        td.fw-bold Capacidad:
+                        td
+                          - let capacidadTexto = ''
+                          case cama.habitacion.tipo
+                            when 'Individual'
+                              - capacidadTexto = '1 cama'
+                            when 'Doble'
+                              - capacidadTexto = '2 camas'
+                            when 'Colectiva'
+                              - capacidadTexto = 'Múltiples camas'
+                            default
+                              - capacidadTexto = 'No especificada'
+                          = capacidadTexto
+                      tr
+                        td.fw-bold Sexo Permitido:
+                        td
+                          case cama.habitacion.sexo_permitido
+                            when 'Masculino'
+                              span.text-info
+                                i.fas.fa-mars.me-1
+                                | Masculino
+                            when 'Femenino'
+                              span.text-danger
+                                i.fas.fa-venus.me-1
+                                | Femenino
+                            when 'Mixto'
+                              span.text-success
+                                i.fas.fa-venus-mars.me-1
+                                | Mixto
+                      if cama.fecha_fin_limpieza
+                        tr
+                          td.fw-bold Fin Limpieza:
+                          td
+                            = new Date(cama.fecha_fin_limpieza).toLocaleString('es-AR')
+                            br
+                            small.text-muted (#{Math.floor((new Date(cama.fecha_fin_limpieza) - new Date()) / (1000 * 60))} minutos restantes)
+
+      .col-lg-4
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-user-injured.me-2
+              | Paciente Actual
+          .card-body
+            if cama.internaciones && cama.internaciones.length > 0
+              - const internacion = cama.internaciones[0]
+              - const paciente = internacion.paciente
+              .text-center.mb-3
+                .avatar-placeholder.rounded-circle.d-inline-flex.align-items-center.justify-content-center.bg-primary.text-white.mb-2(style="width: 80px; height: 80px; font-size: 24px;")
+                  = paciente.usuario.nombre.substring(0,1) + paciente.usuario.apellido.substring(0,1)
+                
+                h4.mb-1= paciente.usuario.nombre + ' ' + paciente.usuario.apellido
+                small.text-muted= 'DNI: ' + paciente.usuario.dni
+              
+              .list-group.list-group-flush
+                .list-group-item
+                  small.text-muted Estado:
+                  .fw-bold.text-danger= internacion.estado_paciente
+                .list-group-item
+                  small.text-muted Fecha Ingreso:
+                  .fw-bold= new Date(internacion.fecha_inicio).toLocaleDateString('es-AR')
+                .list-group-item
+                  small.text-muted Días Internado:
+                  .fw-bold= Math.floor((new Date() - new Date(internacion.fecha_inicio)) / (1000 * 60 * 60 * 24))
+                .list-group-item
+                  small.text-muted Médico:
+                  .fw-bold= internacion.medico ? internacion.medico.usuario.nombre + ' ' + internacion.medico.usuario.apellido : 'No asignado'
+              
+              a.btn.btn-outline-info.btn-sm.mt-3(href=`/medico/internados/${internacion.id}`)
+                i.fas.fa-external-link-alt.me-1
+                | Ver Internación
+            else
+              .text-center.text-muted.py-4
+                i.fas.fa-user-slash.fa-3x.mb-3
+                h5 Cama desocupada
+                p.mb-0 No hay paciente asignado actualmente
+
+    // Historial de ocupación
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-history.me-2
+              | Historial de Ocupación
+          .card-body
+            if historial && historial.length > 0
+              .table-responsive
+                table.table.table-hover
+                  thead.table-light
+                    tr
+                      th Fecha Ingreso
+                      th Fecha Alta
+                      th Paciente
+                      th DNI
+                      th Estado
+                      th Días
+                  tbody
+                    each item in historial
+                      tr
+                        td= new Date(item.fecha_inicio).toLocaleDateString('es-AR')
+                        td= item.fecha_alta ? new Date(item.fecha_alta).toLocaleDateString('es-AR') : '-'
+                        td= item.paciente.usuario.nombre + ' ' + item.paciente.usuario.apellido
+                        td= item.paciente.usuario.dni
+                        td
+                          span.badge(class=item.estado_paciente === 'Critico' ? 'bg-danger' : item.estado_paciente === 'Grave' ? 'bg-warning text-dark' : 'bg-success')= item.estado_paciente
+                        td= Math.floor(((item.fecha_alta || new Date()) - new Date(item.fecha_inicio)) / (1000 * 60 * 60 * 24))
+            else
+              .text-center.text-muted.py-4
+                i.fas.fa-history.fa-3x.mb-3
+                h5 Sin historial
+                p.mb-0 No hay registros de ocupación anteriores
+
+    // Modal cambiar estado
+    #modalCambiarEstado.modal.fade(tabindex='-1')
+      .modal-dialog
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-edit.me-2
+              | Cambiar Estado de Cama
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            form#form-cambiar-estado
+              input(type='hidden' id='estado-cama-id' value=cama.id)
+              
+              .mb-3
+                label.form-label Nuevo Estado
+                select.form-select(id='nuevo-estado' required)
+                  option(value='') Seleccionar
+                  option(value='EnLimpieza') En Limpieza
+                  option(value='Libre') Libre
+              
+              .mb-3
+                label.form-label Motivo
+                textarea.form-control(id='estado-motivo' rows='3' placeholder='Motivo del cambio...')
+          
+          .modal-footer
+            button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+            button.btn.btn-primary(onclick='guardarEstado()') Guardar
+
+block scripts
+  script.
+    function liberarCama(id) {
+      if (confirm('¿Está seguro de liberar esta cama?')) {
+        fetch(`/medico/camas/${id}/liberar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Cama liberada correctamente');
+            window.location.href = '/medico/camas';
+          } else {
+            alert('Error: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error al liberar la cama');
+        });
+      }
+    }
+
+    function guardarEstado() {
+      const camaId = document.getElementById('estado-cama-id').value;
+      const nuevoEstado = document.getElementById('nuevo-estado').value;
+      const motivo = document.getElementById('estado-motivo').value;
+
+      if (!nuevoEstado) {
+        alert('Seleccione un estado');
+        return;
+      }
+
+      fetch(`/medico/camas/${camaId}/cambiar-estado`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          nuevo_estado: nuevoEstado,
+          motivo: motivo
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+          window.location.reload();
+        } else {
+          alert('Error: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error al cambiar estado');
+      });
+    }
+
+    document.addEventListener('DOMContentLoaded', function() {
+      // Configurar modal al abrir
+      const modal = document.getElementById('modalCambiarEstado');
+      if (modal) {
+        modal.addEventListener('show.bs.modal', function() {
+          document.getElementById('nuevo-estado').value = '';
+          document.getElementById('estado-motivo').value = '';
+        });
+      }
+    });

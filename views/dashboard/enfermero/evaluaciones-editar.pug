@@ -1,0 +1,217 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    .row.mb-3
+      .col-12
+        a.btn.btn-secondary.mb-3(href=`/enfermero/evaluaciones/${evaluacion.id}`)
+          i.fas.fa-arrow-left.me-2
+          | Volver al detalle
+
+    .row
+      .col-lg-8.mx-auto
+        .card.border-0.shadow-sm
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-edit.me-2
+              | Editar Evaluación
+          .card-body
+            form#form-editar-evaluacion
+              input(type='hidden' id='evaluacion-id' value=evaluacion.id)
+              
+              // Información del paciente
+              .card.border.mb-4
+                .card-header.bg-light
+                  h6.mb-0
+                    i.fas.fa-user.me-2
+                    | Paciente
+                .card-body
+                  .row
+                    .col-md-6
+                      p.mb-1
+                        strong Nombre:
+                        = ` ${evaluacion.paciente.usuario.nombre} ${evaluacion.paciente.usuario.apellido}`
+                    .col-md-6
+                      p.mb-1
+                        strong DNI:
+                        = ` ${evaluacion.paciente.usuario.dni}`
+                    .col-md-6
+                      p.mb-1
+                        strong Edad:
+                        - const edad = Math.floor((new Date() - new Date(evaluacion.paciente.usuario.fecha_nacimiento)) / (1000 * 60 * 60 * 24 * 365))
+                        = ` ${edad} años`
+                    .col-md-6
+                      p.mb-1
+                        strong Sexo:
+                        = ` ${evaluacion.paciente.usuario.sexo}`
+
+              // Signos vitales
+              .mb-3
+                label.form-label(for='signos-vitales')
+                  i.fas.fa-heartbeat.me-2
+                  | Signos Vitales *
+                textarea.form-control(
+                  id='signos-vitales'
+                  name='signos_vitales'
+                  rows='3'
+                  required
+                )= evaluacion.signos_vitales
+                .form-text Ingrese los signos vitales (ej: PA: 120/80, FC: 75, T: 36.5°C, SpO2: 98%)
+
+              // Nivel de triaje
+              .mb-3
+                label.form-label(for='nivel-triaje')
+                  i.fas.fa-first-aid.me-2
+                  | Nivel de Triaje
+                select.form-select(
+                  id='nivel-triaje'
+                  name='nivel_triaje'
+                )
+                  option(value='' selected=(!evaluacion.nivel_triaje)) Sin triaje
+                  option(value='Rojo' selected=(evaluacion.nivel_triaje === 'Rojo')) Rojo (Inmediato)
+                  option(value='Amarillo' selected=(evaluacion.nivel_triaje === 'Amarillo')) Amarillo (Muy urgente)
+                  option(value='Verde' selected=(evaluacion.nivel_triaje === 'Verde')) Verde (Urgente)
+                  option(value='Negro' selected=(evaluacion.nivel_triaje === 'Negro')) Negro (Fallecido/sin esperanza)
+
+              // Observaciones
+              .mb-3
+                label.form-label(for='observaciones')
+                  i.fas.fa-comment-medical.me-2
+                  | Observaciones
+                textarea.form-control(
+                  id='observaciones'
+                  name='observaciones'
+                  rows='4'
+                )= evaluacion.observaciones || ''
+                .form-text Notas adicionales sobre la evaluación
+
+              // Tipo de egreso
+              .mb-3
+                label.form-label(for='tipo-egreso')
+                  i.fas.fa-sign-out-alt.me-2
+                  | Tipo de Egreso *
+                select.form-select(
+                  id='tipo-egreso'
+                  name='tipo_egreso'
+                  required
+                )
+                  option(value='PENDIENTE_EVALUACION' selected=(evaluacion.tipo_egreso === 'PENDIENTE_EVALUACION')) Pendiente de evaluación
+                  option(value='PROCEDIMIENTO_COMPLETADO' selected=(evaluacion.tipo_egreso === 'PROCEDIMIENTO_COMPLETADO')) Procedimiento completado
+                  option(value='DERIVACION_MEDICO' selected=(evaluacion.tipo_egreso === 'DERIVACION_MEDICO')) Derivación a médico
+                  option(value='DERIVACION_URGENCIA' selected=(evaluacion.tipo_egreso === 'DERIVACION_URGENCIA')) Derivación urgente
+
+              // Sección de derivación (se muestra solo si se selecciona derivación)
+              #seccion-derivacion.d-none
+                .card.border.mb-3
+                  .card-header.bg-info.text-white
+                    h6.mb-0
+                      i.fas.fa-user-md.me-2
+                      | Datos de Derivación
+                  .card-body
+                    .mb-3
+                      label.form-label(for='medico-id') Médico (opcional)
+                      select.form-select(
+                        id='medico-id'
+                        name='medico_id'
+                      )
+                        option(value='') Seleccione un médico
+                        each medico in medicos
+                          option(
+                            value=medico.id
+                            selected=(evaluacion.medico_id === medico.id)
+                          )= `${medico.usuario.nombre} ${medico.usuario.apellido}`
+                    
+                    .mb-3
+                      label.form-label(for='motivo-derivacion') Motivo de derivación
+                      textarea.form-control(
+                        id='motivo-derivacion'
+                        name='motivo_derivacion'
+                        rows='3'
+                      )
+                      .form-text Describa el motivo de la derivación al médico
+
+              // Botones
+              .d-flex.justify-content-between.mt-4
+                button.btn.btn-secondary(type='button' onclick='history.back()')
+                  i.fas.fa-times.me-2
+                  | Cancelar
+                button.btn.btn-primary(type='button' onclick='guardarEdicion()')
+                  i.fas.fa-save.me-2
+                  | Guardar Cambios
+
+block scripts
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      const tipoEgresoSelect = document.getElementById('tipo-egreso');
+      const seccionDerivacion = document.getElementById('seccion-derivacion');
+      
+      function actualizarSeccionDerivacion() {
+        const valor = tipoEgresoSelect.value;
+        if (valor === 'DERIVACION_MEDICO' || valor === 'DERIVACION_URGENCIA') {
+          seccionDerivacion.classList.remove('d-none');
+          
+          // Si es urgente, marcar el motivo como obligatorio
+          const motivoTextarea = document.getElementById('motivo-derivacion');
+          if (valor === 'DERIVACION_URGENCIA') {
+            motivoTextarea.required = true;
+            motivoTextarea.placeholder = 'Motivo obligatorio para derivación urgente...';
+          } else {
+            motivoTextarea.required = false;
+            motivoTextarea.placeholder = '';
+          }
+        } else {
+          seccionDerivacion.classList.add('d-none');
+        }
+      }
+      
+      // Inicializar
+      actualizarSeccionDerivacion();
+      
+      // Escuchar cambios
+      tipoEgresoSelect.addEventListener('change', actualizarSeccionDerivacion);
+    });
+    
+    async function guardarEdicion() {
+      const id = document.getElementById('evaluacion-id').value;
+      const form = document.getElementById('form-editar-evaluacion');
+      const formData = new FormData(form);
+      
+      // Convertir FormData a objeto
+      const datos = {};
+      formData.forEach((value, key) => {
+        datos[key] = value;
+      });
+      
+      try {
+        // Mostrar loading
+        const btn = document.querySelector('button[onclick="guardarEdicion()"]');
+        const originalText = btn.innerHTML;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+        btn.disabled = true;
+        
+        const response = await fetch(`/enfermero/evaluaciones/${id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(datos)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          alert('Evaluación actualizada correctamente');
+          window.location.href = result.redirect || `/enfermero/evaluaciones/${id}`;
+        } else {
+          alert(result.message || 'Error al actualizar la evaluación');
+          btn.innerHTML = originalText;
+          btn.disabled = false;
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error de conexión al guardar los cambios');
+        const btn = document.querySelector('button[onclick="guardarEdicion()"]');
+        btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Cambios';
+        btn.disabled = false;
+      }
+    }

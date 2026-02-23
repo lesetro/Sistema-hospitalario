@@ -1,0 +1,51 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .container-fluid
+    nav(aria-label='breadcrumb')
+      ol.breadcrumb
+        li.breadcrumb-item: a(href='/paciente') Inicio
+        li.breadcrumb-item: a(href='/paciente/historial-medico') Historial Médico
+        li.breadcrumb-item.active Línea de Tiempo
+
+    .d-flex.justify-content-between.align-items-center.mb-4
+      h2.mb-0
+        i.fas.fa-stream.me-2.text-primary
+        | Línea de Tiempo Médica
+      a.btn.btn-outline-secondary(href='/paciente/historial-medico')
+        i.fas.fa-arrow-left.me-2
+        | Volver al Historial
+
+    .timeline-container.mt-4
+      each evento, index in eventos
+        .timeline-item(class=index % 2 === 0 ? 'timeline-left' : 'timeline-right')
+          .timeline-content.card.shadow-sm
+            .card-header(class=`bg-${evento.color}`)
+              .d-flex.align-items-center
+                i.fas(class=evento.icono).me-2.fs-5
+                h5.mb-0 #{evento.tipo}
+                small.ms-auto #{new Date(evento.fecha).toLocaleString('es-AR', {dateStyle:'medium', timeStyle:'short'})}
+            .card-body
+              p.mb-0 #{evento.descripcion}
+
+    if !eventos.length
+      .alert.alert-info.text-center
+        i.fas.fa-info-circle.me-2
+        | No hay eventos en tu historial.
+
+  style.
+    .timeline-container { position:relative; padding:2rem 0; }
+    .timeline-container::before {
+      content:''; position:absolute; top:0; bottom:0; left:50%; width:4px;
+      background:#dee2e6; transform:translateX(-50%);
+    }
+    .timeline-item { position:relative; width:50%; padding:1rem 2rem; }
+    .timeline-left { left:0; text-align:right; }
+    .timeline-right { left:50%; }
+    .timeline-content { position:relative; }
+    .timeline-left .timeline-content::after,
+    .timeline-right .timeline-content::after {
+      content:''; position:absolute; top:50%; width:0; height:0; border:10px solid transparent;
+    }
+    .timeline-left .timeline-content::after { right:-20px; border-left-color:inherit; border-right:0; }
+    .timeline-right .timeline-content::after { left:-20px; border-right-color:inherit; border-left:0; }

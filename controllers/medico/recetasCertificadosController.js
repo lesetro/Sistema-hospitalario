@@ -3,15 +3,16 @@ const {
   Paciente,
   Usuario,
   Medico,
-  EvaluacionMedica,
-  sequelize
+  EvaluacionMedica
+  
 } = require('../../models');
 const { Op } = require('sequelize');
+const db = require('../../database/db');
 
 // ========================================
 // RENDERIZAR VISTA
 // ========================================
-exports.renderRecetasCertificados = async (req, res) => {
+exports.renderRecetasCertificados = async (req, res, next) => {
   try {
     console.log('🔍 renderRecetasCertificados - usuario_id:', req.user.usuario_id);
     
@@ -45,17 +46,14 @@ exports.renderRecetasCertificados = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al renderizar recetas y certificados:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: error.message
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER RECETAS Y CERTIFICADOS
 // ========================================
-exports.obtenerRecetasCertificados = async (req, res) => {
+exports.obtenerRecetasCertificados = async (req, res, next) => {
   try {
     console.log('📋 obtenerRecetasCertificados - usuario_id:', req.user.usuario_id);
     
@@ -145,17 +143,14 @@ exports.obtenerRecetasCertificados = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener recetas/certificados:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER POR ID
 // ========================================
-exports.obtenerPorId = async (req, res) => {
+exports.obtenerPorId = async (req, res, next) => {
   try {
     console.log('🔍 obtenerPorId - usuario_id:', req.user.usuario_id);
     
@@ -223,18 +218,15 @@ exports.obtenerPorId = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener item:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // CREAR
 // ========================================
-exports.crear = async (req, res) => {
-  const transaction = await sequelize.transaction();
+exports.crear = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
 
   try {
     console.log('✅ crear - usuario_id:', req.user.usuario_id);
@@ -331,18 +323,15 @@ exports.crear = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('❌ Error al crear item:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // ACTUALIZAR
 // ========================================
-exports.actualizar = async (req, res) => {
-  const transaction = await sequelize.transaction();
+exports.actualizar = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
 
   try {
     console.log('🔄 actualizar - usuario_id:', req.user.usuario_id);
@@ -393,18 +382,15 @@ exports.actualizar = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('❌ Error al actualizar item:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // ELIMINAR
 // ========================================
-exports.eliminar = async (req, res) => {
-  const transaction = await sequelize.transaction();
+exports.eliminar = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
 
   try {
     console.log('🗑️ eliminar - usuario_id:', req.user.usuario_id);
@@ -452,17 +438,14 @@ exports.eliminar = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('❌ Error al eliminar item:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ESTADÍSTICAS
 // ========================================
-exports.obtenerEstadisticas = async (req, res) => {
+exports.obtenerEstadisticas = async (req, res, next) => {
   try {
     console.log('📊 obtenerEstadisticas - usuario_id:', req.user.usuario_id);
     
@@ -534,17 +517,14 @@ exports.obtenerEstadisticas = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener estadísticas:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER RECIENTES
 // ========================================
-exports.obtenerRecientes = async (req, res) => {
+exports.obtenerRecientes = async (req, res, next) => {
   try {
     console.log('📅 obtenerRecientes - usuario_id:', req.user.usuario_id);
     
@@ -589,17 +569,14 @@ exports.obtenerRecientes = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener recientes:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER PACIENTES PARA FILTRO
 // ========================================
-exports.obtenerPacientesParaFiltro = async (req, res) => {
+exports.obtenerPacientesParaFiltro = async (req, res, next) => {
   try {
     console.log('👥 obtenerPacientesParaFiltro - usuario_id:', req.user.usuario_id);
     
@@ -661,17 +638,14 @@ exports.obtenerPacientesParaFiltro = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener pacientes:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // GENERAR PDF
 // ========================================
-exports.generarPDF = async (req, res) => {
+exports.generarPDF = async (req, res, next) => {
   try {
     console.log('📄 generarPDF - usuario_id:', req.user.usuario_id);
     
@@ -749,9 +723,6 @@ exports.generarPDF = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al generar PDF:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };

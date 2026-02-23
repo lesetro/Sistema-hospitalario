@@ -3,15 +3,15 @@ const {
   Paciente,
   Usuario,
   Medico,
-  Sector,
-  sequelize
+  Sector
 } = require('../../models');
 const { Op } = require('sequelize');
+const db = require('../../database/db');
 
 // ========================================
 // RENDERIZAR VISTA
 // ========================================
-exports.renderDerivaciones = async (req, res) => {
+exports.renderDerivaciones = async (req, res, next) => {
   try {
     console.log('🔍 renderDerivaciones - usuario_id:', req.user.usuario_id);
     
@@ -47,17 +47,14 @@ exports.renderDerivaciones = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al renderizar derivaciones:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: error.message
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER DERIVACIONES
 // ========================================
-exports.obtenerDerivaciones = async (req, res) => {
+exports.obtenerDerivaciones = async (req, res, next) => {
   try {
     console.log('📋 obtenerDerivaciones - usuario_id:', req.user.usuario_id);
     
@@ -165,17 +162,14 @@ exports.obtenerDerivaciones = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener derivaciones:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER DERIVACIÓN POR ID
 // ========================================
-exports.obtenerDerivacionPorId = async (req, res) => {
+exports.obtenerDerivacionPorId = async (req, res, next) => {
   try {
     console.log('🔍 obtenerDerivacionPorId - usuario_id:', req.user.usuario_id);
     
@@ -243,18 +237,15 @@ exports.obtenerDerivacionPorId = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener derivación:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // CREAR DERIVACIÓN
 // ========================================
-exports.crearDerivacion = async (req, res) => {
-  const transaction = await sequelize.transaction();
+exports.crearDerivacion = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
 
   try {
     console.log('✅ crearDerivacion - usuario_id:', req.user.usuario_id);
@@ -339,18 +330,15 @@ exports.crearDerivacion = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('❌ Error al crear derivación:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message || 'Error al crear derivación' 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // ACTUALIZAR ESTADO DE DERIVACIÓN
 // ========================================
-exports.actualizarEstado = async (req, res) => {
-  const transaction = await sequelize.transaction();
+exports.actualizarEstado = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
 
   try {
     console.log('🔄 actualizarEstado - usuario_id:', req.user.usuario_id);
@@ -449,18 +437,15 @@ exports.actualizarEstado = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('❌ Error al actualizar derivación:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message || 'Error al actualizar derivación' 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ESTADÍSTICAS
 // ========================================
-// ✅ CORREGIDO - SIN sequelize.fn() y .get()
-exports.obtenerEstadisticas = async (req, res) => {
+
+exports.obtenerEstadisticas = async (req, res, next) => {
   try {
     console.log('📊 obtenerEstadisticas - usuario_id:', req.user.usuario_id);
     
@@ -511,14 +496,14 @@ exports.obtenerEstadisticas = async (req, res) => {
     });
 
     console.log('🔍 Obteniendo derivaciones por estado...');
-    // ✅ SIN GROUP BY - traer todo y contar en JavaScript
+    //  SIN GROUP BY - traer todo y contar en JavaScript
     const porEstadoData = await SolicitudDerivacion.findAll({
       where: { origen_id: medico.sector_id },
       attributes: ['estado'],
       raw: true
     });
 
-    // ✅ CONTAR EN JAVASCRIPT
+    //  CONTAR EN JAVASCRIPT
     const estadosEnviadas = {};
     porEstadoData.forEach(item => {
       const estado = item.estado;
@@ -544,17 +529,14 @@ exports.obtenerEstadisticas = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener estadísticas:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER SECTORES
 // ========================================
-exports.obtenerSectores = async (req, res) => {
+exports.obtenerSectores = async (req, res, next) => {
   try {
     console.log('🏥 obtenerSectores');
     
@@ -571,17 +553,14 @@ exports.obtenerSectores = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener sectores:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER DERIVACIONES PENDIENTES
 // ========================================
-exports.obtenerDerivacionesPendientes = async (req, res) => {
+exports.obtenerDerivacionesPendientes = async (req, res, next) => {
   try {
     console.log('⏳ obtenerDerivacionesPendientes - usuario_id:', req.user.usuario_id);
     
@@ -632,17 +611,14 @@ exports.obtenerDerivacionesPendientes = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener derivaciones pendientes:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER PACIENTES PARA FILTRO
 // ========================================
-exports.obtenerPacientesParaFiltro = async (req, res) => {
+exports.obtenerPacientesParaFiltro = async (req, res, next) => {
   try {
     console.log('👥 obtenerPacientesParaFiltro - usuario_id:', req.user.usuario_id);
     
@@ -709,9 +685,6 @@ exports.obtenerPacientesParaFiltro = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener pacientes:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };

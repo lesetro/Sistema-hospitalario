@@ -1,8 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { 
-  finalizarLimpiezaCama, 
-  getEstadoCamasPorSector 
+const { finalizarLimpiezaCama, getEstadoCamasPorSector 
 } = require('../../controllers/admin/camasController');
 
 // Obtener estado de todas las camas por sector

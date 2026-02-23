@@ -25,6 +25,10 @@ module.exports = (sequelize, DataTypes) => {
     Medico.hasMany(models.AltaMedica, { foreignKey: 'medico_id', as: 'altas' });
     Medico.hasMany(models.EvaluacionEnfermeria, { foreignKey: 'medico_id', as: 'evaluaciones' }); 
     Medico.hasMany(models.Admision, { foreignKey: 'medico_id', as: 'admisiones' });
+    Medico.hasMany(models.ListaEspera, { foreignKey: 'medico_id',as: 'urgencias_asignadas' });
+    Medico.hasMany(models.ProcedimientoEnfermeria, { foreignKey: 'medico_id', as: 'procedimientos_enfermeria' }); 
+    Medico.hasMany(models.ProcedimientoPreQuirurgico, { foreignKey: 'medico_id', as: 'procedimientos_pre_quirurgicos' });
+    Medico.hasMany(models.EstudioSolicitado, { foreignKey: 'medico_id', as: 'estudios_solicitados' });
 
   };
 

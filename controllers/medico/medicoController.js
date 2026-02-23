@@ -6,21 +6,21 @@ const {
   EvaluacionMedica, 
   Internacion,
   Especialidad,
-  Sector,
-  sequelize
+  Sector
 } = require('../../models');
 const { Op } = require('sequelize');
+const db = require('../../database/db');
 
 // ========================================
 // RENDERIZAR DASHBOARD
 // ========================================
-exports.renderDashboard = async (req, res) => {
+exports.renderDashboard = async (req, res, next) => {
   try {
     console.log('🔍 DEBUG renderDashboard:');
     console.log('req.user:', req.user);
     console.log('req.user.usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+    //  Usar usuario_id
     const usuario = await Usuario.findByPk(req.user.usuario_id, {
       include: [
         {
@@ -56,21 +56,18 @@ exports.renderDashboard = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error en renderDashboard:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: error.message
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ESTADÍSTICAS GENERALES
 // ========================================
-exports.obtenerEstadisticas = async (req, res) => {
+exports.obtenerEstadisticas = async (req, res, next) => {
   try {
     console.log('📊 obtenerEstadisticas - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id, no id
+    //  Usar usuario_id, no id
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
@@ -182,21 +179,18 @@ exports.obtenerEstadisticas = async (req, res) => {
   } catch (error) {
     console.error('❌ Error en obtenerEstadisticas:', error.message);
     console.error('Stack:', error.stack);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER TURNOS PRÓXIMOS
 // ========================================
-exports.obtenerTurnosProximos = async (req, res) => {
+exports.obtenerTurnosProximos = async (req, res, next) => {
   try {
     console.log('📅 obtenerTurnosProximos - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+    //  Usar usuario_id
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
@@ -250,21 +244,18 @@ exports.obtenerTurnosProximos = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error en obtenerTurnosProximos:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER PACIENTES RECIENTES
 // ========================================
-exports.obtenerPacientesRecientes = async (req, res) => {
+exports.obtenerPacientesRecientes = async (req, res, next) => {
   try {
     console.log('👥 obtenerPacientesRecientes - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+    //  Usar usuario_id
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
@@ -308,21 +299,18 @@ exports.obtenerPacientesRecientes = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error en obtenerPacientesRecientes:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER INTERNACIONES EN CURSO
 // ========================================
-exports.obtenerInternacionesEnCurso = async (req, res) => {
+exports.obtenerInternacionesEnCurso = async (req, res, next) => {
   try {
     console.log('🛏️ obtenerInternacionesEnCurso - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+    //  Usar usuario_id
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
@@ -375,21 +363,18 @@ exports.obtenerInternacionesEnCurso = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error en obtenerInternacionesEnCurso:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ACTIVIDAD RECIENTE
 // ========================================
-exports.obtenerActividadReciente = async (req, res) => {
+exports.obtenerActividadReciente = async (req, res, next) => {
   try {
-    console.log('⚡ obtenerActividadReciente - usuario_id:', req.user.usuario_id);
+    console.log(' obtenerActividadReciente - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+  
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
@@ -441,9 +426,6 @@ exports.obtenerActividadReciente = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error en obtenerActividadReciente:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };

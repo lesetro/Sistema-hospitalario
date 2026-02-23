@@ -183,8 +183,6 @@ block content
           //- ESTADÍSTICAS
           .row.mb-3#detalle-estadisticas
 
-         
-
         .modal-footer
           button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cerrar
 
@@ -385,6 +383,99 @@ block content
             | Guardar Cambios
 
   //- ============================================================================
+  //- MODAL: COMPLETAR DATOS DE URGENCIA
+  //- ============================================================================
+  #modalCompletarUrgencia.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-danger.text-white
+          h5.modal-title
+            i.fas.fa-ambulance.me-2
+            | Completar Datos de Paciente de Urgencia
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        
+        .modal-body
+          .alert.alert-warning
+            i.fas.fa-exclamation-triangle.me-2
+            strong Atención:
+            br
+            | Este paciente llegó en urgencia sin datos completos. 
+            br
+            | Una vez completados, no se pueden volver a cambiar por integridad del historial clínico.
+
+          form#formCompletarUrgencia
+            input#urgencia-id(type='hidden')
+            
+            .card.mb-3
+              .card-header.bg-light
+                h6.mb-0
+                  i.fas.fa-info-circle.me-2
+                  | Datos Actuales (Temporales)
+              .card-body
+                p.mb-0
+                  strong Nombre Temporal:
+                  br
+                  span#urgencia-nombre-actual.text-muted.fw-bold
+            
+            .card.mb-3
+              .card-header.bg-light
+                h6.mb-0
+                  i.fas.fa-user-check.me-2
+                  | Datos Reales del Paciente
+              .card-body
+                .row
+                  .col-md-6
+                    .mb-3
+                      label.form-label 
+                        | DNI 
+                        span.text-danger *
+                      input#urgencia-dni.form-control(
+                        type='text'
+                        required
+                        placeholder='Ej: 12345678'
+                        maxlength='10'
+                      )
+                  
+                  .col-md-6
+                    .mb-3
+                      label.form-label 
+                        | Fecha de Nacimiento 
+                        span.text-danger *
+                      input#urgencia-fecha-nacimiento.form-control(
+                        type='date'
+                        required
+                      )
+                
+                .row
+                  .col-md-6
+                    .mb-3
+                      label.form-label 
+                        | Nombre 
+                        span.text-danger *
+                      input#urgencia-nombre.form-control(
+                        type='text'
+                        required
+                        placeholder='Nombre real'
+                      )
+                  
+                  .col-md-6
+                    .mb-3
+                      label.form-label 
+                        | Apellido 
+                        span.text-danger *
+                      input#urgencia-apellido.form-control(
+                        type='text'
+                        required
+                        placeholder='Apellido real'
+                      )
+
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnCompletarUrgencia.btn.btn-danger
+            i.fas.fa-check.me-2
+            | Completar Datos
+
+  //- ============================================================================
   //- MODAL: BLOQUEAR USUARIO
   //- ============================================================================
   #modalBloquear.modal.fade(tabindex='-1')
@@ -465,4 +556,4 @@ block content
             | Resetear Contraseña
 
 block scripts
-  script(src='/js/usuarios.js')
+  script(src='/js/admin/usuarios.js')

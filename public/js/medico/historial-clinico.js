@@ -40,13 +40,14 @@ async function buscarPacienteAutocompletado(query) {
     
     const resultadosDiv = document.getElementById('resultados-busqueda');
     
-    if (data.success && data.data.length > 0) {
-      resultadosDiv.innerHTML = data.data.map(paciente => `
+    //data.pacientes no data.data; formato flat no anidado
+    if (data.success && data.pacientes && data.pacientes.length > 0) {
+      resultadosDiv.innerHTML = data.pacientes.map(paciente => `
         <button class="list-group-item list-group-item-action" 
                 onclick='seleccionarPaciente(${JSON.stringify(paciente).replace(/'/g, "&#39;")})'>
-          <strong>${paciente.usuario.nombre} ${paciente.usuario.apellido}</strong>
+          <strong>${paciente.nombre} ${paciente.apellido}</strong>
           <br>
-          <small class="text-muted">DNI: ${paciente.usuario.dni}</small>
+          <small class="text-muted">DNI: ${paciente.dni}</small>
         </button>
       `).join('');
       resultadosDiv.style.display = 'block';
@@ -59,51 +60,46 @@ async function buscarPacienteAutocompletado(query) {
   }
 }
 
-// Seleccionar paciente
+
 async function seleccionarPaciente(paciente) {
   pacienteSeleccionado = paciente;
   
-  // Ocultar resultados
   document.getElementById('resultados-busqueda').style.display = 'none';
+  
   document.getElementById('buscarPaciente').value = 
-    `${paciente.usuario.nombre} ${paciente.usuario.apellido} (${paciente.usuario.dni})`;
+    `${paciente.nombre} ${paciente.apellido} (${paciente.dni})`;
   
-  // Mostrar información del paciente
   await mostrarInfoPaciente(paciente.id);
-  
-  // Cargar historial
   await cargarResumenHistorial(paciente.id);
   await cargarLineaTiempo(paciente.id);
   
-  // Preparar formulario nueva entrada
   document.getElementById('nuevaEntradaPacienteId').value = paciente.id;
   
-  // Mostrar contenido
   document.getElementById('mensaje-inicial').classList.add('d-none');
   document.getElementById('contenido-historial').classList.remove('d-none');
 }
 
-// Mostrar información del paciente
 async function mostrarInfoPaciente(pacienteId) {
   try {
     const response = await fetch(`/medico/historial-clinico/api/paciente/${pacienteId}/info`);
     const data = await response.json();
     
     if (data.success) {
+      //  controller devuelve data.data con objeto Sequelize (tiene .usuario anidado)
       const paciente = data.data;
-      const fechaNac = new Date(paciente.usuario.fecha_nacimiento);
-      const edad = Math.floor((new Date() - fechaNac) / (365.25 * 24 * 60 * 60 * 1000));
+      const fechaNac = paciente.usuario?.fecha_nacimiento ? new Date(paciente.usuario.fecha_nacimiento) : null;
+      const edad = fechaNac ? Math.floor((new Date() - fechaNac) / (365.25 * 24 * 60 * 60 * 1000)) : 'N/A';
       
       document.getElementById('info-paciente-seleccionado').innerHTML = `
         <div class="card shadow-sm">
           <div class="card-body">
             <div class="row">
               <div class="col-md-6">
-                <h5><i class="fas fa-user-circle me-2"></i>${paciente.usuario.nombre} ${paciente.usuario.apellido}</h5>
+                <h5><i class="fas fa-user-circle me-2"></i>${paciente.usuario?.nombre} ${paciente.usuario?.apellido}</h5>
                 <p class="mb-0">
-                  <strong>DNI:</strong> ${paciente.usuario.dni} |
+                  <strong>DNI:</strong> ${paciente.usuario?.dni} |
                   <strong>Edad:</strong> ${edad} años |
-                  <strong>Sexo:</strong> ${paciente.usuario.sexo}
+                  <strong>Sexo:</strong> ${paciente.usuario?.sexo}
                 </p>
               </div>
               <div class="col-md-6 text-md-end">

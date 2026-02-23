@@ -1,0 +1,190 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .facturas-paciente
+    .page-header.mb-4
+      .row.align-items-center
+        .col-md-8
+          h2
+            i.fas.fa-file-invoice-dollar.text-primary.me-2
+            | Mis Facturas
+          p.text-muted Facturación y pagos
+        .col-md-4.text-md-end
+          a.btn.btn-outline-secondary(href='/paciente/pagos')
+            i.fas.fa-credit-card.me-2
+            | Historial de Pagos
+
+    if deudaTotal > 0
+      .alert.alert-warning.mb-4
+        .row.align-items-center
+          .col-md-8
+            h5.alert-heading
+              i.fas.fa-exclamation-triangle.me-2
+              | Tienes facturas pendientes de pago
+            p.mb-0
+              strong Total adeudado: $#{deudaTotal.toFixed(2)}
+          .col-md-4.text-md-end
+            small.text-muted Contacta con administración para más información
+
+    //- Estadísticas
+    .row.mb-4
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-primary.text-white.mb-2
+              i.fas.fa-file-invoice.fa-2x
+            h3.stat-number.text-primary #{estadisticas.total}
+            p.stat-label.mb-0 Total Facturas
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-warning.text-white.mb-2
+              i.fas.fa-hourglass-half.fa-2x
+            h3.stat-number.text-warning #{estadisticas.pendientes}
+            p.stat-label.mb-0 Pendientes
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-success.text-white.mb-2
+              i.fas.fa-check-circle.fa-2x
+            h3.stat-number.text-success #{estadisticas.pagadas}
+            p.stat-label.mb-0 Pagadas
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-danger.text-white.mb-2
+              i.fas.fa-dollar-sign.fa-2x
+            h3.stat-number.text-danger $#{deudaTotal.toFixed(2)}
+            p.stat-label.mb-0 Deuda Total
+
+    //- Filtros
+    .card.border-0.shadow-sm.mb-4
+      .card-body
+        form(method='GET')
+          .row.g-3
+            .col-md-3
+              label.form-label Estado
+              select.form-select(name='estado')
+                option(value='', selected=!filtros.estado) Todas
+                option(value='Pendiente', selected=filtros.estado === 'Pendiente') Pendiente
+                option(value='Pagada', selected=filtros.estado === 'Pagada') Pagada
+                option(value='Cancelada', selected=filtros.estado === 'Cancelada') Cancelada
+            .col-md-3
+              label.form-label Desde
+              input.form-control(type='date', name='desde', value=filtros.desde || '')
+            .col-md-3
+              label.form-label Hasta
+              input.form-control(type='date', name='hasta', value=filtros.hasta || '')
+            .col-md-3.d-flex.align-items-end
+              button.btn.btn-primary.w-100(type='submit')
+                i.fas.fa-filter.me-2
+                | Filtrar
+              button.btn.btn-secondary.ms-2(type='button', onclick='location.href="/paciente/facturas"')
+                i.fas.fa-times
+
+    //- Lista de facturas
+    .card.border-0.shadow-sm
+      .card-header.bg-light
+        h5.mb-0
+          i.fas.fa-list.me-2
+          | Lista de Facturas
+      .card-body
+        if facturas && facturas.length > 0
+          .table-responsive
+            table.table.table-hover.align-middle
+              thead
+                tr
+                  th Estado
+                  th Factura
+                  th Fecha Emisión
+                  th Tipo Pago
+                  th Monto
+                  th Pagado
+                  th Saldo
+                  th Acciones
+              tbody
+                each factura in facturas
+                  tr
+                    td
+                      if factura.estado === 'Pendiente'
+                        span.badge.bg-warning Pendiente
+                      else if factura.estado === 'Pagada'
+                        span.badge.bg-success Pagada
+                      else
+                        span.badge.bg-danger Cancelada
+                    td
+                      strong ##{factura.id}
+                      if factura.descripcion
+                        br
+                        small.text-muted #{factura.descripcion.substring(0, 30)}...
+                    td #{new Date(factura.fecha_emision).toLocaleDateString('es-AR')}
+                    td
+                      span.badge(class=factura.tipo_pago === 'SISTEMA PUBLICO' ? 'bg-info' : factura.tipo_pago === 'Obra Social' ? 'bg-success' : 'bg-secondary')
+                        | #{factura.tipo_pago}
+                    td.text-end
+                      strong $#{parseFloat(factura.monto).toFixed(2)}
+                    td.text-end
+                      span.text-success $#{factura.dataValues.totalPagado.toFixed(2)}
+                    td.text-end
+                      if factura.dataValues.saldo > 0
+                        span.text-danger
+                          strong $#{factura.dataValues.saldo.toFixed(2)}
+                      else
+                        span.text-success $0.00
+                    td
+                      a.btn.btn-sm.btn-outline-primary(href=`/paciente/facturas/${factura.id}`)
+                        i.fas.fa-eye.me-1
+                        | Ver
+
+          if paginacion.totalPages > 1
+            nav.mt-4
+              ul.pagination.justify-content-center
+                li.page-item(class=!paginacion.hasPrev ? 'disabled' : '')
+                  a.page-link(href=`?page=${paginacion.currentPage - 1}`) Anterior
+                - for (let i = 1; i <= paginacion.totalPages; i++)
+                  li.page-item(class=i === paginacion.currentPage ? 'active' : '')
+                    a.page-link(href=`?page=${i}`) #{i}
+                li.page-item(class=!paginacion.hasNext ? 'disabled' : '')
+                  a.page-link(href=`?page=${paginacion.currentPage + 1}`) Siguiente
+        else
+          .text-center.py-5
+            i.fas.fa-file-invoice.fa-4x.text-muted.mb-3
+            h5.text-muted No tienes facturas registradas
+            p.text-muted Las facturas se generan automáticamente por los servicios recibidos
+
+    //- Información sobre facturación
+    .row.mt-4
+      .col-md-6
+        .card.border-0.shadow-sm
+          .card-header.bg-info.text-white
+            h6.mb-0
+              i.fas.fa-info-circle.me-2
+              | Información sobre Facturación
+          .card-body
+            ul.mb-0
+              li Las facturas se emiten por servicios médicos recibidos
+              li Sistema Público: sin cargo para el paciente
+              li Obra Social: cobertura según tu plan
+              li Particulares: pago directo
+      
+      .col-md-6
+        .card.border-0.shadow-sm
+          .card-header.bg-secondary.text-white
+            h6.mb-0
+              i.fas.fa-question-circle.me-2
+              | ¿Tienes dudas?
+          .card-body
+            p.mb-2
+              strong Contacto de Facturación:
+            p.mb-1
+              i.fas.fa-phone.me-2
+              | (2657) 123-4567
+            p.mb-1
+              i.fas.fa-envelope.me-2
+              | facturacion@hospital.com
+            p.mb-0
+              i.fas.fa-clock.me-2
+              | Lunes a Viernes 8:00-16:00
+
+block scripts
+  script(src='/js/paciente/paciente-facturas.js')

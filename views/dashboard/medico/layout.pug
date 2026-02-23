@@ -230,6 +230,7 @@ html(lang='es')
       }
 
   body
+    
     // Sidebar
     nav.sidebar#sidebar
       .sidebar-header
@@ -244,16 +245,19 @@ html(lang='es')
         a.nav-link(href='/medico', class=title === 'Dashboard' ? 'active' : '')
           i.fas.fa-home
           span Dashboard
+
         
-        a.nav-link(href='/auth/perfil', class=title === 'Mi Perfil' ? 'active' : '')
-          i.fas.fa-user-circle
-          span Mi Perfil
-        
+        if nombreSector === 'Emergencias'
+          .nav-section-title URGENCIAS
+          a.nav-link(href='/medico/emergencias')
+            i.fas.fa-ambulance
+            span Urgencias
+         
         // Gestión de Turnos
         .nav-section-title AGENDA
         a.nav-link(href='/medico/mis-turnos', class=title === 'Mis Turnos' ? 'active' : '')
           i.fas.fa-calendar-check
-          span Mis Turnos
+          span Turnos
         
         // Pacientes
         .nav-section-title PACIENTES
@@ -282,20 +286,38 @@ html(lang='es')
         a.nav-link(href='/medico/estudios-solicitados', class=title === 'Estudios Solicitados' ? 'active' : '')
           i.fas.fa-microscope
           span Estudios Solicitados
-        
+
+        a.nav-link(href='/medico/camas', class=(title === 'Gestión de Camas' ? 'active' : ''))
+          i.fas.fa-hospital-user
+          span Gestión de Camas
+
         a.nav-link(href='/medico/recetas-certificados', class=title === 'Recetas y Certificados' ? 'active' : '')
           i.fas.fa-prescription
           span Recetas y Certificados
+        // 🆕 ÓRDENES DE ENFERMERÍA
+        .nav-section-title INDICACIONES ENFERMERÍA
+        a.nav-link(href='/medico/ordenes-procedimiento', class=title.includes('Procedimiento') ? 'active' : '')
+          i.fas.fa-syringe
+          span Procedimientos
         
-        // Procedimientos
-        .nav-section-title PROCEDIMIENTOS
-        a.nav-link(href='/medico/intervenciones', class=title === 'Intervenciones Quirúrgicas' ? 'active' : '')
-          i.fas.fa-procedures
-          span Intervenciones Quirúrgicas
+        a.nav-link(href='/medico/ordenes-prequirurgico', class=title.includes('Pre-quirúrgica') ? 'active' : '')
+          i.fas.fa-notes-medical
+          span Pre-quirúrgicos
         
-        a.nav-link(href='/medico/internaciones', class=title === 'Internaciones' ? 'active' : '')
+        a.nav-link(href='/medico/ordenes-medicacion', class=title.includes('Medicación') ? 'active' : '')
+          i.fas.fa-pills
+          span Medicación
+        
+        a.nav-link(href='/medico/ordenes-internacion', class=title.includes('Internados') || title.includes('Internación') ? 'active' : '')
           i.fas.fa-bed
-          span Internaciones
+          span Para Internados
+        
+        // Cirugías (para ambos sectores)
+        if nombreSector === 'Emergencias' || nombreSector === 'Quirófano'
+          .nav-section-title CIRUGÍAS
+          a.nav-link(href='/medico/intervenciones', class=title.includes('Intervenciones') || title.includes('Cirugía') ? 'active' : '')
+            i.fas.fa-procedures
+            span Mis Cirugías
         
         a.nav-link(href='/medico/altas-medicas', class=title === 'Altas Médicas' ? 'active' : '')
           i.fas.fa-sign-out-alt
@@ -312,7 +334,9 @@ html(lang='es')
           span Notificaciones
           if typeof notificacionesNoLeidas !== 'undefined' && notificacionesNoLeidas > 0
             span.badge.bg-danger.ms-2= notificacionesNoLeidas
-        
+        a.nav-link(href='/medico/mis-turnos-personal', class=(title === 'Mis Turnos' ? 'active' : ''))
+          i.fas.fa-calendar-alt
+          span Mis Turnos 
         // Cerrar sesión
         .nav-section-title
         a.nav-link(href='/auth/logout')
@@ -348,13 +372,33 @@ html(lang='es')
             .user-avatar= user.nombre.charAt(0) + user.apellido.charAt(0)
             .ms-2.d-none.d-md-block
               .fw-semibold= user.nombre + ' ' + user.apellido
-              small.text-muted Médico
-          
+              // TEXTO DINÁMICO SEGÚN EL ROL
+              if user.rol === 'MEDICO'
+                small.text-muted Médico
+              else if user.rol === 'ENFERMERO'
+                small.text-muted Enfermero
+              else if user.rol === 'ADMIN'
+                small.text-muted Administrador
+              else if user.rol === 'PACIENTE'
+                small.text-muted Paciente
+              else
+                small.text-muted Usuario
+  
           ul.dropdown-menu.dropdown-menu-end
             li
               a.dropdown-item(href='/auth/perfil')
                 i.fas.fa-user.me-2
-                | Mi Perfil
+              | Mi Perfil
+    
+            // CAMPANA DE NOTIFICACIONES (solo para ciertos roles)
+            if user.rol === 'MEDICO' || user.rol === 'ENFERMERO'
+              li
+                a.dropdown-item(href='/comunicaciones')
+                  i.fas.fa-bell.me-2
+                  | Comunicaciones
+                  if notificacionesNoLeidas > 0
+                    span.badge.bg-danger.ms-2= notificacionesNoLeidas
+    
             li
               hr.dropdown-divider
             li
@@ -368,6 +412,7 @@ html(lang='es')
 
     // Bootstrap JS
     script(src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js')
+
     
     // Scripts personalizados
     script.
@@ -401,3 +446,5 @@ html(lang='es')
       });
     
     block scripts
+    script(src='/js/medico/notificaciones-medicas.js')
+    

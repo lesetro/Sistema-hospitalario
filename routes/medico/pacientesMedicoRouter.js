@@ -3,15 +3,16 @@ const router = express.Router();
 const pacientesMedicoController = require('../../controllers/medico/pacientesMedicoController');
 const authMiddleware = require('../../middleware/authMiddleware');
 
-// ✅ Middleware de autenticación y rol
+//  Middleware de autenticación y rol
 router.use(authMiddleware);
 
-// ✅ Vista principal
+//  Vista principal
 router.get('/', pacientesMedicoController.renderPacientes);
+router.post('/:id/solicitar-controles', pacientesMedicoController.solicitarControlesEnfermeria);
+router.get('/:id/detalle', pacientesMedicoController.renderDetallePaciente);
 
-// ✅ APIs
+//  APIs
 router.get('/api/pacientes', pacientesMedicoController.obtenerPacientes);
-router.get('/api/pacientes/:id', pacientesMedicoController.obtenerPacienteDetalle);
 router.get('/api/pacientes/:pacienteId/historial', pacientesMedicoController.obtenerHistorialPaciente);
 router.get('/api/pacientes/:pacienteId/evaluaciones', pacientesMedicoController.obtenerEvaluacionesPaciente);
 router.get('/api/obras-sociales', pacientesMedicoController.obtenerObrasSociales);

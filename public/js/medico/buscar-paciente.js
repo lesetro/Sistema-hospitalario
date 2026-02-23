@@ -5,14 +5,12 @@ let pacienteActual = null;
 document.addEventListener('DOMContentLoaded', function() {
   cargarObrasSociales();
   
-  // Formulario de búsqueda
   document.getElementById('formBusqueda').addEventListener('submit', function(e) {
     e.preventDefault();
     paginaActual = 1;
     buscarPacientes();
   });
   
-  // Búsqueda en tiempo real
   let timeoutBusqueda;
   document.getElementById('campoBusqueda').addEventListener('input', function(e) {
     clearTimeout(timeoutBusqueda);
@@ -25,7 +23,6 @@ document.addEventListener('DOMContentLoaded', function() {
   });
 });
 
-// Cargar obras sociales
 async function cargarObrasSociales() {
   try {
     const response = await fetch('/medico/buscar-paciente/api/obras-sociales');
@@ -33,8 +30,8 @@ async function cargarObrasSociales() {
     
     if (data.success) {
       const select = document.getElementById('filtroObraSocial');
-      
-      data.data.forEach(os => {
+      // ✅ data.obras_sociales no data.data
+      data.obras_sociales.forEach(os => {
         const option = document.createElement('option');
         option.value = os.id;
         option.textContent = os.nombre;
@@ -46,20 +43,21 @@ async function cargarObrasSociales() {
   }
 }
 
-// Buscar pacientes
 async function buscarPacientes(pagina = paginaActual) {
   try {
-    const formData = new FormData(document.getElementById('formBusqueda'));
     const params = new URLSearchParams();
     
+    // ✅ Mandar 'q' no 'busqueda' (el controller lee q)
+    const busqueda = document.getElementById('campoBusqueda').value;
+    const estado = document.getElementById('filtroEstado').value;
+    const obraSocial = document.getElementById('filtroObraSocial').value;
+    
+    if (busqueda) params.append('q', busqueda);
+    if (estado) params.append('estado', estado);
+    if (obraSocial) params.append('obraSocial', obraSocial);
     params.append('page', pagina);
     params.append('limit', resultadosPorPagina);
     
-    for (let [key, value] of formData.entries()) {
-      if (value) params.append(key, value);
-    }
-    
-    // Mostrar loading
     document.getElementById('mensaje-inicial').classList.add('d-none');
     document.getElementById('resultados-busqueda').classList.add('d-none');
     document.getElementById('sin-resultados').classList.add('d-none');
@@ -70,8 +68,15 @@ async function buscarPacientes(pagina = paginaActual) {
     
     document.getElementById('loading-resultados').classList.add('d-none');
     
-    if (data.success && data.data.length > 0) {
-      mostrarResultados(data.data, data.pagination);
+    // ✅ data.pacientes no data.data
+    if (data.success && data.pacientes && data.pacientes.length > 0) {
+      // ✅ Construir pagination desde campos directos del controller
+      const pagination = {
+        total: data.total,
+        page: data.page,
+        totalPages: data.total_pages
+      };
+      mostrarResultados(data.pacientes, pagination);
     } else {
       document.getElementById('sin-resultados').classList.remove('d-none');
     }
@@ -82,7 +87,6 @@ async function buscarPacientes(pagina = paginaActual) {
   }
 }
 
-// Mostrar resultados
 function mostrarResultados(pacientes, pagination) {
   const resultadosDiv = document.getElementById('resultados-busqueda');
   const tbody = document.getElementById('tbody-resultados');
@@ -97,25 +101,23 @@ function mostrarResultados(pacientes, pagination) {
       'Baja': 'danger'
     };
     
+    // ✅ Formato flat: paciente.nombre, no paciente.usuario.nombre
     return `
       <tr>
         <td>
-          <strong>${paciente.usuario.nombre} ${paciente.usuario.apellido}</strong>
-          <br>
-          <small class="text-muted">${paciente.usuario.email || 'Sin email'}</small>
+          <strong>${paciente.nombre} ${paciente.apellido}</strong>
+          ${paciente.relacion?.internado ? '<br><span class="badge bg-warning">Internado</span>' : ''}
         </td>
-        <td>${paciente.usuario.dni}</td>
+        <td>${paciente.dni}</td>
         <td>
           <span class="badge bg-${estadoColors[paciente.estado] || 'secondary'}">
             ${paciente.estado}
           </span>
         </td>
-        <td>${paciente.obraSocial?.nombre || 'Sin obra social'}</td>
+        <td>${paciente.obra_social}</td>
         <td>
-          <button class="btn btn-sm btn-primary" 
-                  onclick="verDetallePaciente(${paciente.id})">
-            <i class="fas fa-eye me-1"></i>
-            Ver Detalle
+          <button class="btn btn-sm btn-primary" onclick="verDetallePaciente(${paciente.id})">
+            <i class="fas fa-eye me-1"></i>Ver Detalle
           </button>
         </td>
       </tr>
@@ -126,7 +128,6 @@ function mostrarResultados(pacientes, pagination) {
   resultadosDiv.classList.remove('d-none');
 }
 
-// Mostrar paginación
 function mostrarPaginacion(pagination) {
   const paginacionDiv = document.getElementById('paginacion');
   
@@ -135,9 +136,7 @@ function mostrarPaginacion(pagination) {
     return;
   }
   
-  let html = '';
-  
-  html += `
+  let html = `
     <li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
       <a class="page-link" href="#" onclick="cambiarPagina(${pagination.page - 1}); return false;">
         <i class="fas fa-chevron-left"></i>
@@ -146,16 +145,10 @@ function mostrarPaginacion(pagination) {
   `;
   
   for (let i = 1; i <= pagination.totalPages; i++) {
-    if (
-      i === 1 || 
-      i === pagination.totalPages || 
-      (i >= pagination.page - 2 && i <= pagination.page + 2)
-    ) {
+    if (i === 1 || i === pagination.totalPages || (i >= pagination.page - 2 && i <= pagination.page + 2)) {
       html += `
         <li class="page-item ${i === pagination.page ? 'active' : ''}">
-          <a class="page-link" href="#" onclick="cambiarPagina(${i}); return false;">
-            ${i}
-          </a>
+          <a class="page-link" href="#" onclick="cambiarPagina(${i}); return false;">${i}</a>
         </li>
       `;
     } else if (i === pagination.page - 3 || i === pagination.page + 3) {
@@ -174,31 +167,27 @@ function mostrarPaginacion(pagination) {
   paginacionDiv.innerHTML = html;
 }
 
-// Cambiar página
 function cambiarPagina(pagina) {
   paginaActual = pagina;
   buscarPacientes(pagina);
 }
 
-// Ver detalle del paciente
 async function verDetallePaciente(id) {
   try {
     const response = await fetch(`/medico/buscar-paciente/api/paciente/${id}`);
     const data = await response.json();
     
     if (data.success) {
-      pacienteActual = data.data;
-      mostrarInfoBasica(data.data);
-      cargarResumen(id, data.data);
+      pacienteActual = data.paciente; // ✅ data.paciente no data.data
+      mostrarInfoBasica(data.paciente);
+      cargarResumen(id, data.paciente);
       
-      // Limpiar tabs
       document.getElementById('evaluaciones').innerHTML = '';
       document.getElementById('turnos').innerHTML = '';
       document.getElementById('internaciones').innerHTML = '';
       document.getElementById('historial').innerHTML = '';
       document.getElementById('documentos').innerHTML = '';
       
-      // Event listeners para cargar datos al cambiar de tab
       document.getElementById('tab-evaluaciones').addEventListener('click', () => cargarEvaluaciones(id), { once: true });
       document.getElementById('tab-turnos').addEventListener('click', () => cargarTurnos(id), { once: true });
       document.getElementById('tab-internaciones').addEventListener('click', () => cargarInternaciones(id), { once: true });
@@ -213,14 +202,8 @@ async function verDetallePaciente(id) {
   }
 }
 
-// Mostrar información básica
-function mostrarInfoBasica(data) {
-  const paciente = data.paciente;
-  const stats = data.estadisticas;
-  
-  const fechaNac = new Date(paciente.usuario.fecha_nacimiento);
-  const edad = Math.floor((new Date() - fechaNac) / (365.25 * 24 * 60 * 60 * 1000));
-  
+// ✅ Recibe paciente directamente (no data.paciente)
+function mostrarInfoBasica(paciente) {
   document.getElementById('info-basica-paciente').innerHTML = `
     <div class="card bg-light">
       <div class="card-body">
@@ -229,7 +212,7 @@ function mostrarInfoBasica(data) {
             <h4>${paciente.usuario.nombre} ${paciente.usuario.apellido}</h4>
             <p class="mb-2">
               <strong>DNI:</strong> ${paciente.usuario.dni}<br>
-              <strong>Edad:</strong> ${edad} años<br>
+              <strong>Edad:</strong> ${paciente.usuario.edad || 'N/A'} años<br>
               <strong>Sexo:</strong> ${paciente.usuario.sexo}<br>
               <strong>Email:</strong> ${paciente.usuario.email || 'No registrado'}<br>
               <strong>Teléfono:</strong> ${paciente.usuario.telefono || 'No registrado'}
@@ -237,15 +220,15 @@ function mostrarInfoBasica(data) {
           </div>
           <div class="col-md-6">
             <p class="mb-2">
-              <strong>Obra Social:</strong> ${paciente.obraSocial?.nombre || 'Sin obra social'}<br>
+              <strong>Obra Social:</strong> ${paciente.obra_social?.nombre || 'Sin obra social'}<br>
               <strong>Estado:</strong> <span class="badge bg-${paciente.estado === 'Activo' ? 'success' : 'warning'}">${paciente.estado}</span><br>
-              <strong>Fecha Ingreso:</strong> ${new Date(paciente.fecha_ingreso).toLocaleDateString('es-AR')}
+              <strong>Fecha Ingreso:</strong> ${paciente.fecha_ingreso ? new Date(paciente.fecha_ingreso).toLocaleDateString('es-AR') : 'N/A'}
             </p>
-            ${stats.internacionActiva ? `
+            ${paciente.internacion_activa ? `
               <div class="alert alert-warning mb-0">
                 <i class="fas fa-bed me-2"></i>
                 <strong>Internado actualmente</strong><br>
-                Hab. ${stats.internacionActiva.habitacion?.numero} - Cama ${stats.internacionActiva.cama?.numero}
+                Hab. ${paciente.internacion_activa.habitacion} - Cama ${paciente.internacion_activa.cama}
               </div>
             ` : ''}
           </div>
@@ -255,9 +238,8 @@ function mostrarInfoBasica(data) {
   `;
 }
 
-// Cargar resumen
-function cargarResumen(id, data) {
-  const stats = data.estadisticas;
+function cargarResumen(id, paciente) {
+  const stats = paciente.estadisticas;
   
   document.getElementById('resumen').innerHTML = `
     <div class="row g-3">
@@ -297,11 +279,12 @@ function cargarResumen(id, data) {
           </div>
         </div>
       </div>
-      ${stats.ultimaEvaluacion ? `
+      ${paciente.ultima_evaluacion ? `
         <div class="col-12">
           <div class="alert alert-info">
             <i class="fas fa-info-circle me-2"></i>
-            <strong>Última evaluación:</strong> ${new Date(stats.ultimaEvaluacion.fecha).toLocaleString('es-AR')}
+            <strong>Última evaluación:</strong> ${new Date(paciente.ultima_evaluacion.fecha).toLocaleString('es-AR')}
+            ${paciente.ultima_evaluacion.medico ? ` - ${paciente.ultima_evaluacion.medico}` : ''}
           </div>
         </div>
       ` : ''}
@@ -309,7 +292,6 @@ function cargarResumen(id, data) {
   `;
 }
 
-// Cargar evaluaciones
 async function cargarEvaluaciones(id) {
   try {
     document.getElementById('evaluaciones').innerHTML = '<div class="text-center py-4"><div class="spinner-border"></div></div>';
@@ -317,23 +299,21 @@ async function cargarEvaluaciones(id) {
     const response = await fetch(`/medico/buscar-paciente/api/paciente/${id}/evaluaciones`);
     const data = await response.json();
     
-    if (data.success && data.data.length > 0) {
+    // ✅ data.evaluaciones no data.data
+    if (data.success && data.evaluaciones && data.evaluaciones.length > 0) {
       document.getElementById('evaluaciones').innerHTML = `
         <div class="table-responsive">
           <table class="table table-sm">
             <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Diagnóstico</th>
-                <th>Tratamiento</th>
-              </tr>
+              <tr><th>Fecha</th><th>Médico</th><th>Motivo</th><th>Diagnóstico</th></tr>
             </thead>
             <tbody>
-              ${data.data.map(ev => `
+              ${data.evaluaciones.map(ev => `
                 <tr>
                   <td>${new Date(ev.fecha).toLocaleString('es-AR')}</td>
-                  <td>${ev.diagnostico ? `${ev.diagnostico.codigo} - ${ev.diagnostico.nombre}` : 'Sin diagnóstico'}</td>
-                  <td>${ev.tratamiento?.nombre || 'Sin tratamiento'}</td>
+                  <td>${ev.medico || 'N/A'}</td>
+                  <td>${ev.motivo_consulta || 'N/A'}</td>
+                  <td>${ev.diagnostico_presuntivo || 'Sin diagnóstico'}</td>
                 </tr>
               `).join('')}
             </tbody>
@@ -344,12 +324,10 @@ async function cargarEvaluaciones(id) {
       document.getElementById('evaluaciones').innerHTML = '<p class="text-muted text-center py-4">No hay evaluaciones registradas</p>';
     }
   } catch (error) {
-    console.error('Error:', error);
     document.getElementById('evaluaciones').innerHTML = '<p class="text-danger text-center py-4">Error al cargar evaluaciones</p>';
   }
 }
 
-// Cargar turnos
 async function cargarTurnos(id) {
   try {
     document.getElementById('turnos').innerHTML = '<div class="text-center py-4"><div class="spinner-border"></div></div>';
@@ -357,22 +335,20 @@ async function cargarTurnos(id) {
     const response = await fetch(`/medico/buscar-paciente/api/paciente/${id}/turnos`);
     const data = await response.json();
     
-    if (data.success && data.data.length > 0) {
+    // ✅ data.turnos no data.data
+    if (data.success && data.turnos && data.turnos.length > 0) {
       document.getElementById('turnos').innerHTML = `
         <div class="table-responsive">
           <table class="table table-sm">
             <thead>
-              <tr>
-                <th>Fecha</th>
-                <th>Hora</th>
-                <th>Estado</th>
-              </tr>
+              <tr><th>Fecha</th><th>Hora</th><th>Médico</th><th>Estado</th></tr>
             </thead>
             <tbody>
-              ${data.data.map(turno => `
+              ${data.turnos.map(turno => `
                 <tr>
                   <td>${new Date(turno.fecha).toLocaleDateString('es-AR')}</td>
-                  <td>${turno.hora_inicio}</td>
+                  <td>${turno.hora || 'N/A'}</td>
+                  <td>${turno.medico || 'N/A'}</td>
                   <td><span class="badge bg-${turno.estado === 'COMPLETADO' ? 'success' : 'warning'}">${turno.estado}</span></td>
                 </tr>
               `).join('')}
@@ -384,12 +360,10 @@ async function cargarTurnos(id) {
       document.getElementById('turnos').innerHTML = '<p class="text-muted text-center py-4">No hay turnos registrados</p>';
     }
   } catch (error) {
-    console.error('Error:', error);
     document.getElementById('turnos').innerHTML = '<p class="text-danger text-center py-4">Error al cargar turnos</p>';
   }
 }
 
-// Cargar internaciones
 async function cargarInternaciones(id) {
   try {
     document.getElementById('internaciones').innerHTML = '<div class="text-center py-4"><div class="spinner-border"></div></div>';
@@ -397,25 +371,22 @@ async function cargarInternaciones(id) {
     const response = await fetch(`/medico/buscar-paciente/api/paciente/${id}/internaciones`);
     const data = await response.json();
     
-    if (data.success && data.data.length > 0) {
+    // ✅ data.internaciones no data.data
+    if (data.success && data.internaciones && data.internaciones.length > 0) {
       document.getElementById('internaciones').innerHTML = `
         <div class="table-responsive">
           <table class="table table-sm">
             <thead>
-              <tr>
-                <th>Tipo</th>
-                <th>Ubicación</th>
-                <th>Fecha Inicio</th>
-                <th>Fecha Alta</th>
-              </tr>
+              <tr><th>Tipo</th><th>Ubicación</th><th>Fecha Inicio</th><th>Fecha Alta</th><th>Estado</th></tr>
             </thead>
             <tbody>
-              ${data.data.map(int => `
+              ${data.internaciones.map(int => `
                 <tr>
-                  <td>${int.tipoInternacion?.nombre || 'N/A'}</td>
-                  <td>Hab. ${int.habitacion?.numero} - Cama ${int.cama?.numero}</td>
+                  <td>${int.tipo || 'N/A'}</td>
+                  <td>Hab. ${int.habitacion || '?'} - Cama ${int.cama || '?'}</td>
                   <td>${new Date(int.fecha_inicio).toLocaleDateString('es-AR')}</td>
-                  <td>${int.fecha_alta ? new Date(int.fecha_alta).toLocaleDateString('es-AR') : 'Activa'}</td>
+                  <td>${int.fecha_alta ? new Date(int.fecha_alta).toLocaleDateString('es-AR') : '-'}</td>
+                  <td><span class="badge bg-${int.estado === 'Activa' ? 'warning' : 'success'}">${int.estado}</span></td>
                 </tr>
               `).join('')}
             </tbody>
@@ -426,12 +397,10 @@ async function cargarInternaciones(id) {
       document.getElementById('internaciones').innerHTML = '<p class="text-muted text-center py-4">No hay internaciones registradas</p>';
     }
   } catch (error) {
-    console.error('Error:', error);
     document.getElementById('internaciones').innerHTML = '<p class="text-danger text-center py-4">Error al cargar internaciones</p>';
   }
 }
 
-// Cargar historial
 async function cargarHistorial(id) {
   try {
     document.getElementById('historial').innerHTML = '<div class="text-center py-4"><div class="spinner-border"></div></div>';
@@ -439,17 +408,15 @@ async function cargarHistorial(id) {
     const response = await fetch(`/medico/buscar-paciente/api/paciente/${id}/historial`);
     const data = await response.json();
     
-    if (data.success && data.data.length > 0) {
+    // ✅ data.historial no data.data
+    if (data.success && data.historial && data.historial.length > 0) {
       document.getElementById('historial').innerHTML = `
         <div class="timeline">
-          ${data.data.map(item => `
-            <div class="timeline-item">
-              <div class="timeline-marker bg-primary"></div>
-              <div class="timeline-content">
-                <small class="text-muted">${new Date(item.fecha).toLocaleString('es-AR')}</small>
-                <h6>${item.tipo_evento}</h6>
-                <p class="mb-0">${item.descripcion}</p>
-              </div>
+          ${data.historial.map(item => `
+            <div class="timeline-item mb-3 p-3 border-start border-primary border-3">
+              <small class="text-muted">${new Date(item.fecha).toLocaleString('es-AR')}</small>
+              <h6 class="mb-1">${item.tipo_evento}</h6>
+              <p class="mb-0">${item.descripcion}</p>
             </div>
           `).join('')}
         </div>
@@ -458,12 +425,10 @@ async function cargarHistorial(id) {
       document.getElementById('historial').innerHTML = '<p class="text-muted text-center py-4">No hay historial médico registrado</p>';
     }
   } catch (error) {
-    console.error('Error:', error);
     document.getElementById('historial').innerHTML = '<p class="text-danger text-center py-4">Error al cargar historial</p>';
   }
 }
 
-// Cargar documentos
 async function cargarDocumentos(id) {
   try {
     document.getElementById('documentos').innerHTML = '<div class="text-center py-4"><div class="spinner-border"></div></div>';
@@ -471,16 +436,18 @@ async function cargarDocumentos(id) {
     const response = await fetch(`/medico/buscar-paciente/api/paciente/${id}/recetas-certificados`);
     const data = await response.json();
     
-    if (data.success && data.data.length > 0) {
+    // ✅ data.items no data.data
+    if (data.success && data.items && data.items.length > 0) {
       document.getElementById('documentos').innerHTML = `
         <div class="list-group">
-          ${data.data.map(doc => `
+          ${data.items.map(doc => `
             <div class="list-group-item">
               <div class="d-flex justify-content-between">
-                <h6><i class="fas fa-${doc.tipo === 'Receta Medica' ? 'prescription' : 'certificate'} me-2"></i>${doc.tipo}</h6>
+                <h6><i class="fas fa-file-medical me-2"></i>${doc.tipo}</h6>
                 <small>${new Date(doc.fecha).toLocaleDateString('es-AR')}</small>
               </div>
-              <p class="mb-0 small">${doc.contenido.substring(0, 100)}...</p>
+              <p class="mb-0 small">${doc.descripcion || 'Sin descripción'}</p>
+              ${doc.medico ? `<small class="text-muted">${doc.medico}</small>` : ''}
             </div>
           `).join('')}
         </div>
@@ -489,12 +456,10 @@ async function cargarDocumentos(id) {
       document.getElementById('documentos').innerHTML = '<p class="text-muted text-center py-4">No hay documentos registrados</p>';
     }
   } catch (error) {
-    console.error('Error:', error);
     document.getElementById('documentos').innerHTML = '<p class="text-danger text-center py-4">Error al cargar documentos</p>';
   }
 }
 
-// Función para mostrar alertas
 function mostrarAlerta(tipo, mensaje) {
   const alertContainer = document.createElement('div');
   alertContainer.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
@@ -504,10 +469,6 @@ function mostrarAlerta(tipo, mensaje) {
     ${mensaje}
     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
   `;
-  
   document.body.appendChild(alertContainer);
-  
-  setTimeout(() => {
-    alertContainer.remove();
-  }, 5000);
+  setTimeout(() => alertContainer.remove(), 5000);
 }

@@ -1,0 +1,222 @@
+extends layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-pills.me-2
+              | Órdenes de Medicación
+            p.text-muted.mb-0 Gestión de recetas y medicación
+          div
+            a.btn.btn-primary(href="/medico/ordenes-medicacion/crear")
+              i.fas.fa-plus.me-2
+              | Nueva Receta
+
+    // Estadísticas
+    .row.mb-4
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Total
+                h3.mb-0= estadisticas.total
+              .bg-primary.bg-opacity-10.p-3.rounded
+                i.fas.fa-prescription.fa-2x.text-primary
+      
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Pendientes
+                h3.mb-0= estadisticas.pendientes
+              .bg-warning.bg-opacity-10.p-3.rounded
+                i.fas.fa-clock.fa-2x.text-warning
+      
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Administradas
+                h3.mb-0= estadisticas.administradas
+              .bg-success.bg-opacity-10.p-3.rounded
+                i.fas.fa-check-circle.fa-2x.text-success
+      
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Hoy
+                h3.mb-0= estadisticas.hoy
+              .bg-info.bg-opacity-10.p-3.rounded
+                i.fas.fa-calendar-day.fa-2x.text-info
+
+    // Filtros
+    .row.mb-4
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form(method="GET" action="/medico/ordenes-medicacion")
+              .row.g-3
+                .col-md-2
+                  label.form-label Estado
+                  select.form-select(name="estado")
+                    option(value="" selected=!filtros.estado) Todos
+                    option(value="PENDIENTE" selected=filtros.estado === 'PENDIENTE') Pendientes
+                    option(value="ADMINISTRADA" selected=filtros.estado === 'ADMINISTRADA') Administradas
+                    option(value="CANCELADA" selected=filtros.estado === 'CANCELADA') Canceladas
+                
+                .col-md-2
+                  label.form-label Prioridad
+                  select.form-select(name="prioridad")
+                    option(value="" selected=!filtros.prioridad) Todas
+                    option(value="BAJA" selected=filtros.prioridad === 'BAJA') Baja 
+                    option(value="ALTA" selected=filtros.prioridad === 'ALTA') Alta
+                    option(value="MEDIA" selected=filtros.prioridad === 'MEDIA') Media
+                
+                .col-md-2
+                  label.form-label Fecha
+                  input.form-control(
+                    type="date"
+                    name="fecha"
+                    value=filtros.fecha || ''
+                  )
+                
+                .col-md-3
+                  label.form-label Paciente
+                  input.form-control(
+                    type="text"
+                    name="paciente"
+                    placeholder="Nombre o DNI"
+                    value=filtros.paciente || ''
+                  )
+                
+                .col-md-3.d-flex.align-items-end
+                  .btn-group.w-100
+                    button.btn.btn-primary(type="submit")
+                      i.fas.fa-search.me-2
+                      | Buscar
+                    a.btn.btn-outline-secondary(href="/medico/ordenes-medicacion")
+                      i.fas.fa-times
+
+    // Lista de recetas
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Lista de Recetas
+          
+          .card-body
+            if recetas && recetas.length > 0
+              .table-responsive
+                table.table.table-hover
+                  thead.table-light
+                    tr
+                      th Fecha
+                      th Paciente
+                      th Medicación
+                      th Prioridad
+                      th Estado
+                      th Acciones
+                  tbody
+                    each receta in recetas
+                      tr
+                        td= new Date(receta.fecha).toLocaleDateString('es-AR')
+                        td
+                          strong #{receta.paciente.usuario.nombre} #{receta.paciente.usuario.apellido}
+                          br
+                          small.text-muted DNI: #{receta.paciente.usuario.dni}
+                        td
+                          = receta.contenido.substring(0, 60) + '...'
+                          if receta.requiere_monitoreo
+                            br
+                            span.badge.bg-warning.text-dark.mt-1
+                              i.fas.fa-heartbeat.me-1
+                              | Monitoreo
+                        td
+                          if receta.prioridad === 'MEDIA'
+                            span.badge.bg-warning.text-dark MEDIA
+                            
+                          else if receta.prioridad === 'ALTA'
+                            span.badge.bg-danger ALTA
+                          else
+                            span.badge.bg-secondary BAJA
+                        td
+                          if receta.estado === 'ADMINISTRADA'
+                            span.badge.bg-success
+                              i.fas.fa-check.me-1
+                              | Administrada
+                            br
+                            small.text-muted= new Date(receta.updated_at).toLocaleString('es-AR')
+                          else if receta.estado === 'CANCELADA'
+                            span.badge.bg-danger
+                              i.fas.fa-times.me-1
+                              | Cancelada
+                          else
+                            span.badge.bg-warning.text-dark
+                              i.fas.fa-clock.me-1
+                              | Pendiente
+                        td
+                          .btn-group.btn-group-sm
+                            a.btn.btn-outline-primary(
+                              href=`/medico/ordenes-medicacion/${receta.id}`
+                              title="Ver detalle"
+                            )
+                              i.fas.fa-eye
+                            if receta.estado === 'PENDIENTE'
+                              a.btn.btn-outline-warning(
+                                href=`/medico/ordenes-medicacion/${receta.id}/editar`
+                                title="Editar"
+                              )
+                                i.fas.fa-edit
+                              button.btn.btn-outline-danger(
+                                type="button"
+                                onclick=`cancelarReceta(${receta.id})`
+                                title="Cancelar"
+                              )
+                                i.fas.fa-ban
+            else
+              .text-center.py-5.text-muted
+                i.fas.fa-inbox.fa-4x.mb-3
+                h5 No hay recetas registradas
+                p Cree una nueva receta para comenzar
+
+block scripts
+  script.
+    function cancelarReceta(id) {
+      if (confirm('¿Está seguro de cancelar esta receta?\n\nEsta acción no se puede deshacer.')) {
+        const motivo = prompt('Ingrese el motivo de cancelación:');
+        
+        if (motivo) {
+          fetch(`/medico/ordenes-medicacion/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ motivo_cancelacion: motivo })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert(data.message);
+              window.location.reload();
+            } else {
+              alert('Error: ' + data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cancelar la receta');
+          });
+        }
+      }
+    }

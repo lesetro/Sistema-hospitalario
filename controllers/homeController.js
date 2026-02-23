@@ -12,17 +12,21 @@ const homeController = {
       
       console.log("👤 Usuario en sesión:", user ? `${user.nombre} (${user.rol})` : 'No autenticado');
 
+      const fechaLimite = new Date();
+      fechaLimite.setFullYear(fechaLimite.getFullYear() - 3);
+
+      // noticias de los ultimos tres años 
       const noticias = await Noticia.findAll({
         where: {
-          fecha: { [Op.gte]: new Date(new Date() - 30 * 24 * 60 * 60 * 1000) } // últimos 30 días
+          fecha: { [Op.gte]: fechaLimite }
         },
-        limit: 10,
-        order: [['fecha', 'DESC']],
-        include: [{
-          model: Usuario,
-          as: 'autor',
-          attributes: ['nombre', 'apellido']
-        }]
+          limit: 4,
+          order: [['fecha', 'DESC']],
+          include: [{
+            model: Usuario,
+              as: 'autor',
+            attributes: ['nombre', 'apellido']
+          }]
       });
 
       const especialidades = await Especialidad.findAll({

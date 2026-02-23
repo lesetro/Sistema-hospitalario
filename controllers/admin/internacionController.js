@@ -24,7 +24,7 @@ const {
 // ============================================================================
 // BUSCAR PACIENTE POR DNI PARA INTERNACIÓN
 // ============================================================================
-const buscarPacienteParaInternacion = async (req, res) => {
+const buscarPacienteParaInternacion = async (req, res, next) => {
   try {
     const { dni } = req.query;
     
@@ -80,19 +80,14 @@ const buscarPacienteParaInternacion = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al buscar paciente:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Error al buscar paciente', 
-      error: error.message 
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // OBTENER DISPONIBILIDAD DE HABITACIONES POR SECTOR
 // ============================================================================
-const getDisponibilidadHabitaciones = async (req, res) => {
+const getDisponibilidadHabitaciones = async (req, res, next) => {
   try {
     const { sector_id, sexo_paciente } = req.query;
 
@@ -127,7 +122,7 @@ const getDisponibilidadHabitaciones = async (req, res) => {
       let razonIncompatibilidad = null;
 
       if (sexo_paciente) {
-        // ✅ CORRECCIÓN: Lógica especial para sexo "Otro"
+        //  Lógica especial para sexo "Otro"
         if (sexo_paciente === 'Otro') {
           // Pacientes "Otro" solo pueden ir a habitaciones Mixtas o Individuales vacías
           if (hab.sexo_permitido !== 'Mixto' && hab.tipo !== 'Individual') {
@@ -184,18 +179,14 @@ const getDisponibilidadHabitaciones = async (req, res) => {
     res.json({ disponibilidad });
 
   } catch (error) {
-    console.error('Error al obtener disponibilidad:', error);
-    res.status(500).json({ 
-      message: 'Error al obtener disponibilidad', 
-      error: error.message 
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // OBTENER CAMAS DISPONIBLES DE UNA HABITACIÓN
 // ============================================================================
-const getCamasDisponibles = async (req, res) => {
+const getCamasDisponibles = async (req, res, next) => {
   try {
     const { habitacion_id, sexo_paciente } = req.query;
 
@@ -254,18 +245,14 @@ const getCamasDisponibles = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener camas:', error);
-    res.status(500).json({ 
-      message: 'Error al obtener camas', 
-      error: error.message 
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // CREAR INTERNACIÓN
 // ============================================================================
-const crearInternacion = async (req, res) => {
+const crearInternacion = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
@@ -399,7 +386,7 @@ const crearInternacion = async (req, res) => {
       // Crear lista de espera (necesaria para la internación)
       const listaEspera = await ListaEspera.create({
         paciente_id,
-        tipo_turno_id: 1, // Asumiendo tipo turno por defecto para internación
+        tipo_turno_id: 1, // para internación
         prioridad: prioridad || 'MEDIA',
         estado: 'PENDIENTE',
         habitacion_id,
@@ -508,18 +495,14 @@ const crearInternacion = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al crear internación:', error);
-    res.status(500).json({ 
-      success: false,
-      message: error.message || 'Error al crear internación'
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // ASIGNAR CAMA A PACIENTE EN LISTA DE ESPERA
 // ============================================================================
-const asignarCamaListaEspera = async (req, res) => {
+const asignarCamaListaEspera = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
@@ -555,7 +538,7 @@ const asignarCamaListaEspera = async (req, res) => {
 
     console.log(` Buscando lista de espera con ID: ${lista_espera_id}`);
 
-    // ✅ CORRECCIÓN: Buscar lista de espera con Paciente y Usuario para obtener el sexo
+    // Buscar lista de espera con Paciente y Usuario para obtener el sexo
     const listaEspera = await ListaEspera.findByPk(lista_espera_id, {
       include: [
         { 
@@ -598,7 +581,7 @@ const asignarCamaListaEspera = async (req, res) => {
 
     const paciente = listaEspera.paciente;
     
-    // ✅ CORRECCIÓN: Validar que tenemos el sexo del paciente
+    // Validar que tenemos el sexo del paciente
     if (!paciente.usuario) {
       await transaction.rollback();
       return res.status(400).json({
@@ -656,7 +639,7 @@ const asignarCamaListaEspera = async (req, res) => {
 
     console.log(' Validaciones de cama y habitación pasadas');
 
-    // ✅ CORRECCIÓN: Validar compatibilidad de sexo incluyendo "Otro"
+    //  Validar compatibilidad de sexo incluyendo "Otro"
     if (sexoPaciente === 'Otro') {
       // Pacientes "Otro" solo pueden ir a Mixtas o Individuales vacías
       if (habitacion.sexo_permitido !== 'Mixto' && habitacion.tipo !== 'Individual') {
@@ -752,18 +735,14 @@ const asignarCamaListaEspera = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('❌ Error al asignar cama:', error);
-    res.status(500).json({
-      success: false,
-      message: error.message || 'Error al asignar cama'
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // OBTENER LISTA DE ESPERA POR SECTOR
 // ============================================================================
-const getListaEsperaPorSector = async (req, res) => {
+const getListaEsperaPorSector = async (req, res, next) => {
   try {
     const { sector_id, prioridad } = req.query;
 
@@ -820,18 +799,14 @@ const getListaEsperaPorSector = async (req, res) => {
     res.json({ lista_espera: listaConDias });
 
   } catch (error) {
-    console.error('Error al obtener lista de espera:', error);
-    res.status(500).json({ 
-      message: 'Error al obtener lista de espera', 
-      error: error.message 
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // OBTENER INTERNACIONES (API)
 // ============================================================================
-const getInternaciones = async (req, res) => {
+const getInternaciones = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, sector_id, tiene_alta, estado_paciente } = req.query;
     const offset = (page - 1) * limit;
@@ -892,19 +867,14 @@ const getInternaciones = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener internaciones:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Error al obtener internaciones', 
-      error: error.message 
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // OBTENER INTERNACIÓN POR ID
 // ============================================================================
-const getInternacionById = async (req, res) => {
+const getInternacionById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -969,19 +939,14 @@ const getInternacionById = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener internación:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Error al obtener internación', 
-      error: error.message 
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // ACTUALIZAR ESTADO DE INTERNACIÓN
 // ============================================================================
-const updateEstadoInternacion = async (req, res) => {
+const updateEstadoInternacion = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
@@ -1015,19 +980,14 @@ const updateEstadoInternacion = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al actualizar estado:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Error al actualizar estado', 
-      error: error.message 
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // CANCELAR LISTA DE ESPERA
 // ============================================================================
-const cancelarListaEspera = async (req, res) => {
+const cancelarListaEspera = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
@@ -1065,19 +1025,14 @@ const cancelarListaEspera = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al cancelar lista de espera:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Error al cancelar lista de espera', 
-      error: error.message 
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // LIBERAR CAMA (poner en limpieza)
 // ============================================================================
-const liberarCama = async (req, res) => {
+const liberarCama = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
@@ -1108,19 +1063,14 @@ const liberarCama = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al liberar cama:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Error al liberar cama', 
-      error: error.message 
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // MARCAR CAMA COMO LIBRE
 // ============================================================================
-const marcarCamaLibre = async (req, res) => {
+const marcarCamaLibre = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
@@ -1151,19 +1101,14 @@ const marcarCamaLibre = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al marcar cama como libre:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Error al marcar cama como libre', 
-      error: error.message 
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // RENDERIZAR VISTA PRINCIPAL DE INTERNACIONES
 // ============================================================================
-const renderInternaciones = async (req, res) => {
+const renderInternaciones = async (req, res, next) => {
   try {
     const [sectores, medicos, tiposInternacion] = await Promise.all([
       Sector.findAll(),
@@ -1185,20 +1130,14 @@ const renderInternaciones = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al renderizar internaciones:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: 'Error al cargar la página de internaciones',
-      error: process.env.NODE_ENV === 'development' ? error : {},
-      user: req.user
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // RENDERIZAR LISTA DE INTERNACIONES
 // ============================================================================
-const renderListaInternaciones = async (req, res) => {
+const renderListaInternaciones = async (req, res, next) => {
   try {
     const { page = 1, limit = 10, sector_id, tiene_alta, estado_paciente } = req.query;
     const offset = (page - 1) * limit;
@@ -1276,20 +1215,14 @@ const renderListaInternaciones = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al renderizar lista de internaciones:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: 'Error al cargar la lista de internaciones',
-      error: process.env.NODE_ENV === 'development' ? error : {},
-      user: req.user
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // RENDERIZAR LISTA DE ESPERA
 // ============================================================================
-const renderListaEspera = async (req, res) => {
+const renderListaEspera = async (req, res, next) => {
   try {
     const { sector_id, prioridad } = req.query;
 
@@ -1367,20 +1300,14 @@ const renderListaEspera = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al renderizar lista de espera:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: 'Error al cargar la lista de espera',
-      error: process.env.NODE_ENV === 'development' ? error : {},
-      user: req.user
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // API - RESUMEN DE DISPONIBILIDAD
 // ============================================================================
-const getResumenDisponibilidad = async (req, res) => {
+const getResumenDisponibilidad = async (req, res, next) => {
   try {
     const sectores = await Sector.findAll({
       include: [{
@@ -1422,18 +1349,14 @@ const getResumenDisponibilidad = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener resumen de disponibilidad:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener resumen de disponibilidad'
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // RENDERIZAR VISTA DE DISPONIBILIDAD DETALLADA
 // ============================================================================
-const renderDisponibilidadDetallada = async (req, res) => {
+const renderDisponibilidadDetallada = async (req, res, next) => {
   try {
     const { sector_id, habitacion_id } = req.query;
     
@@ -1609,13 +1532,7 @@ const renderDisponibilidadDetallada = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al renderizar disponibilidad:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: 'Error al cargar la disponibilidad de camas',
-      error: process.env.NODE_ENV === 'development' ? error : {},
-      user: req.user
-    });
+    next(error);
   }
 };
 

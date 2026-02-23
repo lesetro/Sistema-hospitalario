@@ -61,6 +61,13 @@ block content
                 input.form-control(type='text' name='paciente' placeholder='Nombre, apellido o DNI' value=filtros.paciente)
               
               .col-md-3
+                label.form-label Origen
+                select.form-select(name='origen')
+                  option(value='' selected=!filtros.origen) Todos
+                  option(value='ENFERMERO' selected=(filtros.origen === 'ENFERMERO')) Creadas por Enfermero
+                  option(value='MEDICO' selected=(filtros.origen === 'MEDICO')) Órdenes Médicas
+              
+              .col-md-3
                 label.form-label Estado
                 select.form-select(name='estado')
                   option(value='' selected=!filtros.estado) Todos
@@ -71,7 +78,7 @@ block content
               
               .col-12
                 .form-check
-                  input.form-check-input(type='checkbox' name='solo_mias' id='solo-mias' value='true')
+                  input.form-check-input(type='checkbox' name='solo_mias' id='solo-mias' value='true' checked=filtros.solo_mias)
                   label.form-check-label(for='solo-mias') Ver solo mis evaluaciones
               
               .col-12.d-flex.justify-content-end
@@ -90,10 +97,7 @@ block content
             h5.mb-0
               i.fas.fa-list.me-2
               | Listado de Evaluaciones
-            button.btn.btn-sm.btn-outline-primary(onclick='exportarSeleccionados()' disabled id='btn-exportar')
-              i.fas.fa-file-pdf.me-2
-              | Exportar PDF
-          
+           
           .card-body.p-0
             if evaluaciones.length > 0
               .table-responsive
@@ -105,7 +109,8 @@ block content
                       th Fecha/Hora
                       th Paciente
                       th DNI
-                      th Enfermero
+                      th Responsable
+                      th Tipo
                       th Triaje
                       th Estado
                       th Acciones
@@ -117,11 +122,30 @@ block content
                         td
                           small= new Date(evaluacion.fecha).toLocaleString('es-AR')
                         td
-                          strong= `${evaluacion.paciente.usuario.nombre} ${evaluacion.paciente.usuario.apellido}`
+                          - var pacienteNombre = evaluacion.paciente && evaluacion.paciente.usuario ? `${evaluacion.paciente.usuario.nombre} ${evaluacion.paciente.usuario.apellido}` : 'Paciente no disponible'
+                          - var pacienteDNI = evaluacion.paciente && evaluacion.paciente.usuario ? evaluacion.paciente.usuario.dni : 'N/A'
+                          strong= pacienteNombre
                         td
-                          small.text-muted= evaluacion.paciente.usuario.dni
+                          small.text-muted= pacienteDNI
                         td
-                          small= `${evaluacion.enfermero.usuario.nombre} ${evaluacion.enfermero.usuario.apellido}`
+                          if evaluacion.enfermero && evaluacion.enfermero.usuario
+                            // Evaluación creada por enfermero
+                            small.text-success
+                              i.fas.fa-user-nurse.me-1
+                              = `${evaluacion.enfermero.usuario.nombre} ${evaluacion.enfermero.usuario.apellido}`
+                          else if evaluacion.medico && evaluacion.medico.usuario
+                            // Orden médica pendiente de asignación
+                            small.text-warning
+                              i.fas.fa-user-md.me-1
+                              = `Dr. ${evaluacion.medico.usuario.nombre} ${evaluacion.medico.usuario.apellido}`
+                              span.badge.bg-warning.text-dark.ms-2 Orden Médica
+                          else
+                            small.text-muted No asignado
+                        td
+                          if evaluacion.enfermero && evaluacion.enfermero.usuario
+                            span.badge.bg-info.text-dark Creada por Enfermero
+                          else
+                            span.badge.bg-warning.text-dark Orden Médica
                         td
                           if evaluacion.nivel_triaje
                             case evaluacion.nivel_triaje
@@ -142,18 +166,25 @@ block content
                             when 'PROCEDIMIENTO_COMPLETADO'
                               span.badge.bg-success Completada
                             when 'DERIVACION_MEDICO'
-                              span.badge.bg-primary Derivada
+                              span.badge.bg-primary Derivada a Médico
                             when 'DERIVACION_URGENCIA'
                               span.badge.bg-danger Urgencia
                             default
                               span.badge.bg-secondary= evaluacion.tipo_egreso
+                          
                         td
                           .btn-group.btn-group-sm(role='group')
                             a.btn.btn-outline-info(href=`/enfermero/evaluaciones/${evaluacion.id}` title='Ver detalle')
                               i.fas.fa-eye
                             if evaluacion.tipo_egreso === 'PENDIENTE_EVALUACION'
-                              button.btn.btn-outline-success(onclick=`editarEvaluacion(${evaluacion.id})` title='Editar')
-                                i.fas.fa-edit
+                              if evaluacion.enfermero && evaluacion.enfermero.usuario
+                                // Si ya tiene enfermero asignado, permitir editar
+                                button.btn.btn-outline-success(onclick=`editarEvaluacion(${evaluacion.id})` title='Editar')
+                                  i.fas.fa-edit
+                              else
+                                // Si es orden médica, mostrar botón para tomar
+                                button.btn.btn-outline-primary(onclick=`tomarEvaluacion(${evaluacion.id})` title='Tomar evaluación')
+                                  i.fas.fa-hand-paper
             else
               .p-5.text-center.text-muted
                 i.fas.fa-clipboard.fa-4x.mb-3
@@ -174,12 +205,21 @@ block content
               input(type='hidden' id='edit-evaluacion-id')
               
               .mb-3
-                label.form-label Signos Vitales
-                textarea.form-control(id='edit-signos-vitales' rows='2')
+                label.form-label Signos Vitales 
+                textarea.form-control(id='edit-signos-vitales' rows='2' placeholder='PA: 130/85 mmHg, FC: 78 lpm, T: 36.5°C, SpO2: 98%, FR: 16 rpm')
               
               .mb-3
                 label.form-label Observaciones
                 textarea.form-control(id='edit-observaciones' rows='4')
+              
+              .mb-3
+                label.form-label Nivel de Triaje
+                select.form-select(id='edit-nivel-triaje')
+                  option(value='') Seleccionar
+                  option(value='Rojo') Rojo - Emergencia
+                  option(value='Amarillo') Amarillo - Urgencia
+                  option(value='Verde') Verde - Consulta
+                  option(value='Negro') Negro - Fallecido
               
               .mb-3
                 label.form-label Estado
@@ -203,5 +243,132 @@ block content
             button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
             button.btn.btn-primary(onclick='guardarEdicion()') Guardar Cambios
 
+    // Modal para tomar evaluación (órdenes médicas)
+    #modalTomarEvaluacion.modal.fade(tabindex='-1')
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-hand-paper.me-2
+              | Tomar Evaluación
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            form#form-tomar-evaluacion
+              input(type='hidden' id='tomar-evaluacion-id')
+              
+              .alert.alert-info
+                i.fas.fa-info-circle.me-2
+                | Esta es una orden médica pendiente. Al tomarla, quedará asignada a usted.
+              
+              .mb-3
+                label.form-label Signos Vitales 
+                textarea.form-control(id='tomar-signos-vitales' rows='2' required placeholder='PA: 130/85 mmHg, FC: 78 lpm, T: 36.5°C, SpO2: 98%, FR: 16 rpm')
+              
+              .mb-3
+                label.form-label Observaciones
+                textarea.form-control(id='tomar-observaciones' rows='4')
+              
+              .mb-3
+                label.form-label Nivel de Triaje
+                select.form-select(id='tomar-nivel-triaje' required)
+                  option(value='') Seleccionar
+                  option(value='Rojo') Rojo - Emergencia
+                  option(value='Amarillo') Amarillo - Urgencia
+                  option(value='Verde') Verde - Consulta
+                  option(value='Negro') Negro - Fallecido
+              
+              .mb-3
+                label.form-label Estado
+                select.form-select(id='tomar-tipo-egreso')
+                  option(value='PENDIENTE_EVALUACION') Pendiente
+                  option(value='PROCEDIMIENTO_COMPLETADO') Completada
+                  option(value='DERIVACION_MEDICO') Derivar a Médico
+                  option(value='DERIVACION_URGENCIA') Derivar Urgencia
+              
+              #seccion-derivacion-tomar(style='display:none')
+                .mb-3
+                  label.form-label Médico (opcional)
+                  select.form-select(id='tomar-medico-id')
+                    option(value='') Sin especificar
+                
+                .mb-3
+                  label.form-label Motivo de Derivación
+                  textarea.form-control(id='tomar-motivo-derivacion' rows='3')
+          
+          .modal-footer
+            button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+            button.btn.btn-success(onclick='guardarTomaEvaluacion()') 
+              i.fas.fa-check.me-2
+              | Tomar Evaluación
+
 block scripts
   script(src='/js/enfermero/evaluaciones.js')
+  script.
+    // Función para tomar evaluación (órdenes médicas)
+    function tomarEvaluacion(id) {
+      document.getElementById('tomar-evaluacion-id').value = id;
+      document.getElementById('tomar-signos-vitales').value = '';
+      document.getElementById('tomar-observaciones').value = '';
+      document.getElementById('tomar-nivel-triaje').value = '';
+      document.getElementById('tomar-tipo-egreso').value = 'PENDIENTE_EVALUACION';
+      document.getElementById('tomar-medico-id').value = '';
+      document.getElementById('tomar-motivo-derivacion').value = '';
+      
+      // Cargar médicos
+      fetch('/enfermero/evaluaciones/api/medicos')
+        .then(response => response.json())
+        .then(result => {
+          if (result.success && result.medicos) {
+            const select = document.getElementById('tomar-medico-id');
+            result.medicos.forEach(medico => {
+              const option = document.createElement('option');
+              option.value = medico.id;
+              option.textContent = medico.nombre || `Dr. ${medico.id}`;
+              select.appendChild(option);
+            });
+          }
+        });
+      
+      const modal = new bootstrap.Modal(document.getElementById('modalTomarEvaluacion'));
+      modal.show();
+    }
+    
+    // Guardar toma de evaluación
+    async function guardarTomaEvaluacion() {
+      const id = document.getElementById('tomar-evaluacion-id').value;
+      const datos = {
+        signos_vitales: document.getElementById('tomar-signos-vitales').value,
+        observaciones: document.getElementById('tomar-observaciones').value,
+        nivel_triaje: document.getElementById('tomar-nivel-triaje').value,
+        tipo_egreso: document.getElementById('tomar-tipo-egreso').value,
+        medico_id: document.getElementById('tomar-medico-id')?.value || null,
+        motivo_derivacion: document.getElementById('tomar-motivo-derivacion')?.value || null
+      };
+      
+      if (!datos.signos_vitales || !datos.nivel_triaje) {
+        alert('Complete los campos requeridos');
+        return;
+      }
+      
+      try {
+        const response = await fetch(`/enfermero/evaluaciones/${id}/tomar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(datos)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          alert('Evaluación tomada correctamente');
+          window.location.reload();
+        } else {
+          alert(result.message || 'Error al tomar la evaluación');
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al guardar los cambios');
+      }
+    }

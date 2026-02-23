@@ -12,19 +12,23 @@ const {
   ProcedimientoEnfermeria,
   ProcedimientoPreQuirurgico,
   RecetaCertificado,
-  HistorialMedico,
-  sequelize
+  Sector,
+  ControlEnfermeria,
+  EvaluacionEnfermeria,  
+  Enfermero,
+  HistorialMedico
 } = require('../../models');
 const { Op } = require('sequelize');
+const db = require('../../database/db');
 
 // ========================================
 // RENDERIZAR VISTA DE EVALUACIONES
 // ========================================
-exports.renderEvaluaciones = async (req, res) => {
+exports.renderEvaluaciones = async (req, res, next) => {
   try {
     console.log('🔍 renderEvaluaciones - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+    //  Usar usuario_id
     const usuario = await Usuario.findByPk(req.user.usuario_id, {
       include: [
         {
@@ -56,34 +60,151 @@ exports.renderEvaluaciones = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al renderizar evaluaciones:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: error.message
-    });
+    next(error);
   }
 };
-
-// ========================================
-// OBTENER EVALUACIONES MÉDICAS
-// ========================================
-exports.obtenerEvaluaciones = async (req, res) => {
+// VER DETALLE DE EVALUACIÓN MÉDICA
+exports.verDetalle = async (req, res, next) => {
   try {
-    console.log('📋 obtenerEvaluaciones - usuario_id:', req.user.usuario_id);
-    
-    // ✅ CORRECTO: Usar usuario_id
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
+    const { id } = req.params;
+
+    const evaluacion = await EvaluacionMedica.findByPk(id, {
+      include: [
+        {
+          model: Paciente,
+          as: 'paciente',
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo', 'telefono', 'email']
+          }]
+        },
+        {
+          model: Medico,
+          as: 'medico',
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido']
+          }]
+        },
+        {
+          model: Diagnostico,
+          as: 'diagnostico',
+          required: false
+        },
+        {
+          model: Tratamiento,
+          as: 'tratamiento',
+          required: false
+        },
+        {
+          model: ProcedimientoEnfermeria,
+          as: 'procedimientos_enfermeria',
+          required: false
+        },
+        {
+          model: ProcedimientoPreQuirurgico,
+          as: 'procedimientos_pre_quirurgicos',
+          required: false
+        },
+        {
+          model: RecetaCertificado,
+          as: 'recetas_certificados',
+          required: false
+        },
+        {
+          model: ControlEnfermeria,
+          as: 'controles_enfermeria',
+          required: false
+        },
+        {
+          model: EvaluacionEnfermeria,
+          as: 'evaluaciones_enfermeria',
+          required: false,
+          include: [
+            {
+              model: Enfermero,
+              as: 'enfermero',
+              include: [{
+                model: Usuario,
+                as: 'usuario',
+                attributes: ['nombre', 'apellido']
+              }]
+            }
+          ]
+        }
+      ]
     });
 
-    if (!medico) {
-      console.error('❌ Médico no encontrado');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
+    if (!evaluacion) {
+      return res.status(404).render('error', {
+        message: 'Evaluación médica no encontrada',
+        user: req.user
       });
     }
 
-    console.log('✅ Médico encontrado:', medico.id);
+    //  Buscar TODOS los controles del paciente (los de asociación + los creados desde pacientes)
+    const controlesDelPaciente = await ControlEnfermeria.findAll({
+      where: { paciente_id: evaluacion.paciente_id },
+      order: [['createdAt', 'DESC']]
+    });
+
+    // los que vinieron por asociación + los que vinieron por paciente_id (sin duplicar)
+    const idsYaIncluidos = (evaluacion.controles_enfermeria || []).map(c => c.id);
+    const controlesFaltantes = controlesDelPaciente.filter(c => !idsYaIncluidos.includes(c.id));
+    
+    const todosLosControles = [
+      ...(evaluacion.controles_enfermeria || []),
+      ...controlesFaltantes
+    ];
+
+    let edadPaciente = null;
+    if (evaluacion.paciente?.usuario?.fecha_nacimiento) {
+      const fechaNac = new Date(evaluacion.paciente.usuario.fecha_nacimiento);
+      const hoy = new Date();
+      edadPaciente = Math.floor((hoy - fechaNac) / (1000 * 60 * 60 * 24 * 365));
+    }
+
+    console.log(' Evaluación cargada:', {
+      id: evaluacion.id,
+      controlesPorAsociacion: evaluacion.controles_enfermeria?.length || 0,
+      controlesPorPaciente: controlesDelPaciente.length,
+      totalControles: todosLosControles.length
+    });
+
+    //  Sobreescribir los controles en la evaluación antes de renderizar
+    evaluacion.dataValues.controles_enfermeria = todosLosControles;
+
+    res.render('dashboard/medico/evaluaciones-medicas-detalle', {
+      title: 'Detalle de Evaluación Médica',
+      user: req.user,
+      evaluacion,
+      edadPaciente
+    });
+
+  } catch (error) {
+    console.error('Error al ver detalle de evaluación médica:', error);
+    next(error);
+  }
+};
+// ========================================
+// OBTENER EVALUACIONES MÉDICAS
+// ========================================
+exports.obtenerEvaluaciones = async (req, res, next) => {
+  try {
+    const medico = await Medico.findOne({
+      where: { usuario_id: req.user.usuario_id },
+      include: [{ model: Sector, as: 'sector' }]
+    });
+
+    if (!medico) {
+      return res.status(404).json({ success: false, message: 'Médico no encontrado' });
+    }
+
+    if (medico.sector?.nombre !== 'Emergencias') {
+      return res.status(403).json({ success: false, message: 'Acceso solo para Emergencias' });
+    }
 
     const { 
       paciente_id, 
@@ -97,70 +218,31 @@ exports.obtenerEvaluaciones = async (req, res) => {
 
     const whereClause = { medico_id: medico.id };
 
-    if (paciente_id) {
-      whereClause.paciente_id = paciente_id;
-      console.log('🔍 Filtrando por paciente:', paciente_id);
-    }
-
+    if (paciente_id) whereClause.paciente_id = paciente_id;
     if (fechaDesde && fechaHasta) {
-      whereClause.fecha = {
-        [Op.between]: [fechaDesde, fechaHasta]
-      };
-      console.log('🔍 Filtrando por rango de fechas');
+      whereClause.fecha = { [Op.between]: [fechaDesde, fechaHasta] };
     } else if (fechaDesde) {
       whereClause.fecha = { [Op.gte]: fechaDesde };
     } else if (fechaHasta) {
       whereClause.fecha = { [Op.lte]: fechaHasta };
     }
 
-    const includeClause = [
-      {
-        model: Paciente,
-        as: 'paciente',
-        include: [
-          {
-            model: Usuario,
-            as: 'usuario',
-            attributes: ['id', 'nombre', 'apellido', 'dni']
-          }
-        ]
-      },
-      {
-        model: Diagnostico,
-        as: 'diagnostico',
-        attributes: ['id', 'codigo', 'nombre'],
-        where: diagnostico ? {
-          [Op.or]: [
-            { nombre: { [Op.like]: `%${diagnostico}%` } },
-            { codigo: { [Op.like]: `%${diagnostico}%` } }
-          ]
-        } : undefined,
-        required: !!diagnostico
-      },
-      {
-        model: Tratamiento,
-        as: 'tratamiento',
-        attributes: ['id', 'nombre', 'descripcion'],
-        required: false
-      },
-      {
-        model: Turno,
-        as: 'turnos',
-        attributes: ['id', 'fecha', 'hora_inicio'],
-        required: false
-      }
-    ];
-
-    console.log('🔍 Buscando evaluaciones...');
     const { count, rows: evaluaciones } = await EvaluacionMedica.findAndCountAll({
       where: whereClause,
-      include: includeClause,
+      include: [
+        { 
+          model: Paciente, 
+          as: 'paciente', 
+          include: [{ model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'apellido', 'dni'] }] 
+        },
+        { model: Diagnostico, as: 'diagnostico', attributes: ['id', 'codigo', 'nombre'] },
+        { model: Tratamiento, as: 'tratamiento', attributes: ['id', 'nombre'] },
+        { model: Turno, as: 'turnos', attributes: ['id', 'fecha', 'hora_inicio'] }
+      ],
       order: [['fecha', 'DESC']],
       limit: parseInt(limit),
-      offset: parseInt(offset)
+      offset
     });
-
-    console.log('✅ Evaluaciones encontradas:', count);
 
     res.json({
       success: true,
@@ -172,22 +254,19 @@ exports.obtenerEvaluaciones = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('❌ Error al obtener evaluaciones:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    console.error('Error:', error);
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER EVALUACIÓN POR ID
 // ========================================
-exports.obtenerEvaluacionPorId = async (req, res) => {
+exports.obtenerEvaluacionPorId = async (req, res, next) => {
   try {
     console.log('🔍 obtenerEvaluacionPorId - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+    // Usar usuario_id
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
@@ -279,23 +358,20 @@ exports.obtenerEvaluacionPorId = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener evaluación:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // CREAR NUEVA EVALUACIÓN MÉDICA
 // ========================================
-exports.crearEvaluacion = async (req, res) => {
-  const transaction = await sequelize.transaction();
+exports.crearEvaluacion = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
 
   try {
     console.log('✅ crearEvaluacion - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+    //  Usar usuario_id
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
@@ -381,23 +457,20 @@ exports.crearEvaluacion = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('❌ Error al crear evaluación:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // ACTUALIZAR EVALUACIÓN MÉDICA
 // ========================================
-exports.actualizarEvaluacion = async (req, res) => {
-  const transaction = await sequelize.transaction();
+exports.actualizarEvaluacion = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
 
   try {
     console.log('🔄 actualizarEvaluacion - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+    //  Usar usuario_id
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
@@ -452,17 +525,14 @@ exports.actualizarEvaluacion = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('❌ Error al actualizar evaluación:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER DIAGNÓSTICOS
 // ========================================
-exports.obtenerDiagnosticos = async (req, res) => {
+exports.obtenerDiagnosticos = async (req, res, next) => {
   try {
     console.log('🔍 obtenerDiagnosticos');
     
@@ -496,17 +566,14 @@ exports.obtenerDiagnosticos = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener diagnósticos:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER TRATAMIENTOS
 // ========================================
-exports.obtenerTratamientos = async (req, res) => {
+exports.obtenerTratamientos = async (req, res, next) => {
   try {
     console.log('🔍 obtenerTratamientos');
     
@@ -530,98 +597,127 @@ exports.obtenerTratamientos = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener tratamientos:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER PACIENTES PARA FILTRO
 // ========================================
-exports.obtenerPacientesParaFiltro = async (req, res) => {
+exports.obtenerPacientesParaFiltro = async (req, res, next) => {
   try {
-    console.log('🔍 obtenerPacientesParaFiltro - usuario_id:', req.user.usuario_id);
-    
-    // ✅ CORRECTO: Usar usuario_id
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
-    });
-
-    if (!medico) {
-      console.error('❌ Médico no encontrado');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
-      });
-    }
-
     const { busqueda } = req.query;
 
-    // Obtener pacientes únicos del médico
-    const evaluaciones = await EvaluacionMedica.findAll({
-      where: { medico_id: medico.id },
-      attributes: ['paciente_id'],
-      raw: true
-    });
-
-    const pacientesIds = [...new Set(evaluaciones.map(e => e.paciente_id))];
-
-    if (pacientesIds.length === 0) {
-      console.log('⚠️ Sin pacientes encontrados');
-      return res.json({ 
-        success: true, 
-        data: [] 
+    // Si no hay búsqueda o es muy corta → devolver vacío
+    if (!busqueda || busqueda.trim().length < 3) {
+      return res.json({
+        success: true,
+        data: []
       });
     }
 
-    const whereClause = { id: { [Op.in]: pacientesIds } };
-
-    const includeClause = {
-      model: Usuario,
-      as: 'usuario',
-      attributes: ['id', 'nombre', 'apellido', 'dni'],
-      where: busqueda ? {
-        [Op.or]: [
-          { nombre: { [Op.like]: `%${busqueda}%` } },
-          { apellido: { [Op.like]: `%${busqueda}%` } },
-          { dni: { [Op.like]: `%${busqueda}%` } }
-        ]
-      } : undefined
-    };
+    const trimmedBusqueda = busqueda.trim();
 
     const pacientes = await Paciente.findAll({
-      where: whereClause,
-      include: [includeClause],
+      include: [{
+        model: Usuario,
+        as: 'usuario',
+        where: {
+          [Op.or]: [
+            { nombre:   { [Op.like]: `%${trimmedBusqueda}%` } },
+            { apellido: { [Op.like]: `%${trimmedBusqueda}%` } },
+            { dni:      { [Op.like]: `%${trimmedBusqueda}%` } }
+          ]
+        },
+        attributes: ['id', 'nombre', 'apellido', 'dni']
+      }],
       limit: 20,
       order: [[{ model: Usuario, as: 'usuario' }, 'apellido', 'ASC']]
     });
-
-    console.log('✅ Pacientes encontrados:', pacientes.length);
 
     res.json({
       success: true,
       data: pacientes
     });
   } catch (error) {
-    console.error('❌ Error al obtener pacientes:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
+    console.error('❌ Error al obtener pacientes para filtro:', error.message);
+    next(error);
+  }
+};
+// Solicitar control de enfermería
+exports.solicitarControlEnfermeria = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
+  try {
+    const evaluacion_medica_id = req.body.evaluacion_medica_id || req.params.id;
+
+    const evaluacionMedica = await EvaluacionMedica.findByPk(evaluacion_medica_id, {
+      transaction
     });
+
+    if (!evaluacionMedica) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Evaluación médica no encontrada'
+      });
+    }
+
+    // Verificar duplicados
+    const controlExistente = await ControlEnfermeria.findOne({
+      where: {
+        evaluacion_medica_id,
+        estado: { [Op.in]: ['SOLICITADO', 'PENDIENTE', 'COMPLETADO'] }
+      },
+      transaction
+    });
+
+    if (controlExistente) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Ya existe un control solicitado para esta evaluación'
+      });
+    }
+
+    // Buscar evaluación de enfermería (opcional)
+    const evaluacionEnfermeria = await EvaluacionEnfermeria.findOne({
+      where: { evaluacion_medica_id },
+      order: [['created_at', 'DESC']],
+      transaction
+    });
+
+    //  INCLUIR paciente_id desde la evaluación médica
+    await ControlEnfermeria.create({
+      paciente_id: evaluacionMedica.paciente_id,           
+      evaluacion_enfermeria_id: evaluacionEnfermeria ? evaluacionEnfermeria.id : null,
+      evaluacion_medica_id: parseInt(evaluacion_medica_id),
+      estado: 'SOLICITADO'
+    }, { transaction });
+
+    await transaction.commit();
+
+    res.json({
+      success: true,
+      message: 'Control de enfermería solicitado correctamente'
+    });
+
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Error al solicitar control:', error);
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ESTADÍSTICAS DE EVALUACIONES
 // ========================================
-// ✅ VERSIÓN CORREGIDA - SIN sequelize.fn()
-exports.obtenerEstadisticas = async (req, res) => {
+
+exports.obtenerEstadisticas = async (req, res, next) => {
   try {
     console.log('📊 obtenerEstadisticas - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+    
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
@@ -684,9 +780,6 @@ exports.obtenerEstadisticas = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener estadísticas:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };

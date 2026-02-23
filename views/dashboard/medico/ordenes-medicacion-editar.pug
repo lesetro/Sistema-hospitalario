@@ -1,0 +1,187 @@
+extends layout
+
+block content
+  .container-fluid
+    // Breadcrumb y header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/medico") Dashboard
+            li.breadcrumb-item
+              a(href="/medico/ordenes-medicacion") Órdenes de Medicación
+            li.breadcrumb-item.active Editar Receta
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-edit.me-2
+              | Editar Orden de Medicación
+            p.text-muted.mb-0 Modifique la receta médica
+          div
+            a.btn.btn-outline-secondary(href=`/medico/ordenes-medicacion/${receta.id}`)
+              i.fas.fa-arrow-left.me-2
+              | Volver
+
+    // Formulario
+    .row
+      .col-lg-8.mx-auto
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-prescription.me-2
+              | Receta Médica
+          
+          .card-body
+            form#form-editar-medicacion(method="POST" action=`/medico/ordenes-medicacion/${receta.id}`)
+              input(type="hidden" name="_method" value="PUT")
+              
+              // Información del paciente (solo lectura)
+              .mb-4
+                label.form-label
+                  i.fas.fa-user.me-2
+                  | Paciente
+                .alert.alert-info
+                  strong #{receta.paciente.usuario.nombre} #{receta.paciente.usuario.apellido}
+                  br
+                  small DNI: #{receta.paciente.usuario.dni}
+
+              hr
+
+              // Medicamentos
+              .mb-3
+                label.form-label(for="medicamentos")
+                  i.fas.fa-pills.me-2
+                  | Medicamentos a Administrar
+                  span.text-danger *
+                textarea.form-control(
+                  id="medicamentos"
+                  name="medicamentos"
+                  rows="5"
+                  required
+                )= receta.contenido.split('=== MEDICAMENTOS ===')[1] ? receta.contenido.split('=== MEDICAMENTOS ===')[1].split('\n\n')[0].trim() : receta.contenido
+
+              .row
+                // Vía de administración
+                .col-md-6.mb-3
+                  label.form-label(for="via_administracion")
+                    i.fas.fa-syringe.me-2
+                    | Vía Principal de Administración
+                  select.form-select(id="via_administracion" name="via_administracion")
+                    option(value="") Seleccionar...
+                    option(value="Intravenosa (IV)" selected=receta.contenido.includes('Intravenosa (IV)')) Intravenosa (IV)
+                    option(value="Intramuscular (IM)" selected=receta.contenido.includes('Intramuscular (IM)')) Intramuscular (IM)
+                    option(value="Subcutánea (SC)" selected=receta.contenido.includes('Subcutánea (SC)')) Subcutánea (SC)
+                    option(value="Oral (VO)" selected=receta.contenido.includes('Oral (VO)')) Oral (VO)
+                    option(value="Sublingual (SL)" selected=receta.contenido.includes('Sublingual (SL)')) Sublingual (SL)
+                    option(value="Tópica" selected=receta.contenido.includes('Tópica')) Tópica
+                    option(value="Inhalatoria" selected=receta.contenido.includes('Inhalatoria')) Inhalatoria
+                    option(value="Rectal" selected=receta.contenido.includes('Rectal')) Rectal
+                    option(value="Mixta" selected=receta.contenido.includes('Mixta')) Mixta
+
+                // Frecuencia
+                .col-md-6.mb-3
+                  label.form-label(for="frecuencia")
+                    i.fas.fa-clock.me-2
+                    | Frecuencia de Administración
+                  input.form-control(
+                    type="text"
+                    id="frecuencia"
+                    name="frecuencia"
+                    value=receta.contenido.includes('Frecuencia:') ? receta.contenido.split('Frecuencia: ')[1].split('\n')[0] : ''
+                    placeholder="Ej: c/8hs, c/12hs, 3 veces al día"
+                  )
+
+              // Duración del tratamiento
+              .mb-3
+                label.form-label(for="duracion_tratamiento")
+                  i.fas.fa-calendar-days.me-2
+                  | Duración del Tratamiento
+                input.form-control(
+                  type="text"
+                  id="duracion_tratamiento"
+                  name="duracion_tratamiento"
+                  value=receta.contenido.includes('Duración del tratamiento:') ? receta.contenido.split('Duración del tratamiento: ')[1].split('\n')[0] : ''
+                  placeholder="Ej: 7 días, 14 días, Hasta mejoría clínica"
+                )
+
+              // Observaciones especiales
+              .mb-3
+                label.form-label(for="observaciones_especiales")
+                  i.fas.fa-exclamation-circle.me-2
+                  | Observaciones Especiales
+                textarea.form-control(
+                  id="observaciones_especiales"
+                  name="observaciones_especiales"
+                  rows="3"
+                )= receta.contenido.includes('OBSERVACIONES ESPECIALES') ? receta.contenido.split('OBSERVACIONES ESPECIALES ===')[1].split('\n\n')[0].trim() : ''
+
+              .row
+                // Prioridad
+                .col-md-6.mb-3
+                  label.form-label(for="prioridad")
+                    i.fas.fa-flag.me-2
+                    | Prioridad
+                    span.text-danger *
+                  select.form-select(id="prioridad" name="prioridad" required)
+                    option(value="BAJA" selected=receta.prioridad === 'BAJA') Baja
+                    option(value="ALTA" selected=receta.prioridad === 'ALTA') Alta
+                    option(value="MEDIA" selected=receta.prioridad === 'MEDIA') Media
+
+                // Requiere monitoreo
+                .col-md-6.mb-3
+                  .mt-4
+                    .form-check
+                      input.form-check-input(
+                        type="checkbox"
+                        id="requiere_monitoreo"
+                        name="requiere_monitoreo"
+                        value="true"
+                        checked=receta.requiere_monitoreo
+                      )
+                      label.form-check-label(for="requiere_monitoreo")
+                        i.fas.fa-heartbeat.me-2
+                        | Requiere monitoreo estricto de signos vitales
+
+              hr
+
+              // Botones
+              .d-grid.gap-2.d-md-flex.justify-content-md-end
+                a.btn.btn-secondary(href=`/medico/ordenes-medicacion/${receta.id}`)
+                  i.fas.fa-times.me-2
+                  | Cancelar
+                button.btn.btn-primary(type="submit")
+                  i.fas.fa-save.me-2
+                  | Guardar Cambios
+
+block scripts
+  script.
+    document.getElementById('form-editar-medicacion').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const data = Object.fromEntries(formData.entries());
+      
+      try {
+        const response = await fetch(`/medico/ordenes-medicacion/${#{receta.id}}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          alert(result.message);
+          window.location.href = result.redirect;
+        } else {
+          alert('Error: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al actualizar la receta');
+      }
+    });

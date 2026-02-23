@@ -1,0 +1,220 @@
+extends layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-bed.me-2
+              | Órdenes para Internados
+            p.text-muted.mb-0 Gestión de órdenes médicas para pacientes internados
+          div
+            a.btn.btn-primary(href="/medico/ordenes-internacion/crear")
+              i.fas.fa-plus-circle.me-2
+              | Nueva Orden
+
+    // Estadísticas
+    .row.mb-4
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Total Órdenes
+                h3.mb-0= estadisticas.total
+              .bg-primary.bg-opacity-10.p-3.rounded
+                i.fas.fa-clipboard-list.fa-2x.text-primary
+      
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Pendientes
+                h3.mb-0= estadisticas.pendientes
+              .bg-warning.bg-opacity-10.p-3.rounded
+                i.fas.fa-clock.fa-2x.text-warning
+      
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Completadas
+                h3.mb-0= estadisticas.completadas
+              .bg-success.bg-opacity-10.p-3.rounded
+                i.fas.fa-check-circle.fa-2x.text-success
+      
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Urgentes
+                h3.mb-0= estadisticas.urgentes
+              .bg-danger.bg-opacity-10.p-3.rounded
+                i.fas.fa-exclamation-triangle.fa-2x.text-danger
+
+    // Filtros
+    .row.mb-4
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form(method="GET" action="/medico/ordenes-internacion")
+              .row.g-3
+                .col-md-2
+                  label.form-label Estado
+                  select.form-select(name="estado")
+                    option(value="" selected=!filtros.estado) Todos
+                    option(value="PENDIENTE" selected=filtros.estado === 'PENDIENTE') Pendientes
+                    option(value="COMPLETADA" selected=filtros.estado === 'COMPLETADA') Completadas
+                    option(value="CANCELADA" selected=filtros.estado === 'CANCELADA') Canceladas
+                
+                .col-md-2
+                  label.form-label Prioridad
+                  select.form-select(name="prioridad")
+                    option(value="" selected=!filtros.prioridad) Todas
+                    option(value="URGENTE" selected=filtros.prioridad === 'URGENTE') Urgente
+                    option(value="ALTA" selected=filtros.prioridad === 'ALTA') Alta
+                    option(value="NORMAL" selected=filtros.prioridad === 'NORMAL') Normal
+                
+                .col-md-2
+                  label.form-label Sector
+                  select.form-select(name="sector")
+                    option(value="" selected=!filtros.sector) Todos
+                    each sect in sectores
+                      option(value=sect.id selected=filtros.sector == sect.id)= sect.nombre
+                
+                .col-md-3
+                  label.form-label Paciente
+                  input.form-control(
+                    type="text"
+                    name="paciente"
+                    placeholder="Nombre o DNI"
+                    value=filtros.paciente || ''
+                  )
+                
+                .col-md-3.d-flex.align-items-end
+                  .btn-group.w-100
+                    button.btn.btn-primary(type="submit")
+                      i.fas.fa-search.me-2
+                      | Buscar
+                    a.btn.btn-outline-secondary(href="/medico/ordenes-internacion")
+                      i.fas.fa-times
+
+    // Lista de órdenes
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Lista de Órdenes
+          
+          .card-body
+            if ordenes && ordenes.length > 0
+              .table-responsive
+                table.table.table-hover
+                  thead.table-light
+                    tr
+                      th Fecha
+                      th Paciente
+                      th Ubicación
+                      th Orden
+                      th Prioridad
+                      th Estado
+                      th Acciones
+                  tbody
+                    each orden in ordenes
+                      tr
+                        td= new Date(orden.fecha).toLocaleDateString('es-AR')
+                        td
+                          strong #{orden.paciente.usuario.nombre} #{orden.paciente.usuario.apellido}
+                          br
+                          small.text-muted DNI: #{orden.paciente.usuario.dni}
+                        td
+                          if orden.internacion && orden.internacion.cama
+                            small
+                              strong #{orden.internacion.cama.habitacion.sector.nombre}
+                              br
+                              | Hab. #{orden.internacion.cama.habitacion.numero} - Cama #{orden.internacion.cama.numero}
+                          else
+                            span.badge.bg-secondary No disponible
+                        td
+                          small= orden.observaciones.substring(0, 60) + (orden.observaciones.length > 60 ? '...' : '')
+                        td
+                          if orden.prioridad === 'URGENTE'
+                            span.badge.bg-danger URGENTE
+                          else if orden.prioridad === 'ALTA'
+                            span.badge.bg-warning.text-dark ALTA
+                          else
+                            span.badge.bg-secondary NORMAL
+                        td
+                          if orden.estado === 'PENDIENTE'
+                            span.badge.bg-warning.text-dark
+                              i.fas.fa-clock.me-1
+                              | Pendiente
+                          else if orden.estado === 'COMPLETADA'
+                            span.badge.bg-success
+                              i.fas.fa-check.me-1
+                              | Completada
+                          else if orden.estado === 'CANCELADA'
+                            span.badge.bg-danger
+                              i.fas.fa-times.me-1
+                              | Cancelada
+                        td
+                          .btn-group.btn-group-sm
+                            a.btn.btn-outline-primary(
+                              href=`/medico/ordenes-internacion/${orden.id}`
+                              title="Ver detalle"
+                            )
+                              i.fas.fa-eye
+                            if orden.estado === 'PENDIENTE'
+                              button.btn.btn-outline-danger(
+                                type="button"
+                                onclick=`cancelarOrden(${orden.id})`
+                                title="Cancelar"
+                              )
+                                i.fas.fa-ban
+            else
+              .text-center.py-5.text-muted
+                i.fas.fa-inbox.fa-4x.mb-3
+                h5 No hay órdenes registradas
+                p Cree una nueva orden desde el botón "Nueva Orden"
+                a.btn.btn-primary.mt-3(href="/medico/ordenes-internacion/crear")
+                  i.fas.fa-plus-circle.me-2
+                  | Crear Primera Orden
+
+block scripts
+  script.
+    function cancelarOrden(id) {
+      if (confirm('¿Está seguro de cancelar esta orden?\n\nEsta acción no se puede deshacer.')) {
+        const motivo = prompt('Ingrese el motivo de cancelación:');
+        
+        if (motivo && motivo.trim() !== '') {
+          fetch(`/medico/ordenes-internacion/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ motivo_cancelacion: motivo })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert(data.message);
+              window.location.reload();
+            } else {
+              alert('Error: ' + data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cancelar la orden');
+          });
+        }
+      }
+    }

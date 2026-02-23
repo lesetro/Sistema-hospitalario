@@ -1,4 +1,30 @@
-// Detalle de Evaluación
+// Detalle de Evaluación - Solo para enfermeros
+
+// Tomar orden médica
+async function tomarEvaluacion(id) {
+  if (!confirm('¿Confirmas que quieres tomar esta orden médica?')) return;
+  
+  try {
+    const response = await fetch(`/enfermero/evaluaciones/${id}/tomar`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    const result = await response.json();
+    
+    if (result.success) {
+      alert('Orden médica asignada correctamente');
+      window.location.href = result.redirect || `/enfermero/evaluaciones/${id}`;
+    } else {
+      alert(result.message || 'Error al tomar la orden');
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al tomar la orden médica');
+  }
+}
 
 // Completar evaluación
 async function completarEvaluacion(id) {
@@ -39,7 +65,7 @@ async function derivarMedico(id) {
     return;
   }
   
-  const urgente = confirm('¿Es una derivación urgente?');
+  const urgente = confirm('¿Es una derivación urgente? (Aceptar = Sí / Cancelar = No)');
   
   try {
     const response = await fetch(`/enfermero/evaluaciones/${id}/derivar-medico`, {
@@ -66,3 +92,8 @@ async function derivarMedico(id) {
     alert('Error al derivar al paciente');
   }
 }
+
+// Inicialización cuando carga la página
+document.addEventListener('DOMContentLoaded', function() {
+  console.log('Vista de detalle de evaluación cargada');
+});

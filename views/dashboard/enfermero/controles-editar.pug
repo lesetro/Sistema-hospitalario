@@ -1,0 +1,384 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  - const pacienteData = control.evaluacion?.paciente || control.paciente
+  
+  .container-fluid
+    nav(aria-label="breadcrumb")
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href="/enfermero") Dashboard
+        li.breadcrumb-item
+          a(href="/enfermero/controles") Controles
+        li.breadcrumb-item
+          a(href=`/enfermero/controles/${control.id}`) Detalle
+        li.breadcrumb-item.active Editar
+
+    .row.justify-content-center
+      .col-lg-12
+        .card.border-0.shadow-sm
+          .card-header.bg-warning.text-white
+            h4.mb-0
+              i.fas.fa-edit.me-2
+              | Editar Control de Enfermería ##{control.id}
+          
+          .card-body
+            form#formEditarControl(method="POST" action=`/enfermero/controles/${control.id}`)
+              // Datos del paciente (solo lectura)
+              .row.mb-4
+                .col-md-6
+                  .card.h-100
+                    .card-header.bg-light
+                      h5.mb-0
+                        i.fas.fa-user.me-2
+                        | Paciente
+                    .card-body
+                      table.table.table-borderless.mb-0
+                        tr
+                          th Nombre:
+                          td= pacienteData ? `${pacienteData.usuario.nombre} ${pacienteData.usuario.apellido}` : 'N/A'
+                        tr
+                          th DNI:
+                          td= pacienteData ? pacienteData.usuario.dni : 'N/A'
+                        tr
+                          th Sexo:
+                          td= pacienteData ? pacienteData.usuario.sexo : 'N/A'
+                
+                .col-md-6
+                  .card.h-100
+                    .card-header.bg-light
+                      h5.mb-0
+                        i.fas.fa-info-circle.me-2
+                        | Información del Control
+                    .card-body
+                      table.table.table-borderless.mb-0
+                        tr
+                          th Fecha Creación:
+                          td= new Date(control.createdAt).toLocaleString('es-AR')
+                        tr
+                          th Estado:
+                          td
+                            span.badge(class=`bg-${control.estado === 'COMPLETADO' ? 'success' : 'warning'}`)= control.estado
+
+              // Datos Generales
+              .card.mb-4
+                .card-header.bg-light
+                  h5.mb-0
+                    i.fas.fa-user-circle.me-2
+                    | Datos Generales
+                .card-body
+                  .row.g-3
+                    .col-md-6
+                      label.form-label Alergias
+                      textarea.form-control(name='alergias' rows='2' placeholder='Medicamentos, alimentos, otros...' maxlength='500')= control.alergias || ''
+                      small.text-muted Máx. 500 caracteres
+                    
+                    .col-md-6
+                      label.form-label Antecedentes Personales
+                      textarea.form-control(name='antecedentes_personales' rows='2' placeholder='Enfermedades previas, cirugías...' maxlength='500')= control.antecedentes_personales || ''
+                      small.text-muted Máx. 500 caracteres
+                    
+                    .col-md-12
+                      label.form-label Antecedentes Familiares
+                      textarea.form-control(name='antecedentes_familiares' rows='2' placeholder='Enfermedades hereditarias...' maxlength='500')= control.antecedentes_familiares || ''
+                      small.text-muted Máx. 500 caracteres
+                    
+                    .col-md-6
+                      label.form-label Grupo Sanguíneo
+                      select.form-select(name='grupo_sanguineo')
+                        option(value='') Seleccionar
+                        option(value='A' selected=control.grupo_sanguineo === 'A') A
+                        option(value='B' selected=control.grupo_sanguineo === 'B') B
+                        option(value='AB' selected=control.grupo_sanguineo === 'AB') AB
+                        option(value='O' selected=control.grupo_sanguineo === 'O') O
+                    
+                    .col-md-6
+                      label.form-label Factor RH
+                      select.form-select(name='factor_rh')
+                        option(value='') Seleccionar
+                        option(value='Positivo' selected=control.factor_rh == 'Positivo') Positivo
+                        option(value='Negativo' selected=control.factor_rh == 'Negativo') Negativo
+
+              // Medidas Antropométricas
+              .card.mb-4
+                .card-header.bg-light
+                  h5.mb-0
+                    i.fas.fa-weight.me-2
+                    | Medidas Antropométricas
+                .card-body
+                  .row.g-3
+                    .col-md-4
+                      label.form-label Peso (kg)
+                      input.form-control#peso(
+                        type='number' 
+                        name='peso' 
+                        step='0.1' 
+                        value=control.peso || ''
+                        placeholder='70.5'
+                        min='0.5'
+                        max='300'
+                      )
+                      small.text-muted Rango: 0.5 - 300 kg
+                    
+                    .col-md-4
+                      label.form-label Altura (cm)
+                      input.form-control#altura(
+                        type='number' 
+                        name='altura' 
+                        value=control.altura || ''
+                        placeholder='175'
+                        min='30'
+                        max='250'
+                      )
+                      small.text-muted Rango: 30 - 250 cm
+                    
+                    .col-md-4
+                      label.form-label IMC (Calculado)
+                      .card.text-center
+                        .card-body.p-2
+                          if control.peso && control.altura
+                            - const imc = (control.peso / Math.pow(control.altura / 100, 2)).toFixed(1)
+                            h4.mb-0#imc-value= imc
+                            small#imc-categoria= imc < 18.5 ? 'Bajo peso' : imc < 25 ? 'Peso normal' : imc < 30 ? 'Sobrepeso' : imc < 35 ? 'Obesidad grado I' : imc < 40 ? 'Obesidad grado II' : 'Obesidad grado III'
+                          else
+                            h4.mb-0.text-muted#imc-value N/A
+                            small#imc-categoria
+
+              // Signos Vitales
+              .card.mb-4
+                .card-header.bg-danger.text-white
+                  h5.mb-0
+                    i.fas.fa-heartbeat.me-2
+                    | Signos Vitales
+                .card-body
+                  .row.g-3
+                    .col-md-3
+                      label.form-label 
+                        | Presión Arterial 
+                        span.text-danger *
+                      .input-group
+                        input.form-control(
+                          type='text' 
+                          name='presion_arterial' 
+                          value=control.presion_arterial || ''
+                          placeholder='120/80'
+                          pattern='\\d{2,3}/\\d{2,3}'
+                          required
+                        )
+                        span.input-group-text mmHg
+                      small.text-muted Normal: 90/60 - 140/90
+                    
+                    .col-md-3
+                      label.form-label 
+                        | Frec. Cardíaca 
+                        span.text-danger *
+                      .input-group
+                        input.form-control(
+                          type='number' 
+                          name='frecuencia_cardiaca' 
+                          value=control.frecuencia_cardiaca || ''
+                          placeholder='70'
+                          min='30'
+                          max='220'
+                          required
+                        )
+                        span.input-group-text lpm
+                      small.text-muted Normal: 60 - 100 lpm
+                    
+                    .col-md-3
+                      label.form-label Frec. Respiratoria
+                      .input-group
+                        input.form-control(
+                          type='number' 
+                          name='frecuencia_respiratoria' 
+                          value=control.frecuencia_respiratoria || ''
+                          placeholder='16'
+                          min='8'
+                          max='40'
+                        )
+                        span.input-group-text rpm
+                      small.text-muted Normal: 12 - 20 rpm
+                    
+                    .col-md-3
+                      label.form-label 
+                        | Temperatura 
+                        span.text-danger *
+                      .input-group
+                        input.form-control(
+                          type='number' 
+                          name='temperatura' 
+                          step='0.1' 
+                          value=control.temperatura || ''
+                          placeholder='36.5'
+                          min='35'
+                          max='42'
+                          required
+                        )
+                        span.input-group-text °C
+                      small.text-muted Normal: 36 - 37.5°C
+                    
+                    .col-md-3
+                      label.form-label Sat. Oxígeno
+                      .input-group
+                        input.form-control(
+                          type='number' 
+                          name='nivel_oxigeno' 
+                          value=control.nivel_oxigeno || ''
+                          placeholder='98'
+                          min='70'
+                          max='100'
+                        )
+                        span.input-group-text %
+                      small.text-muted Normal: 95 - 100%
+
+              // Laboratorio - COMPLETO
+              .card.mb-4
+                .card-header.bg-info.text-white.d-flex.justify-content-between.align-items-center
+                  h5.mb-0
+                    i.fas.fa-flask.me-2
+                    | Valores de Laboratorio
+                  small (Opcional)
+                .card-body
+                  .row.g-3
+                    .col-md-3
+                      label.form-label Glucosa (mg/dL)
+                      input.form-control(type='number' name='nivel_glucosa' step='0.1' value=control.nivel_glucosa || '' min='20' max='600')
+                      small.text-muted Normal: 70 - 110
+                    
+                    .col-md-3
+                      label.form-label Colesterol (mg/dL)
+                      input.form-control(type='number' name='nivel_colesterol' step='0.1' value=control.nivel_colesterol || '' min='100' max='400')
+                      small.text-muted Normal: < 200
+                    
+                    .col-md-3
+                      label.form-label Triglicéridos (mg/dL)
+                      input.form-control(type='number' name='nivel_trigliceridos' step='0.1' value=control.nivel_trigliceridos || '' min='50' max='500')
+                      small.text-muted Normal: < 150
+                    
+                    .col-md-3
+                      label.form-label Creatinina (mg/dL)
+                      input.form-control(type='number' name='nivel_creatinina' step='0.01' value=control.nivel_creatinina || '' min='0.3' max='5')
+                      small.text-muted Normal: 0.6 - 1.2
+                    
+                    .col-md-3
+                      label.form-label Urea (mg/dL)
+                      input.form-control(type='number' name='nivel_urea' step='0.1' value=control.nivel_urea || '' min='10' max='150')
+                      small.text-muted Normal: 15 - 50
+                    
+                    .col-md-3
+                      label.form-label Ácido Úrico (mg/dL)
+                      input.form-control(type='number' name='nivel_acido_urico' step='0.1' value=control.nivel_acido_urico || '' min='2' max='12')
+                      small.text-muted Normal: 3.5 - 7.2
+                    
+                    .col-md-3
+                      label.form-label Hemoglobina (g/dL)
+                      input.form-control(type='number' name='nivel_hb' step='0.1' value=control.nivel_hb || '' min='5' max='20')
+                      small.text-muted Normal: 12 - 17
+                    
+                    .col-md-3
+                      label.form-label Hematocrito (%)
+                      input.form-control(type='number' name='nivel_hct' step='0.1' value=control.nivel_hct || '' min='20' max='60')
+                      small.text-muted Normal: 37 - 50
+                    
+                    .col-md-3
+                      label.form-label Leucocitos (mm³)
+                      input.form-control(type='number' name='nivel_leucocitos' value=control.nivel_leucocitos || '' min='1000' max='30000')
+                      small.text-muted Normal: 4000 - 11000
+                    
+                    .col-md-3
+                      label.form-label Plaquetas (mm³)
+                      input.form-control(type='number' name='nivel_plaquetas' value=control.nivel_plaquetas || '' min='50000' max='600000')
+                      small.text-muted Normal: 150000 - 450000
+                    
+                    .col-md-3
+                      label.form-label Proteínas Totales (g/dL)
+                      input.form-control(type='number' name='nivel_proteinas' step='0.1' value=control.nivel_proteinas || '' min='4' max='10')
+                      small.text-muted Normal: 6 - 8
+                    
+                    .col-md-3
+                      label.form-label Albúmina (g/dL)
+                      input.form-control(type='number' name='nivel_albumina' step='0.1' value=control.nivel_albumina || '' min='2' max='6')
+                      small.text-muted Normal: 3.5 - 5
+                    
+                    .col-md-3
+                      label.form-label Globulina (g/dL)
+                      input.form-control(type='number' name='nivel_globulina' step='0.1' value=control.nivel_globulina || '' min='1' max='5')
+                      small.text-muted Normal: 2 - 3.5
+                    
+                    .col-md-3
+                      label.form-label Fosfatasa Alcalina (U/L)
+                      input.form-control(type='number' name='nivel_fosfatasa' value=control.nivel_fosfatasa || '' min='20' max='500')
+                      small.text-muted Normal: 40 - 130
+
+              // Nota
+              .alert.alert-info
+                i.fas.fa-info-circle.me-2
+                | Los campos marcados con 
+                span.text-danger *
+                |  son obligatorios
+
+              // Botones
+              .d-flex.justify-content-between
+                a.btn.btn-secondary(href=`/enfermero/controles/${control.id}`)
+                  i.fas.fa-times.me-2
+                  | Cancelar
+                button.btn.btn-primary(type='submit')
+                  i.fas.fa-save.me-2
+                  | Guardar Cambios
+
+block scripts
+  script.
+    // Calcular IMC en tiempo real
+    document.getElementById('peso')?.addEventListener('input', calcularIMC);
+    document.getElementById('altura')?.addEventListener('input', calcularIMC);
+
+    function calcularIMC() {
+      const peso = parseFloat(document.getElementById('peso').value);
+      const altura = parseFloat(document.getElementById('altura').value);
+      
+      if (peso && altura && altura > 0) {
+        const imc = (peso / Math.pow(altura / 100, 2)).toFixed(1);
+        document.getElementById('imc-value').textContent = imc;
+        document.getElementById('imc-value').classList.remove('text-muted');
+        
+        let categoria = '';
+        if (imc < 18.5) categoria = 'Bajo peso';
+        else if (imc < 25) categoria = 'Peso normal';
+        else if (imc < 30) categoria = 'Sobrepeso';
+        else if (imc < 35) categoria = 'Obesidad grado I';
+        else if (imc < 40) categoria = 'Obesidad grado II';
+        else categoria = 'Obesidad grado III';
+        
+        document.getElementById('imc-categoria').textContent = categoria;
+      }
+    }
+
+    // Enviar formulario
+    document.getElementById('formEditarControl')?.addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      if (!confirm('¿Está seguro de guardar los cambios?')) return;
+      
+      const formData = new FormData(this);
+      const data = Object.fromEntries(formData);
+      
+      try {
+        const response = await fetch(`/enfermero/controles/#{control.id}`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          alert(' Control actualizado correctamente');
+          window.location.href = result.redirect;
+        } else {
+          alert('❌ ' + result.message);
+        }
+      } catch (error) {
+        console.error(error);
+        alert('❌ Error de conexión');
+      }
+    });

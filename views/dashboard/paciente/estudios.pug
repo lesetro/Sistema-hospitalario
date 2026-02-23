@@ -1,0 +1,158 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .estudios-paciente
+    .page-header.mb-4
+      .row.align-items-center
+        .col-md-8
+          h2
+            i.fas.fa-x-ray.text-primary.me-2
+            | Mis Estudios
+          p.text-muted Estudios médicos solicitados y realizados
+        .col-md-4.text-md-end
+          a.btn.btn-outline-secondary(href='/paciente')
+            i.fas.fa-arrow-left.me-2
+            | Volver
+
+    //- Estadísticas
+    .row.mb-4
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-primary.text-white.mb-2
+              i.fas.fa-vial.fa-2x
+            h3.stat-number.text-primary #{estadisticas.total}
+            p.stat-label.mb-0 Total Estudios
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-warning.text-white.mb-2
+              i.fas.fa-clock.fa-2x
+            h3.stat-number.text-warning #{estadisticas.pendientes}
+            p.stat-label.mb-0 Pendientes
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-success.text-white.mb-2
+              i.fas.fa-check-circle.fa-2x
+            h3.stat-number.text-success #{estadisticas.realizados}
+            p.stat-label.mb-0 Realizados
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-danger.text-white.mb-2
+              i.fas.fa-exclamation-triangle.fa-2x
+            h3.stat-number.text-danger #{estadisticas.urgentes}
+            p.stat-label.mb-0 Urgentes
+
+    if estadisticas.urgentes > 0
+      .alert.alert-danger.mb-4
+        i.fas.fa-exclamation-triangle.me-2
+        strong Atención:
+        |  Tienes #{estadisticas.urgentes} estudio#{estadisticas.urgentes > 1 ? 's' : ''} urgente#{estadisticas.urgentes > 1 ? 's' : ''} pendiente#{estadisticas.urgentes > 1 ? 's' : ''}.
+
+    //- Filtros
+    .card.border-0.shadow-sm.mb-4
+      .card-body
+        form(method='GET')
+          .row.g-3
+            .col-md-3
+              label.form-label Estado
+              select.form-select(name='estado')
+                option(value='', selected=!filtros.estado) Todos
+                option(value='Pendiente', selected=filtros.estado === 'Pendiente') Pendiente
+                option(value='Realizado', selected=filtros.estado === 'Realizado') Realizado
+                option(value='Cancelado', selected=filtros.estado === 'Cancelado') Cancelado
+            .col-md-3
+              label.form-label Categoría
+              select.form-select(name='categoria')
+                option(value='', selected=!filtros.categoria) Todas
+                option(value='Imagenología', selected=filtros.categoria === 'Imagenología') Imagenología
+                option(value='Laboratorio', selected=filtros.categoria === 'Laboratorio') Laboratorio
+                option(value='Fisiológico', selected=filtros.categoria === 'Fisiológico') Fisiológico
+            .col-md-3
+              label.form-label Urgencia
+              select.form-select(name='urgencia')
+                option(value='', selected=!filtros.urgencia) Todas
+                option(value='Alta', selected=filtros.urgencia === 'Alta') Alta
+                option(value='Normal', selected=filtros.urgencia === 'Normal') Normal
+            .col-md-3.d-flex.align-items-end
+              button.btn.btn-primary.w-100(type='submit')
+                i.fas.fa-filter.me-2
+                | Filtrar
+              button.btn.btn-secondary.ms-2(type='button', onclick='location.href="/paciente/estudios"')
+                i.fas.fa-times
+
+    //- Lista de estudios
+    .card.border-0.shadow-sm
+      .card-header.bg-light
+        h5.mb-0
+          i.fas.fa-list.me-2
+          | Lista de Estudios
+      .card-body
+        if estudios && estudios.length > 0
+          .list-group.list-group-flush
+            each estudio in estudios
+              .list-group-item
+                .row.align-items-center
+                  .col-md-8
+                    .d-flex.align-items-start
+                      .flex-shrink-0.me-3
+                        .status-icon(class=estudio.estado === 'Pendiente' ? 'bg-warning' : estudio.estado === 'Realizado' ? 'bg-success' : 'bg-danger' class='text-white')
+                          i.fas(class=estudio.estado === 'Pendiente' ? 'fa-clock' : estudio.estado === 'Realizado' ? 'fa-check' : 'fa-times')
+                      .flex-grow-1
+                        .d-flex.align-items-center.mb-2
+                          h6.mb-0.me-2 #{estudio.tipo_estudio.nombre}
+                          span.badge.bg-secondary #{estudio.tipo_estudio.categoria}
+                          if estudio.urgencia === 'Alta'
+                            span.badge.bg-danger.ms-2 URGENTE
+                          span.badge(class=estudio.estado === 'Pendiente' ? 'bg-warning' : estudio.estado === 'Realizado' ? 'bg-success' : 'bg-danger' class='ms-2')
+                            | #{estudio.estado}
+                        
+                        if estudio.evaluacion_medica && estudio.evaluacion_medica.medico
+                          p.mb-1.text-muted
+                            i.fas.fa-user-md.me-2
+                            | Solicitado por: Dr/a. #{estudio.evaluacion_medica.medico.usuario.nombre} #{estudio.evaluacion_medica.medico.usuario.apellido}
+                        
+                        p.mb-1
+                          small.text-muted
+                            i.fas.fa-calendar.me-2
+                            | Solicitado: #{new Date(estudio.created_at).toLocaleDateString('es-AR')}
+                        
+                        if estudio.turno_estudio
+                          .alert.alert-info.mt-2.mb-0.py-2
+                            i.fas.fa-calendar-check.me-2
+                            strong Turno asignado:
+                            |  #{new Date(estudio.turno_estudio.fecha).toLocaleDateString('es-AR')} a las #{estudio.turno_estudio.hora}
+                            if estudio.turno_estudio.resultado
+                              br
+                              small Resultado disponible
+                        
+                        if estudio.tipo_estudio.requiere_ayuno && estudio.estado === 'Pendiente'
+                          .alert.alert-warning.mt-2.mb-0.py-2
+                            i.fas.fa-exclamation-triangle.me-2
+                            strong Requiere ayuno de 8 horas
+                  
+                  .col-md-4.text-md-end
+                    a.btn.btn-sm.btn-outline-primary(href=`/paciente/estudios/${estudio.id}`)
+                      i.fas.fa-eye.me-1
+                      | Ver Detalle
+
+          if paginacion.totalPages > 1
+            nav.mt-4
+              ul.pagination.justify-content-center
+                li.page-item(class=!paginacion.hasPrev ? 'disabled' : '')
+                  a.page-link(href=`?page=${paginacion.currentPage - 1}`) Anterior
+                - for (let i = 1; i <= paginacion.totalPages; i++)
+                  li.page-item(class=i === paginacion.currentPage ? 'active' : '')
+                    a.page-link(href=`?page=${i}`) #{i}
+                li.page-item(class=!paginacion.hasNext ? 'disabled' : '')
+                  a.page-link(href=`?page=${paginacion.currentPage + 1}`) Siguiente
+        else
+          .text-center.py-5
+            i.fas.fa-vial.fa-4x.text-muted.mb-3
+            h5.text-muted No tienes estudios registrados
+            p.text-muted Los estudios son solicitados por tu médico durante las consultas
+
+block scripts
+  script(src='/js/paciente/paciente-estudios.js')

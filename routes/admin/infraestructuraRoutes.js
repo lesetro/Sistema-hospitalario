@@ -28,7 +28,7 @@ router.get('/api/sector/:id', controller.getSectorById);
 router.post('/api/sector', controller.crearSector);
 router.put('/api/sector/:id', controller.actualizarSector);
 router.delete('/api/sector/:id', controller.eliminarSector);
-
+router.put('/api/servicio/:id/sector', controller.asignarServicioSector);
 // ============================================================================
 // API - HABITACIONES
 // ============================================================================

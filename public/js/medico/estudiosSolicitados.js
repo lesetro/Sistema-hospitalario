@@ -1,28 +1,149 @@
+// ============================================
+// VARIABLES GLOBALES
+// ============================================
 let paginaActual = 1;
 const estudiosPorPagina = 10;
 let chartCategorias = null;
+let pacienteSeleccionadoId = null;
+let archivoSimulado = null;
+let timeoutBusqueda = null;
 
-document.addEventListener('DOMContentLoaded', function() {
-  cargarEstadisticas();
-  cargarDistribucionCategorias();
-  cargarTiposEstudio();
-  cargarEstudios();
+// ============================================
+// FUNCIONES AUXILIARES
+// ============================================
+function formatearFecha(fecha) {
+  if (!fecha) return 'N/A';
+  try {
+    return new Date(fecha).toLocaleDateString('es-AR', {
+      year: 'numeric', month: '2-digit', day: '2-digit'
+    });
+  } catch {
+    return 'Fecha inválida';
+  }
+}
+
+function formatearFechaHora(fecha) {
+  if (!fecha) return 'N/A';
+  try {
+    return new Date(fecha).toLocaleString('es-AR', {
+      year: 'numeric', month: '2-digit', day: '2-digit',
+      hour: '2-digit', minute: '2-digit'
+    });
+  } catch {
+    return 'Fecha inválida';
+  }
+}
+
+function mostrarAlerta(tipo, mensaje) {
+  alert(mensaje);
+}
+
+function getEstadoClass(estado) {
+  return { 'Pendiente': 'warning', 'Realizado': 'success', 'Cancelado': 'danger' }[estado] || 'secondary';
+}
+
+// ============================================
+// INICIALIZACIÓN
+// ============================================
+document.addEventListener('DOMContentLoaded', async function() {
+  console.log('URL completa:', window.location.href);
+  console.log('paciente_dni:', new URLSearchParams(window.location.search).get('paciente_dni'));
+  console.log('paciente_id:', new URLSearchParams(window.location.search).get('paciente_id'));
   
-  // Formulario de filtros
-  document.getElementById('formFiltros').addEventListener('submit', function(e) {
+  inicializarEventos();
+  await cargarDatosIniciales();
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const pacienteDni = urlParams.get('paciente_dni');
+  const pacienteId = urlParams.get('paciente_id');  
+
+  if (pacienteDni) {
+  precargarPacienteEnEstudio(pacienteDni);
+} else if (pacienteId) {
+  precargarPacienteEnEstudioPorId(pacienteId);
+}
+});
+
+async function precargarPacienteEnEstudio(dni) {
+  try {
+    new bootstrap.Modal(document.getElementById('modalNuevoEstudio')).show();
+
+    const res = await fetch(`/medico/estudios-solicitados/api/buscar-pacientes?busqueda=${dni}`);
+    const data = await res.json();
+
+    console.log('DNI recibido:', dni);        
+    console.log('Respuesta API:', data);   
+
+    if (data.success && data.data.length > 0) {
+      const paciente = data.data[0];
+      //  Poner DNI en el input
+      document.getElementById('inputBuscarPaciente').value = paciente.dni;
+      //  seleccionarPaciente hace todo lo demás
+      await seleccionarPaciente(paciente.id, paciente.nombre, paciente.apellido, paciente.dni);
+    }
+  } catch (error) {
+    console.error('Error al precargar paciente:', error);
+  }
+}
+
+function inicializarEventos() {
+  // Filtros
+  document.getElementById('formFiltros').addEventListener('submit', e => {
     e.preventDefault();
     paginaActual = 1;
     cargarEstudios();
   });
   
   // Formulario nuevo estudio
-  document.getElementById('formNuevoEstudio').addEventListener('submit', function(e) {
+  document.getElementById('formNuevoEstudio').addEventListener('submit', e => {
     e.preventDefault();
     crearEstudio();
   });
-});
+  
+  // Búsqueda de paciente con debounce
+  document.getElementById('inputBuscarPaciente').addEventListener('input', function() {
+    clearTimeout(timeoutBusqueda);
+    timeoutBusqueda = setTimeout(buscarPaciente, 300);
+  });
+  
+  // Cerrar resultados de búsqueda al hacer clic fuera
+  document.addEventListener('click', e => {
+    const resultados = document.getElementById('resultadosBusqueda');
+    const input = document.getElementById('inputBuscarPaciente');
+    if (!resultados.contains(e.target) && e.target !== input) {
+      resultados.classList.add('d-none');
+    }
+  });
+  
+  // Validar formulario en cambios
+  document.getElementById('nuevoEvaluacionId').addEventListener('change', validarFormulario);
+  document.getElementById('nuevoTipoEstudio').addEventListener('change', function() {
+    mostrarInfoTipoEstudio(this.value);
+    validarFormulario();
+  });
+  
+  // Botones principales
+  document.getElementById('btnNuevoEstudio').addEventListener('click', mostrarModalNuevoEstudio);
+  document.getElementById('btnActualizar').addEventListener('click', actualizarTabla);
+}
 
-// Cargar estadísticas
+async function cargarDatosIniciales() {
+  try {
+    await Promise.all([
+      cargarEstadisticas(),
+      cargarDistribucionCategorias(),
+      cargarTiposEstudio(),
+      cargarEstudios()
+    ]);
+  } catch (error) {
+    console.error('Error al cargar datos iniciales:', error);
+    mostrarAlerta('error', 'Error al cargar datos iniciales');
+  }
+}
+
+// ============================================
+// ESTADÍSTICAS Y GRÁFICOS
+// ============================================
 async function cargarEstadisticas() {
   try {
     const response = await fetch('/medico/estudios-solicitados/api/estadisticas');
@@ -33,8 +154,6 @@ async function cargarEstadisticas() {
       document.getElementById('stat-realizados').textContent = data.data.Realizado || 0;
       document.getElementById('stat-cancelados').textContent = data.data.Cancelado || 0;
       document.getElementById('stat-mes').textContent = data.data.estudiosMes || 0;
-      
-      // Mostrar gráfico de urgencias
       mostrarGraficoUrgencias(data.data.porUrgencia);
     }
   } catch (error) {
@@ -42,46 +161,41 @@ async function cargarEstadisticas() {
   }
 }
 
-// Mostrar gráfico de urgencias
-function mostrarGraficoUrgencias(datos) {
+function mostrarGraficoUrgencias(datos = {}) {
   const loadingDiv = document.getElementById('loading-urgencias');
   const graficoDiv = document.getElementById('grafico-urgencias');
   
   loadingDiv.classList.add('d-none');
   graficoDiv.classList.remove('d-none');
   
-  const total = (datos.Normal || 0) + (datos.Alta || 0);
-  const porcentajeNormal = total > 0 ? ((datos.Normal || 0) / total * 100).toFixed(1) : 0;
-  const porcentajeAlta = total > 0 ? ((datos.Alta || 0) / total * 100).toFixed(1) : 0;
+  const normal = datos.Normal || 0;
+  const alta = datos.Alta || 0;
+  const total = normal + alta;
+  const pctNormal = total > 0 ? (normal / total * 100).toFixed(1) : 0;
+  const pctAlta = total > 0 ? (alta / total * 100).toFixed(1) : 0;
   
   graficoDiv.innerHTML = `
     <div class="mb-3">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <span><i class="fas fa-circle text-primary me-2"></i>Normal</span>
-        <strong>${datos.Normal || 0} (${porcentajeNormal}%)</strong>
+        <strong>${normal} (${pctNormal}%)</strong>
       </div>
       <div class="progress" style="height: 25px;">
-        <div class="progress-bar bg-primary" style="width: ${porcentajeNormal}%">
-          ${porcentajeNormal}%
-        </div>
+        <div class="progress-bar bg-primary" style="width: ${pctNormal}%">${pctNormal}%</div>
       </div>
     </div>
-    
     <div>
       <div class="d-flex justify-content-between align-items-center mb-2">
         <span><i class="fas fa-circle text-danger me-2"></i>Alta</span>
-        <strong>${datos.Alta || 0} (${porcentajeAlta}%)</strong>
+        <strong>${alta} (${pctAlta}%)</strong>
       </div>
       <div class="progress" style="height: 25px;">
-        <div class="progress-bar bg-danger" style="width: ${porcentajeAlta}%">
-          ${porcentajeAlta}%
-        </div>
+        <div class="progress-bar bg-danger" style="width: ${pctAlta}%">${pctAlta}%</div>
       </div>
     </div>
   `;
 }
 
-// Cargar distribución por categorías
 async function cargarDistribucionCategorias() {
   try {
     const response = await fetch('/medico/estudios-solicitados/api/por-categoria');
@@ -94,31 +208,18 @@ async function cargarDistribucionCategorias() {
     canvas.classList.remove('d-none');
     
     if (data.success && data.data.length > 0) {
-      const ctx = canvas.getContext('2d');
+      if (chartCategorias) chartCategorias.destroy();
       
-      if (chartCategorias) {
-        chartCategorias.destroy();
-      }
-      
-      chartCategorias = new Chart(ctx, {
+      chartCategorias = new Chart(canvas.getContext('2d'), {
         type: 'doughnut',
         data: {
-          labels: data.data.map(item => item.categoria),
+          labels: data.data.map(i => i.categoria),
           datasets: [{
-            data: data.data.map(item => item.total),
+            data: data.data.map(i => i.total),
             backgroundColor: [
-              'rgba(54, 162, 235, 0.8)',
-              'rgba(255, 99, 132, 0.8)',
-              'rgba(255, 206, 86, 0.8)',
-              'rgba(75, 192, 192, 0.8)',
+              'rgba(54, 162, 235, 0.8)', 'rgba(255, 99, 132, 0.8)',
+              'rgba(255, 206, 86, 0.8)', 'rgba(75, 192, 192, 0.8)',
               'rgba(153, 102, 255, 0.8)'
-            ],
-            borderColor: [
-              'rgba(54, 162, 235, 1)',
-              'rgba(255, 99, 132, 1)',
-              'rgba(255, 206, 86, 1)',
-              'rgba(75, 192, 192, 1)',
-              'rgba(153, 102, 255, 1)'
             ],
             borderWidth: 2
           }]
@@ -126,11 +227,7 @@ async function cargarDistribucionCategorias() {
         options: {
           responsive: true,
           maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom'
-            }
-          }
+          plugins: { legend: { position: 'bottom' } }
         }
       });
     } else {
@@ -146,7 +243,9 @@ async function cargarDistribucionCategorias() {
   }
 }
 
-// Cargar tipos de estudio
+// ============================================
+// TIPOS DE ESTUDIO
+// ============================================
 async function cargarTiposEstudio() {
   try {
     const response = await fetch('/medico/estudios-solicitados/api/tipos-estudio');
@@ -156,20 +255,24 @@ async function cargarTiposEstudio() {
       const selectFiltro = document.getElementById('filtroTipoEstudio');
       const selectNuevo = document.getElementById('nuevoTipoEstudio');
       
+      // Limpiar opciones existentes (excepto la primera)
+      [selectFiltro, selectNuevo].forEach(select => {
+        while (select.children.length > 1) select.removeChild(select.lastChild);
+      });
+      
       data.data.forEach(tipo => {
         // Para filtro
-        const optionFiltro = document.createElement('option');
-        optionFiltro.value = tipo.id;
-        optionFiltro.textContent = `${tipo.nombre} (${tipo.categoria})`;
-        selectFiltro.appendChild(optionFiltro);
+        const optFiltro = document.createElement('option');
+        optFiltro.value = tipo.id;
+        optFiltro.textContent = `${tipo.nombre} (${tipo.categoria})`;
+        selectFiltro.appendChild(optFiltro);
         
         // Para nuevo estudio
-        const optionNuevo = document.createElement('option');
-        optionNuevo.value = tipo.id;
-        optionNuevo.textContent = tipo.nombre;
-        optionNuevo.dataset.categoria = tipo.categoria;
-        optionNuevo.dataset.ayuno = tipo.requiere_ayuno;
-        selectNuevo.appendChild(optionNuevo);
+        const optNuevo = document.createElement('option');
+        optNuevo.value = tipo.id;
+        optNuevo.textContent = `${tipo.nombre} - ${tipo.categoria}`;
+        optNuevo.dataset.ayuno = tipo.requiere_ayuno;
+        selectNuevo.appendChild(optNuevo);
       });
     }
   } catch (error) {
@@ -177,27 +280,232 @@ async function cargarTiposEstudio() {
   }
 }
 
-// Cargar estudios
-async function cargarEstudios(pagina = paginaActual) {
+function mostrarInfoTipoEstudio(tipoId) {
+  const infoDiv = document.getElementById('infoTipoEstudio');
+  if (!tipoId) {
+    infoDiv.innerHTML = '';
+    return;
+  }
+  
+  const option = document.getElementById('nuevoTipoEstudio').selectedOptions[0];
+  infoDiv.innerHTML = option?.dataset.ayuno === 'true' 
+    ? '<span class="badge bg-warning"><i class="fas fa-ban me-1"></i>Requiere ayuno</span>' 
+    : '';
+}
+
+// ============================================
+// BÚSQUEDA Y SELECCIÓN DE PACIENTES
+// ============================================
+async function buscarPaciente() {
+  const input = document.getElementById('inputBuscarPaciente');
+  const resultadosDiv = document.getElementById('resultadosBusqueda');
+  const busqueda = input.value.trim();
+  
+  if (busqueda.length < 2) {
+    resultadosDiv.classList.add('d-none');
+    return;
+  }
+  
   try {
-    const formData = new FormData(document.getElementById('formFiltros'));
-    const params = new URLSearchParams();
-    
-    params.append('page', pagina);
-    params.append('limit', estudiosPorPagina);
-    
-    for (let [key, value] of formData.entries()) {
-      if (value) params.append(key, value);
-    }
-    
-    const response = await fetch(`/medico/estudios-solicitados/api/estudios?${params.toString()}`);
+    const response = await fetch(`/medico/estudios-solicitados/api/buscar-pacientes?busqueda=${encodeURIComponent(busqueda)}`);
     const data = await response.json();
     
-    const loadingDiv = document.getElementById('loading-estudios');
-    const tablaDiv = document.getElementById('tabla-estudios');
+    if (data.success && data.data.length > 0) {
+      resultadosDiv.innerHTML = data.data.map(p => `
+        <button type="button" class="list-group-item list-group-item-action" 
+                onclick="seleccionarPaciente(${p.id}, '${p.nombre}', '${p.apellido}', '${p.dni}')">
+          <div class="d-flex justify-content-between align-items-center">
+            <div><i class="fas fa-user me-2 text-primary"></i><strong>${p.nombre} ${p.apellido}</strong></div>
+            <span class="badge bg-secondary">DNI: ${p.dni}</span>
+          </div>
+        </button>
+      `).join('');
+    } else {
+      resultadosDiv.innerHTML = `
+        <div class="list-group-item text-muted text-center">
+          <i class="fas fa-search me-2"></i>No se encontraron pacientes
+        </div>
+      `;
+    }
+    resultadosDiv.classList.remove('d-none');
+  } catch (error) {
+    console.error('Error al buscar:', error);
+  }
+}
+
+async function seleccionarPaciente(id, nombre, apellido, dni) {
+  pacienteSeleccionadoId = id;
+  
+  // Ocultar búsqueda, mostrar seleccionado
+  document.getElementById('resultadosBusqueda').classList.add('d-none');
+  document.getElementById('inputBuscarPaciente').value = '';
+  document.getElementById('inputBuscarPaciente').closest('.col-md-12').classList.add('d-none');
+  
+  document.getElementById('pacienteSeleccionado').classList.remove('d-none');
+  document.getElementById('nombrePacienteSeleccionado').textContent = `${nombre} ${apellido}`;
+  document.getElementById('dniPacienteSeleccionado').textContent = `DNI: ${dni}`;
+  document.getElementById('nuevoPacienteId').value = id;
+  
+  await cargarEvaluacionesPaciente(id);
+}
+
+async function cargarEvaluacionesPaciente(pacienteId) {
+  try {
+    const response = await fetch(`/medico/estudios-solicitados/api/paciente/${pacienteId}/evaluaciones`);
+    const data = await response.json();
     
-    loadingDiv.classList.add('d-none');
-    tablaDiv.classList.remove('d-none');
+    const contenedores = ['contenedorTipoEstudio', 'contenedorUrgencia', 'contenedorObservaciones'];
+    
+    if (data.success) {
+      //  Siempre mostrar tipo estudio, urgencia y observaciones
+      contenedores.forEach(id => document.getElementById(id).classList.remove('d-none'));
+      
+      if (data.data.tieneEvaluaciones) {
+        const select = document.getElementById('nuevoEvaluacionId');
+        select.innerHTML = '<option value="">Sin evaluación asociada (opcional)</option>';
+        data.data.evaluaciones.forEach(e => {
+          const opt = document.createElement('option');
+          opt.value = e.id;
+          opt.textContent = `#${e.id} - ${formatearFecha(e.fecha)} - ${e.motivo}`;
+          select.appendChild(opt);
+        });
+        document.getElementById('contenedorEvaluacion').classList.remove('d-none');
+        document.getElementById('sinEvaluaciones').classList.add('d-none');
+        document.getElementById('infoEvaluacion').innerHTML = 
+          `<small class="text-success"><i class="fas fa-check me-1"></i>${data.data.evaluaciones.length} evaluación(es) disponibles</small>`;
+      } else {
+        //  Mostrar aviso pero NO bloquear
+        document.getElementById('contenedorEvaluacion').classList.add('d-none');
+        document.getElementById('sinEvaluaciones').classList.remove('d-none');
+      }
+    }
+  } catch (error) {
+    console.error('Error al cargar evaluaciones:', error);
+  }
+  validarFormulario();
+}
+
+
+function limpiarPaciente() {
+  pacienteSeleccionadoId = null;
+  
+  // Mostrar búsqueda
+  const inputContainer = document.getElementById('inputBuscarPaciente').closest('.col-md-12');
+  inputContainer.classList.remove('d-none');
+  document.getElementById('inputBuscarPaciente').value = '';
+  
+  // Ocultar todo
+  ['pacienteSeleccionado', 'contenedorEvaluacion', 'sinEvaluaciones', 
+   'contenedorTipoEstudio', 'contenedorUrgencia', 'contenedorObservaciones'].forEach(id => {
+    document.getElementById(id).classList.add('d-none');
+  });
+  
+  document.getElementById('nuevoPacienteId').value = '';
+  document.getElementById('nuevoEvaluacionId').innerHTML = '<option value="">Seleccione una evaluación</option>';
+  
+  validarFormulario();
+}
+
+function validarFormulario() {
+  const paciente = document.getElementById('nuevoPacienteId').value;
+  const tipo = document.getElementById('nuevoTipoEstudio').value;
+
+
+  console.log('VALIDANDO FORMULARIO:');
+  console.log('  - Paciente ID:', paciente);
+  console.log('  - Tipo Estudio ID:', tipo);
+  console.log('  - Botón habilitado:', !!(paciente && tipo));
+  //  SOLO validar paciente y tipo (evaluación es opcional)
+  document.getElementById('btnSubmitEstudio').disabled = !(paciente && tipo);
+}
+
+// ============================================
+// MODAL NUEVO ESTUDIO
+// ============================================
+function mostrarModalNuevoEstudio() {
+  document.getElementById('formNuevoEstudio').reset();
+  limpiarPaciente();
+  
+  const modal = new bootstrap.Modal(document.getElementById('modalNuevoEstudio'));
+  modal.show();
+  
+  setTimeout(() => document.getElementById('inputBuscarPaciente').focus(), 500);
+}
+
+async function crearEstudio() {
+  const btn = document.getElementById('btnSubmitEstudio');
+  
+  try {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Enviando...';
+    
+    //  evaluacion_medica_id es opcional
+    const evaluacionId = document.getElementById('nuevoEvaluacionId').value;
+    
+    const data = {
+      paciente_id: parseInt(document.getElementById('nuevoPacienteId').value),
+      tipo_estudio_id: parseInt(document.getElementById('nuevoTipoEstudio').value),
+      urgencia: document.getElementById('nuevaUrgencia').value || 'Normal',
+      observaciones: document.getElementById('nuevasObservaciones').value || ''
+    };
+    
+    //  SOLO agregar evaluacion_medica_id si existe
+    if (evaluacionId && evaluacionId !== '') {
+      data.evaluacion_medica_id = parseInt(evaluacionId);
+    }
+    
+    console.log('📤 Enviando:', data);
+    
+    //  Solo paciente y tipo son obligatorios
+    if (!data.paciente_id || !data.tipo_estudio_id) {
+      throw new Error('Complete todos los campos requeridos');
+    }
+    
+    const response = await fetch('/medico/estudios-solicitados/api/estudios', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify(data)
+    });
+    
+    const result = await response.json();
+    console.log('📥 Resultado:', result);
+    
+    if (result.success) {
+      mostrarAlerta('success', 'Estudio solicitado correctamente');
+      bootstrap.Modal.getInstance(document.getElementById('modalNuevoEstudio')).hide();
+      await actualizarTodo();
+    } else {
+      throw new Error(result.message || 'Error al crear estudio');
+    }
+  } catch (error) {
+    console.error('❌ Error:', error);
+    mostrarAlerta('error', error.message);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save me-2"></i>Solicitar Estudio';
+    validarFormulario();
+  }
+}
+// ============================================
+// LISTADO DE ESTUDIOS
+// ============================================
+async function cargarEstudios(pagina = paginaActual) {
+  try {
+    const params = new URLSearchParams({ page: pagina, limit: estudiosPorPagina });
+    
+    const formData = new FormData(document.getElementById('formFiltros'));
+    for (let [key, value] of formData.entries()) {
+      if (value && value !== 'TODOS' && value !== 'TODAS') {
+        params.append(key, value);
+      }
+    }
+    
+    const response = await fetch(`/medico/estudios-solicitados/api/estudios?${params}`);
+    const data = await response.json();
+    
+    document.getElementById('loading-estudios').classList.add('d-none');
+    document.getElementById('tabla-estudios').classList.remove('d-none');
     
     if (data.success && data.data.length > 0) {
       mostrarEstudios(data.data);
@@ -208,6 +516,9 @@ async function cargarEstudios(pagina = paginaActual) {
           <td colspan="6" class="text-center py-4">
             <i class="fas fa-flask fa-3x text-muted mb-3 d-block"></i>
             <p class="text-muted">No se encontraron estudios</p>
+            <button class="btn btn-sm btn-primary" onclick="mostrarModalNuevoEstudio()">
+              <i class="fas fa-plus me-1"></i>Solicitar primer estudio
+            </button>
           </td>
         </tr>
       `;
@@ -215,74 +526,57 @@ async function cargarEstudios(pagina = paginaActual) {
     }
   } catch (error) {
     console.error('Error al cargar estudios:', error);
-    mostrarAlerta('error', 'Error al cargar estudios');
+    document.getElementById('loading-estudios').innerHTML = `
+      <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle me-2"></i>Error al cargar estudios.
+        <button class="btn btn-sm btn-outline-danger ms-2" onclick="cargarEstudios()">
+          <i class="fas fa-redo me-1"></i>Reintentar
+        </button>
+      </div>
+    `;
   }
 }
 
-// Mostrar estudios en la tabla
 function mostrarEstudios(estudios) {
-  const tbody = document.getElementById('tbody-estudios');
-  
-  tbody.innerHTML = estudios.map(estudio => {
-    const fecha = new Date(estudio.created_at);
-    
-    const estadoClass = {
-      'Pendiente': 'warning',
-      'Realizado': 'success',
-      'Cancelado': 'danger'
-    }[estudio.estado] || 'secondary';
-    
-    const urgenciaClass = estudio.urgencia === 'Alta' ? 'danger' : 'info';
+  document.getElementById('tbody-estudios').innerHTML = estudios.map(e => {
+    const fecha = formatearFecha(e.created_at || e.createdAt);
+    const paciente = e.paciente?.usuario;
+    const tipo = e.tipo_estudio;
     
     return `
       <tr>
         <td>
-          <strong>${estudio.paciente?.usuario?.nombre || 'N/A'} ${estudio.paciente?.usuario?.apellido || ''}</strong>
-          <br>
-          <small class="text-muted">DNI: ${estudio.paciente?.usuario?.dni || 'N/A'}</small>
+          <strong>${paciente?.nombre || 'N/A'} ${paciente?.apellido || ''}</strong><br>
+          <small class="text-muted">DNI: ${paciente?.dni || 'N/A'}</small>
         </td>
         <td>
-          <span class="badge bg-primary">${estudio.tipo_estudio?.nombre || 'N/A'}</span>
-          <br>
-          <small class="text-muted">${estudio.tipo_estudio?.categoria || ''}</small>
-          ${estudio.tipo_estudio?.requiere_ayuno ? 
-            '<br><small class="badge bg-warning">Requiere ayuno</small>' : 
-            ''
-          }
+          <span class="badge bg-primary">${tipo?.nombre || 'N/A'}</span><br>
+          <small class="text-muted">${tipo?.categoria || ''}</small>
+          ${tipo?.requiere_ayuno ? '<br><small class="badge bg-warning"><i class="fas fa-ban me-1"></i>Ayuno</small>' : ''}
         </td>
         <td>
-          <span class="badge bg-${estadoClass}">
-            ${estudio.estado}
-          </span>
-          ${estudio.turno_estudio ? 
-            `<br><small class="text-muted">Turno: ${new Date(estudio.turno_estudio.fecha).toLocaleDateString('es-AR')}</small>` : 
-            ''
-          }
+          <span class="badge bg-${getEstadoClass(e.estado)}">${e.estado}</span>
+          ${e.estado === 'Realizado' && e.fecha_realizacion ? 
+            `<br><small class="text-muted">${formatearFecha(e.fecha_realizacion)}</small>` : ''}
         </td>
+        <td><span class="badge bg-${e.urgencia === 'Alta' ? 'danger' : 'info'}">${e.urgencia}</span></td>
+        <td><small>${fecha}</small></td>
         <td>
-          <span class="badge bg-${urgenciaClass}">
-            ${estudio.urgencia}
-          </span>
-        </td>
-        <td>
-          <small>
-            ${fecha.toLocaleDateString('es-AR')}
-            <br>
-            ${fecha.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
-          </small>
-        </td>
-        <td>
-          <div class="btn-group" role="group">
-            <button class="btn btn-sm btn-outline-info" 
-                    onclick="verDetalleEstudio(${estudio.id})"
-                    title="Ver detalle">
+          <div class="btn-group">
+            <button class="btn btn-sm btn-outline-info" onclick="verDetalle(${e.id})" title="Ver">
               <i class="fas fa-eye"></i>
             </button>
-            ${estudio.estado === 'Pendiente' ? `
-              <button class="btn btn-sm btn-outline-danger" 
-                      onclick="cancelarEstudio(${estudio.id})"
-                      title="Cancelar">
+            ${e.estado === 'Pendiente' ? `
+              <button class="btn btn-sm btn-outline-success" onclick="abrirCargarResultados(${e.id})" title="Resultados">
+                <i class="fas fa-file-upload"></i>
+              </button>
+              <button class="btn btn-sm btn-outline-danger" onclick="cancelarEstudio(${e.id})" title="Cancelar">
                 <i class="fas fa-times"></i>
+              </button>
+            ` : ''}
+            ${e.estado === 'Realizado' ? `
+              <button class="btn btn-sm btn-outline-secondary" onclick="verResultados(${e.id})" title="Ver resultados">
+                <i class="fas fa-file-medical"></i>
               </button>
             ` : ''}
           </div>
@@ -291,19 +585,15 @@ function mostrarEstudios(estudios) {
     `;
   }).join('');
 }
-
-// Mostrar paginación
 function mostrarPaginacion(pagination) {
-  const paginacionDiv = document.getElementById('paginacion');
+  const div = document.getElementById('paginacion');
   
   if (pagination.totalPages <= 1) {
-    paginacionDiv.innerHTML = '';
+    div.innerHTML = '';
     return;
   }
   
-  let html = '';
-  
-  html += `
+  let html = `
     <li class="page-item ${pagination.page === 1 ? 'disabled' : ''}">
       <a class="page-link" href="#" onclick="cambiarPagina(${pagination.page - 1}); return false;">
         <i class="fas fa-chevron-left"></i>
@@ -312,16 +602,10 @@ function mostrarPaginacion(pagination) {
   `;
   
   for (let i = 1; i <= pagination.totalPages; i++) {
-    if (
-      i === 1 || 
-      i === pagination.totalPages || 
-      (i >= pagination.page - 2 && i <= pagination.page + 2)
-    ) {
+    if (i === 1 || i === pagination.totalPages || (i >= pagination.page - 2 && i <= pagination.page + 2)) {
       html += `
         <li class="page-item ${i === pagination.page ? 'active' : ''}">
-          <a class="page-link" href="#" onclick="cambiarPagina(${i}); return false;">
-            ${i}
-          </a>
+          <a class="page-link" href="#" onclick="cambiarPagina(${i}); return false;">${i}</a>
         </li>
       `;
     } else if (i === pagination.page - 3 || i === pagination.page + 3) {
@@ -337,189 +621,188 @@ function mostrarPaginacion(pagination) {
     </li>
   `;
   
-  paginacionDiv.innerHTML = html;
+  div.innerHTML = html;
 }
 
-// Cambiar página
 function cambiarPagina(pagina) {
   paginaActual = pagina;
   cargarEstudios(pagina);
   window.scrollTo({ top: 400, behavior: 'smooth' });
 }
 
-// Mostrar modal nuevo estudio
-function mostrarModalNuevoEstudio() {
-  document.getElementById('formNuevoEstudio').reset();
-  new bootstrap.Modal(document.getElementById('modalNuevoEstudio')).show();
-}
-
-// Crear estudio
-async function crearEstudio() {
-  try {
-    const formData = new FormData(document.getElementById('formNuevoEstudio'));
-    const data = Object.fromEntries(formData.entries());
-    
-    // Convertir a números
-    data.evaluacion_medica_id = parseInt(data.evaluacion_medica_id);
-    data.paciente_id = parseInt(data.paciente_id);
-    data.tipo_estudio_id = parseInt(data.tipo_estudio_id);
-    
-    const response = await fetch('/medico/estudios-solicitados/api/estudios', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(data)
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      mostrarAlerta('success', 'Estudio solicitado correctamente');
-      bootstrap.Modal.getInstance(document.getElementById('modalNuevoEstudio')).hide();
-      cargarEstudios();
-      cargarEstadisticas();
-      cargarDistribucionCategorias();
-    } else {
-      mostrarAlerta('error', result.message || 'Error al solicitar estudio');
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    mostrarAlerta('error', 'Error al solicitar estudio');
-  }
-}
-
-// Ver detalle del estudio
-async function verDetalleEstudio(id) {
+// ============================================
+// VER DETALLE
+// ============================================
+async function verDetalle(id) {
+  const modalBody = document.getElementById('modalDetalleEstudioBody');
+  modalBody.innerHTML = '<div class="text-center py-4"><div class="spinner-border text-primary"></div></div>';
+  
+  new bootstrap.Modal(document.getElementById('modalDetalleEstudio')).show();
+  
   try {
     const response = await fetch(`/medico/estudios-solicitados/api/estudios/${id}`);
     const data = await response.json();
     
     if (data.success) {
-      const estudio = data.data;
-      const fecha = new Date(estudio.created_at);
+      const e = data.data;
+      const paciente = e.paciente?.usuario;
       
-      document.getElementById('modalDetalleEstudioBody').innerHTML = `
+      modalBody.innerHTML = `
         <div class="row g-3">
           <div class="col-md-6">
-            <h6 class="text-primary mb-3">
-              <i class="fas fa-user-circle me-2"></i>
-              Información del Paciente
-            </h6>
-            <table class="table table-sm">
-              <tr>
-                <th width="40%">Paciente:</th>
-                <td>${estudio.paciente?.usuario?.nombre} ${estudio.paciente?.usuario?.apellido}</td>
-              </tr>
-              <tr>
-                <th>DNI:</th>
-                <td>${estudio.paciente?.usuario?.dni}</td>
-              </tr>
-              <tr>
-                <th>Obra Social:</th>
-                <td>${estudio.paciente?.obraSocial?.nombre || 'Sin obra social'}</td>
-              </tr>
-            </table>
+            <h6 class="text-primary"><i class="fas fa-user me-2"></i>Paciente</h6>
+            <p><strong>${paciente?.nombre || ''} ${paciente?.apellido || ''}</strong><br>DNI: ${paciente?.dni || 'N/A'}</p>
           </div>
-          
           <div class="col-md-6">
-            <h6 class="text-primary mb-3">
-              <i class="fas fa-flask me-2"></i>
-              Información del Estudio
-            </h6>
-            <table class="table table-sm">
-              <tr>
-                <th width="40%">Tipo:</th>
-                <td>${estudio.tipo_estudio?.nombre}</td>
-              </tr>
-              <tr>
-                <th>Categoría:</th>
-                <td>${estudio.tipo_estudio?.categoria}</td>
-              </tr>
-              <tr>
-                <th>Estado:</th>
-                <td><span class="badge bg-${estudio.estado === 'Pendiente' ? 'warning' : estudio.estado === 'Realizado' ? 'success' : 'danger'}">${estudio.estado}</span></td>
-              </tr>
-              <tr>
-                <th>Urgencia:</th>
-                <td><span class="badge bg-${estudio.urgencia === 'Alta' ? 'danger' : 'info'}">${estudio.urgencia}</span></td>
-              </tr>
-              <tr>
-                <th>Requiere Ayuno:</th>
-                <td>${estudio.tipo_estudio?.requiere_ayuno ? 'Sí' : 'No'}</td>
-              </tr>
-              <tr>
-                <th>Fecha Solicitud:</th>
-                <td>${fecha.toLocaleDateString('es-AR')} ${fecha.toLocaleTimeString('es-AR')}</td>
-              </tr>
-            </table>
+            <h6 class="text-primary"><i class="fas fa-flask me-2"></i>Estudio</h6>
+            <p><strong>${e.tipo_estudio?.nombre || 'N/A'}</strong><br>${e.tipo_estudio?.categoria || ''}</p>
           </div>
-          
-          ${estudio.evaluacion_medica?.diagnostico ? `
+          <div class="col-md-6">
+            <h6 class="text-primary"><i class="fas fa-info-circle me-2"></i>Estado</h6>
+            <p>
+              <span class="badge bg-${getEstadoClass(e.estado)}">${e.estado}</span>
+              <span class="badge bg-${e.urgencia === 'Alta' ? 'danger' : 'info'} ms-1">${e.urgencia}</span>
+            </p>
+          </div>
+          <div class="col-md-6">
+            <h6 class="text-primary"><i class="fas fa-calendar me-2"></i>Fecha</h6>
+            <p>${formatearFechaHora(e.created_at || e.createdAt)}</p>
+          </div>
+          ${e.observaciones ? `
             <div class="col-12">
-              <h6 class="text-primary mb-2">
-                <i class="fas fa-notes-medical me-2"></i>
-                Diagnóstico Asociado
-              </h6>
-              <div class="alert alert-info">
-                <strong>${estudio.evaluacion_medica.diagnostico.codigo}:</strong> 
-                ${estudio.evaluacion_medica.diagnostico.nombre}
-              </div>
-            </div>
-          ` : ''}
-          
-          ${estudio.observaciones ? `
-            <div class="col-12">
-              <h6 class="text-primary mb-2">
-                <i class="fas fa-comment me-2"></i>
-                Observaciones
-              </h6>
-              <div class="alert alert-secondary">
-                ${estudio.observaciones}
-              </div>
-            </div>
-          ` : ''}
-          
-          ${estudio.turno_estudio ? `
-            <div class="col-12">
-              <h6 class="text-primary mb-2">
-                <i class="fas fa-calendar-check me-2"></i>
-                Turno Asignado
-              </h6>
-              <table class="table table-sm table-bordered">
-                <tr>
-                  <th width="30%">Fecha:</th>
-                  <td>${new Date(estudio.turno_estudio.fecha).toLocaleDateString('es-AR')}</td>
-                </tr>
-                <tr>
-                  <th>Hora:</th>
-                  <td>${estudio.turno_estudio.hora}</td>
-                </tr>
-                <tr>
-                  <th>Estado:</th>
-                  <td><span class="badge bg-info">${estudio.turno_estudio.estado}</span></td>
-                </tr>
-                ${estudio.turno_estudio.resultado ? `
-                  <tr>
-                    <th>Resultado:</th>
-                    <td>${estudio.turno_estudio.resultado}</td>
-                  </tr>
-                ` : ''}
-              </table>
+              <h6 class="text-primary"><i class="fas fa-comment me-2"></i>Observaciones</h6>
+              <div class="alert alert-secondary">${e.observaciones.replace(/\n/g, '<br>')}</div>
             </div>
           ` : ''}
         </div>
       `;
-      
-      new bootstrap.Modal(document.getElementById('modalDetalleEstudio')).show();
+    } else {
+      modalBody.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
     }
   } catch (error) {
     console.error('Error:', error);
-    mostrarAlerta('error', 'Error al cargar detalle');
+    modalBody.innerHTML = '<div class="alert alert-danger">Error al cargar detalle</div>';
   }
 }
 
-// Cancelar estudio
+// ============================================
+// CARGAR RESULTADOS
+// ============================================
+async function abrirCargarResultados(id) {
+  document.getElementById('estudioIdResultados').value = id;
+  document.getElementById('resultadosTexto').value = '';
+  document.getElementById('notasArchivo').value = '';
+  document.getElementById('previewArchivo').classList.add('d-none');
+  archivoSimulado = null;
+  
+  try {
+    const response = await fetch(`/medico/estudios-solicitados/api/estudios/${id}`);
+    const data = await response.json();
+    
+    if (data.success) {
+      const e = data.data;
+      const paciente = e.paciente?.usuario;
+      document.getElementById('infoEstudioResultados').innerHTML = `
+        <div class="d-flex justify-content-between">
+          <div><strong>${paciente?.nombre} ${paciente?.apellido}</strong>
+          <span class="text-muted ms-2">DNI: ${paciente?.dni}</span></div>
+          <span class="badge bg-primary">${e.tipo_estudio?.nombre}</span>
+        </div>
+      `;
+    }
+    
+    new bootstrap.Modal(document.getElementById('modalCargarResultados')).show();
+  } catch (error) {
+    console.error('Error:', error);
+    mostrarAlerta('error', 'Error al cargar información');
+  }
+}
+
+function simularCargaArchivo() {
+  const input = document.getElementById('archivoResultado');
+  
+  if (input.files?.[0]) {
+    const file = input.files[0];
+    archivoSimulado = { nombre: file.name, tamano: (file.size / 1024).toFixed(2) + ' KB', tipo: file.type };
+  } else {
+    const archivos = [
+      { nombre: 'resultados_laboratorio.pdf', tamano: '245 KB', tipo: 'application/pdf' },
+      { nombre: 'radiografia_torax.jpg', tamano: '1.8 MB', tipo: 'image/jpeg' }
+    ];
+    archivoSimulado = archivos[Math.floor(Math.random() * archivos.length)];
+  }
+  
+  document.getElementById('previewArchivo').classList.remove('d-none');
+  document.getElementById('nombreArchivo').textContent = archivoSimulado.nombre;
+  document.getElementById('tamanoArchivo').textContent = archivoSimulado.tamano;
+  document.getElementById('iconoArchivo').className = 
+    `fas fa-file-${archivoSimulado.tipo.includes('pdf') ? 'pdf text-danger' : 'image text-primary'} fa-2x me-3`;
+  
+  mostrarAlerta('info', `Archivo "${archivoSimulado.nombre}" simulado`);
+}
+
+function quitarArchivo() {
+  archivoSimulado = null;
+  document.getElementById('previewArchivo').classList.add('d-none');
+  document.getElementById('archivoResultado').value = '';
+}
+
+async function guardarResultados() {
+  const estudioId = document.getElementById('estudioIdResultados').value;
+  const tabActiva = document.querySelector('#tabResultados .nav-link.active').id;
+  
+  let resultados = '';
+  
+  if (tabActiva === 'tab-texto') {
+    resultados = document.getElementById('resultadosTexto').value.trim();
+    if (!resultados) {
+      mostrarAlerta('error', 'Ingrese los resultados');
+      return;
+    }
+  } else {
+    if (!archivoSimulado) {
+      mostrarAlerta('error', 'Adjunte un archivo');
+      return;
+    }
+    const notas = document.getElementById('notasArchivo').value.trim();
+    resultados = `[ARCHIVO ADJUNTO - SIMULACIÓN]\nNombre: ${archivoSimulado.nombre}\nTamaño: ${archivoSimulado.tamano}\n${notas ? '\nNotas: ' + notas : ''}`;
+  }
+  
+  const btn = document.getElementById('btnGuardarResultados');
+  
+  try {
+    btn.disabled = true;
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+    
+    const response = await fetch(`/medico/estudios-solicitados/api/estudios/${estudioId}/completar`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ resultados })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      mostrarAlerta('success', 'Resultados guardados');
+      bootstrap.Modal.getInstance(document.getElementById('modalCargarResultados')).hide();
+      await actualizarTodo();
+    } else {
+      mostrarAlerta('error', data.message);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    mostrarAlerta('error', 'Error al guardar');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-save me-2"></i>Guardar Resultados';
+  }
+}
+
+// ============================================
+// CANCELAR ESTUDIO
+// ============================================
 async function cancelarEstudio(id) {
-  if (!confirm('¿Está seguro de cancelar este estudio?')) return;
+  if (!confirm('¿Cancelar estudio? Esta acción no se puede deshacer.')) return;
   
   try {
     const response = await fetch(`/medico/estudios-solicitados/api/estudios/${id}/cancelar`, {
@@ -530,39 +813,83 @@ async function cancelarEstudio(id) {
     const data = await response.json();
     
     if (data.success) {
-      mostrarAlerta('success', 'Estudio cancelado correctamente');
-      cargarEstudios();
-      cargarEstadisticas();
+      mostrarAlerta('success', 'Estudio cancelado');
+      await actualizarTodo();
     } else {
-      mostrarAlerta('error', data.message || 'Error al cancelar estudio');
+      mostrarAlerta('error', data.message);
     }
   } catch (error) {
     console.error('Error:', error);
-    mostrarAlerta('error', 'Error al cancelar estudio');
+    mostrarAlerta('error', 'Error al cancelar');
+  }
+}
+// ============================================
+// VER RESULTADOS
+// ============================================
+async function verResultados(id) {
+  try {
+    const response = await fetch(`/medico/estudios-solicitados/api/estudios/${id}`);
+    const data = await response.json();
+    
+    if (data.success) {
+      const e = data.data;
+      
+      // Usar el nuevo campo 'resultados'
+      if (e.resultados) {
+        const fecha = e.fecha_realizacion ? formatearFechaHora(e.fecha_realizacion) : 'N/A';
+        alert(`RESULTADOS DEL ESTUDIO\n\nFecha: ${fecha}\n\n${e.resultados}`);
+      } else {
+        alert('No hay resultados registrados');
+      }
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al cargar resultados');
   }
 }
 
-// Actualizar tabla
-function actualizarTabla() {
-  cargarEstudios();
-  cargarEstadisticas();
-  cargarDistribucionCategorias();
+// ============================================
+// ACTUALIZAR
+// ============================================
+async function actualizarTodo() {
+  await Promise.all([
+    cargarEstudios(),
+    cargarEstadisticas(),
+    cargarDistribucionCategorias()
+  ]);
 }
 
-// Función para mostrar alertas
-function mostrarAlerta(tipo, mensaje) {
-  const alertContainer = document.createElement('div');
-  alertContainer.className = `alert alert-${tipo === 'success' ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
-  alertContainer.style.zIndex = '9999';
-  alertContainer.innerHTML = `
-    <i class="fas fa-${tipo === 'success' ? 'check-circle' : 'exclamation-circle'} me-2"></i>
-    ${mensaje}
-    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-  `;
+function actualizarTabla() {
+  const btn = document.getElementById('btnActualizar');
+  const originalHTML = btn.innerHTML;
   
-  document.body.appendChild(alertContainer);
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Actualizando...';
+  btn.disabled = true;
   
-  setTimeout(() => {
-    alertContainer.remove();
-  }, 5000);
+  paginaActual = 1;
+  
+  actualizarTodo().finally(() => {
+    btn.innerHTML = originalHTML;
+    btn.disabled = false;
+  });
+}
+
+async function precargarPacienteEnEstudioPorId(id) {
+  try {
+    new bootstrap.Modal(document.getElementById('modalNuevoEstudio')).show();
+
+    // Buscar por ID en el endpoint que ya existe
+    const res = await fetch(`/medico/estudios-solicitados/api/buscar-pacientes?busqueda=${id}`);
+    const data = await res.json();
+
+    console.log('Buscando por ID:', id, '→', data);
+
+    if (data.success && data.data.length > 0) {
+      const paciente = data.data.find(p => p.id == id) || data.data[0];
+      document.getElementById('inputBuscarPaciente').value = paciente.dni;
+      await seleccionarPaciente(paciente.id, paciente.nombre, paciente.apellido, paciente.dni);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+  }
 }

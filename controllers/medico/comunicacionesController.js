@@ -1,21 +1,20 @@
-const { Op } = require('sequelize');
 const {
-  Mensaje,
   Notificacion,
   Noticia,
-  Usuario,
-  sequelize
+  Usuario
 } = require('../../models');
+const db = require('../../database/db');
+const { Op, QueryTypes } = require('sequelize');
 
 function getUsuarioId(req) {
   return req.user?.usuario_id || req.user?.id || null;
 }
 
 // ========================================
-// RENDERIZAR VISTA (CON LAYOUT DINÁMICO)
+// VISTA
 // ========================================
 
-exports.renderComunicaciones = async (req, res) => {
+exports.renderComunicaciones = async (req, res, next) => {
   try {
     console.log('📨 renderComunicaciones - usuario_id:', req.user.usuario_id);
 
@@ -49,24 +48,17 @@ exports.renderComunicaciones = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al renderizar comunicaciones:', error.message);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: error.message,
-      layout: 'layouts/layout'
-    });
+    next(error);
   }
 };
 
 // ========================================
-// NOTIFICACIONES - OBTENER
+// NOTIFICACIONES - OBTENER (Mensajes recibidos)
 // ========================================
 
-/**
- * Obtener notificaciones del usuario
- */
-exports.obtenerNotificaciones = async (req, res) => {
+exports.obtenerNotificaciones = async (req, res, next) => {
   try {
-    console.log('🔔 obtenerNotificaciones');
+    console.log('📥 obtenerNotificaciones (Mensajes recibidos)');
 
     const usuarioId = getUsuarioId(req);
     const { page = 1, limit = 10, leida = 'TODAS' } = req.query;
@@ -76,7 +68,7 @@ exports.obtenerNotificaciones = async (req, res) => {
     }
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
-    let where = { usuario_id: usuarioId };
+    let where = { usuario_id: usuarioId, eliminado: false };
 
     if (leida === 'true') {
       where.leida = true;
@@ -86,6 +78,14 @@ exports.obtenerNotificaciones = async (req, res) => {
 
     const { count, rows } = await Notificacion.findAndCountAll({
       where,
+      include: [
+        { 
+          model: Usuario, 
+          as: 'remitente', 
+          attributes: ['id', 'nombre', 'apellido', 'email', 'dni'],
+          required: false
+        }
+      ],
       order: [['created_at', 'DESC']],
       limit: parseInt(limit),
       offset: offset
@@ -99,7 +99,14 @@ exports.obtenerNotificaciones = async (req, res) => {
         id: n.id,
         mensaje: n.mensaje,
         leida: n.leida,
-        created_at: n.created_at
+        remitente: n.remitente ? {
+          id: n.remitente.id,
+          nombre: n.remitente.nombre,
+          apellido: n.remitente.apellido,
+          email: n.remitente.email
+        } : null,
+        createdAt: n.createdAt,
+        fecha_lectura: n.fecha_lectura
       })),
       pagination: {
         total: count,
@@ -110,421 +117,20 @@ exports.obtenerNotificaciones = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener notificaciones:', error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/**
- * Obtener estadísticas de notificaciones
- */
-exports.obtenerEstadisticasNotificaciones = async (req, res) => {
-  try {
-    console.log('📊 obtenerEstadisticasNotificaciones');
-
-    const usuarioId = getUsuarioId(req);
-
-    if (!usuarioId) {
-      return res.status(401).json({ success: false, message: 'No autorizado' });
-    }
-
-    const ahora = new Date();
-    const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
-
-    const [total, noLeidas, leidas, ultimas24h] = await Promise.all([
-      Notificacion.count({ where: { usuario_id: usuarioId } }),
-      Notificacion.count({ where: { usuario_id: usuarioId, leida: false } }),
-      Notificacion.count({ where: { usuario_id: usuarioId, leida: true } }),
-      Notificacion.count({
-        where: {
-          usuario_id: usuarioId,
-          created_at: { [Op.gte]: hace24h }
-        }
-      })
-    ]);
-
-    console.log('✅ Estadísticas obtenidas');
-
-    res.json({
-      success: true,
-      data: {
-        total,
-        noLeidas,
-        leidas,
-        ultimas24h
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error al obtener estadísticas:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // ========================================
-// NOTIFICACIONES - CREAR
+// NOTIFICACIONES - ENVIADAS (Mensajes enviados)
 // ========================================
 
-/**
- * Crear/Enviar notificación
- */
-exports.crearNotificacion = async (req, res) => {
-  try {
-    console.log('✉️ crearNotificacion');
-
-    const { usuario_id, mensaje } = req.body;
-
-    if (!usuario_id || !mensaje || !mensaje.trim()) {
-      return res.status(400).json({
-        success: false,
-        message: 'usuario_id y mensaje son obligatorios'
-      });
-    }
-
-    const usuario = await Usuario.findByPk(usuario_id);
-    if (!usuario) {
-      return res.status(404).json({
-        success: false,
-        message: 'Usuario destino no encontrado'
-      });
-    }
-
-    const notificacion = await Notificacion.create({
-      usuario_id: parseInt(usuario_id),
-      mensaje: mensaje.trim(),
-      leida: false
-    });
-
-    console.log('✅ Notificación creada:', notificacion.id);
-
-    res.json({
-      success: true,
-      message: 'Notificación enviada correctamente',
-      data: notificacion
-    });
-  } catch (error) {
-    console.error('❌ Error al crear notificación:', error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ========================================
-// NOTIFICACIONES - ACTUALIZAR
-// ========================================
-
-/**
- * Marcar notificación como leída
- */
-exports.marcarNotificacionLeida = async (req, res) => {
-  try {
-    console.log('👁️ marcarNotificacionLeida - id:', req.params.id);
-
-    const usuarioId = getUsuarioId(req);
-    const { id } = req.params;
-
-    const notificacion = await Notificacion.findOne({
-      where: {
-        id,
-        usuario_id: usuarioId
-      }
-    });
-
-    if (!notificacion) {
-      return res.status(404).json({
-        success: false,
-        message: 'Notificación no encontrada'
-      });
-    }
-
-    await notificacion.update({ leida: true });
-
-    console.log('✅ Notificación marcada como leída');
-
-    res.json({
-      success: true,
-      message: 'Notificación marcada como leída'
-    });
-  } catch (error) {
-    console.error('❌ Error al marcar notificación leída:', error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/**
- * Marcar todas las notificaciones como leídas
- */
-exports.marcarTodasNotificacionesLeidas = async (req, res) => {
-  try {
-    console.log('👁️ marcarTodasNotificacionesLeidas');
-
-    const usuarioId = getUsuarioId(req);
-
-    if (!usuarioId) {
-      return res.status(401).json({ success: false, message: 'No autorizado' });
-    }
-
-    await Notificacion.update(
-      { leida: true },
-      { where: { usuario_id: usuarioId, leida: false } }
-    );
-
-    console.log('✅ Todas las notificaciones marcadas como leídas');
-
-    res.json({
-      success: true,
-      message: 'Todas las notificaciones marcadas como leídas'
-    });
-  } catch (error) {
-    console.error('❌ Error al marcar notificaciones leídas:', error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ========================================
-// NOTIFICACIONES - ELIMINAR
-// ========================================
-
-exports.eliminarNotificacion = async (req, res) => {
-  try {
-    console.log('🗑️ eliminarNotificacion - id:', req.params.id);
-
-    const usuarioId = getUsuarioId(req);
-    const { id } = req.params;
-
-    const notificacion = await Notificacion.findOne({
-      where: {
-        id,
-        usuario_id: usuarioId
-      }
-    });
-
-    if (!notificacion) {
-      return res.status(404).json({
-        success: false,
-        message: 'Notificación no encontrada'
-      });
-    }
-
-    await notificacion.destroy();
-
-    console.log('✅ Notificación eliminada');
-
-    res.json({
-      success: true,
-      message: 'Notificación eliminada'
-    });
-  } catch (error) {
-    console.error('❌ Error al eliminar notificación:', error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-// ========================================
-// MENSAJES - OBTENER
-// ========================================
-
-/**
- * Obtener conversación entre dos usuarios
- */
-exports.obtenerConversacion = async (req, res) => {
-  try {
-    console.log('💬 obtenerConversacion');
-
-    const usuarioId = getUsuarioId(req);
-    const { usuario_id } = req.params;
-    const { page = 1, limit = 20 } = req.query;
-
-    if (!usuarioId) {
-      return res.status(401).json({ success: false, message: 'No autorizado' });
-    }
-
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-
-    const { count, rows } = await Mensaje.findAndCountAll({
-      where: {
-        [Op.or]: [
-          { remitente_id: usuarioId, destinatario_id: usuario_id },
-          { remitente_id: usuario_id, destinatario_id: usuarioId }
-        ]
-      },
-      include: [
-        { model: Usuario, as: 'remitente', attributes: ['id', 'nombre', 'apellido', 'email'] },
-        { model: Usuario, as: 'destinatario', attributes: ['id', 'nombre', 'apellido', 'email'] }
-      ],
-      order: [['created_at', 'ASC']],
-      limit: parseInt(limit),
-      offset: offset
-    });
-
-    console.log('✅ Conversación obtenida:', rows.length);
-
-    res.json({
-      success: true,
-      data: rows.map(m => ({
-        id: m.id,
-        remitente_id: m.remitente_id,
-        destinatario_id: m.destinatario_id,
-        contenido: m.contenido,
-        leido: m.leido,
-        fecha_lectura: m.fecha_lectura,
-        created_at: m.created_at,
-        remitente: m.remitente,
-        destinatario: m.destinatario
-      })),
-      pagination: {
-        total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / parseInt(limit))
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error al obtener conversación:', error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/**
- * Obtener lista de conversaciones (últimos mensajes con cada usuario)
- */
-exports.obtenerConversaciones = async (req, res) => {
-  try {
-    console.log('💬 obtenerConversaciones');
-
-    const usuarioId = getUsuarioId(req);
-    if (!usuarioId) {
-      return res.status(401).json({ success: false, message: 'No autorizado' });
-    }
-
-    // Obtener usuarios con los que ha conversado
-    const conversaciones = await sequelize.query(`
-      SELECT DISTINCT
-        CASE 
-          WHEN m.remitente_id = ? THEN m.destinatario_id
-          ELSE m.remitente_id
-        END as otro_usuario_id,
-        MAX(m.created_at) as ultima_fecha,
-        (SELECT COUNT(*) FROM mensajes m2 
-         WHERE m2.destinatario_id = ? 
-         AND m2.remitente_id = CASE 
-           WHEN m.remitente_id = ? THEN m.destinatario_id
-           ELSE m.remitente_id
-         END
-         AND m2.leido = false) as no_leidos
-      FROM mensajes m
-      WHERE m.remitente_id = ? OR m.destinatario_id = ?
-      GROUP BY otro_usuario_id
-      ORDER BY ultima_fecha DESC
-      LIMIT 50
-    `, {
-      replacements: [usuarioId, usuarioId, usuarioId, usuarioId, usuarioId],
-      type: sequelize.QueryTypes.SELECT
-    });
-
-    // Obtener datos de usuarios
-    const conversacionesData = await Promise.all(
-      conversaciones.map(async (conv) => {
-        const usuario = await Usuario.findByPk(conv.otro_usuario_id, {
-          attributes: ['id', 'nombre', 'apellido', 'email']
-        });
-
-        const ultimoMensaje = await Mensaje.findOne({
-          where: {
-            [Op.or]: [
-              { remitente_id: usuarioId, destinatario_id: conv.otro_usuario_id },
-              { remitente_id: conv.otro_usuario_id, destinatario_id: usuarioId }
-            ]
-          },
-          order: [['created_at', 'DESC']],
-          attributes: ['id', 'contenido', 'remitente_id', 'created_at']
-        });
-
-        return {
-          usuario: usuario,
-          ultimo_mensaje: ultimoMensaje ? ultimoMensaje.contenido : '',
-          ultima_fecha: conv.ultima_fecha,
-          no_leidos: parseInt(conv.no_leidos) || 0,
-          es_enviado: ultimoMensaje ? ultimoMensaje.remitente_id === usuarioId : false
-        };
-      })
-    );
-
-    console.log('✅ Conversaciones obtenidas:', conversacionesData.length);
-
-    res.json({
-      success: true,
-      data: conversacionesData
-    });
-  } catch (error) {
-    console.error('❌ Error al obtener conversaciones:', error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/**
- * Obtener mensajes recibidos (bandeja de entrada)
- */
-exports.obtenerMensajesRecibidos = async (req, res) => {
-  try {
-    console.log('📥 obtenerMensajesRecibidos');
-
-    const usuarioId = getUsuarioId(req);
-    const { page = 1, limit = 20, leido = 'TODAS' } = req.query;
-
-    if (!usuarioId) {
-      return res.status(401).json({ success: false, message: 'No autorizado' });
-    }
-
-    const offset = (parseInt(page) - 1) * parseInt(limit);
-    let where = { destinatario_id: usuarioId };
-
-    if (leido === 'true') {
-      where.leido = true;
-    } else if (leido === 'false') {
-      where.leido = false;
-    }
-
-    const { count, rows } = await Mensaje.findAndCountAll({
-      where,
-      include: [
-        { model: Usuario, as: 'remitente', attributes: ['id', 'nombre', 'apellido', 'email'] }
-      ],
-      order: [['created_at', 'DESC']],
-      limit: parseInt(limit),
-      offset: offset
-    });
-
-    console.log('✅ Mensajes recibidos:', count);
-
-    res.json({
-      success: true,
-      data: rows.map(m => ({
-        id: m.id,
-        remitente: m.remitente,
-        contenido: m.contenido,
-        leido: m.leido,
-        created_at: m.created_at
-      })),
-      pagination: {
-        total: count,
-        page: parseInt(page),
-        limit: parseInt(limit),
-        totalPages: Math.ceil(count / parseInt(limit))
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error al obtener mensajes recibidos:', error.message);
-    res.status(500).json({ success: false, message: error.message });
-  }
-};
-
-/**
- * Obtener mensajes enviados (bandeja de enviados)
- */
-exports.obtenerMensajesEnviados = async (req, res) => {
+exports.obtenerMensajesEnviados = async (req, res, next) => {
   try {
     console.log('📤 obtenerMensajesEnviados');
 
     const usuarioId = getUsuarioId(req);
-    const { page = 1, limit = 20 } = req.query;
+    const { page = 1, limit = 10 } = req.query;
 
     if (!usuarioId) {
       return res.status(401).json({ success: false, message: 'No autorizado' });
@@ -532,10 +138,17 @@ exports.obtenerMensajesEnviados = async (req, res) => {
 
     const offset = (parseInt(page) - 1) * parseInt(limit);
 
-    const { count, rows } = await Mensaje.findAndCountAll({
-      where: { remitente_id: usuarioId },
+    const { count, rows } = await Notificacion.findAndCountAll({
+      where: { 
+        remitente_id: usuarioId,
+        eliminado: false
+      },
       include: [
-        { model: Usuario, as: 'destinatario', attributes: ['id', 'nombre', 'apellido', 'email'] }
+        { 
+          model: Usuario, 
+          as: 'destinatario', 
+          attributes: ['id', 'nombre', 'apellido', 'email', 'dni']
+        }
       ],
       order: [['created_at', 'DESC']],
       limit: parseInt(limit),
@@ -548,10 +161,16 @@ exports.obtenerMensajesEnviados = async (req, res) => {
       success: true,
       data: rows.map(m => ({
         id: m.id,
-        destinatario: m.destinatario,
-        contenido: m.contenido,
-        leido: m.leido,
-        created_at: m.created_at
+        mensaje: m.mensaje,
+        leida: m.leida,
+        destinatario: m.destinatario ? {
+          id: m.destinatario.id,
+          nombre: m.destinatario.nombre,
+          apellido: m.destinatario.apellido,
+          email: m.destinatario.email
+        } : null,
+        createdAt: m.createdAt,
+        fecha_lectura: m.fecha_lectura
       })),
       pagination: {
         total: count,
@@ -562,29 +181,221 @@ exports.obtenerMensajesEnviados = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener mensajes enviados:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // ========================================
-// MENSAJES - CREAR/ENVIAR
+// CONVERSACIONES
 // ========================================
 
-exports.enviarMensaje = async (req, res) => {
+exports.obtenerConversaciones = async (req, res, next) => {
   try {
-    console.log('✉️ enviarMensaje');
+    console.log(' obtenerConversaciones');
 
     const usuarioId = getUsuarioId(req);
-    const { usuario_id, contenido } = req.body;
+    if (!usuarioId) {
+      return res.status(401).json({ success: false, message: 'No autorizado' });
+    }
+
+    const conversaciones = await db.sequelize.query(`
+      SELECT DISTINCT
+        CASE 
+          WHEN n.remitente_id = :usuarioId THEN n.usuario_id
+          ELSE n.remitente_id
+        END as otro_usuario_id,
+        MAX(n.created_at) as ultima_fecha,
+        COUNT(CASE WHEN n.leida = false AND n.usuario_id = :usuarioId THEN 1 END) as no_leidos
+      FROM notificaciones n
+      WHERE (n.remitente_id = :usuarioId OR n.usuario_id = :usuarioId)
+        AND n.eliminado = false
+        AND (n.remitente_id IS NOT NULL)
+      GROUP BY otro_usuario_id
+      ORDER BY ultima_fecha DESC
+    `, {
+      replacements: { usuarioId },
+      type: QueryTypes.SELECT  
+    });
+
+    // Obtener datos de usuarios y último mensaje
+    const conversacionesData = await Promise.all(
+      conversaciones.map(async (conv) => {
+        const usuario = await Usuario.findByPk(conv.otro_usuario_id, {
+          attributes: ['id', 'nombre', 'apellido', 'email']
+        });
+
+        const ultimaNotificacion = await Notificacion.findOne({
+          where: {
+            [Op.or]: [
+              { remitente_id: usuarioId, usuario_id: conv.otro_usuario_id },
+              { remitente_id: conv.otro_usuario_id, usuario_id: usuarioId }
+            ],
+            eliminado: false,
+            remitente_id: { [Op.not]: null }
+          },
+          order: [['created_at', 'DESC']],
+          attributes: ['id', 'mensaje', 'remitente_id', 'created_at']
+        });
+
+        return {
+          usuario: usuario,
+          ultimo_mensaje: ultimaNotificacion ? ultimaNotificacion.mensaje : '',
+          ultima_fecha: conv.ultima_fecha,
+          no_leidos: parseInt(conv.no_leidos) || 0,
+          es_enviado: ultimaNotificacion ? ultimaNotificacion.remitente_id === usuarioId : false
+        };
+      })
+    );
+
+    console.log(' Conversaciones obtenidas:', conversacionesData.length);
+
+    res.json({
+      success: true,
+      data: conversacionesData
+    });
+  } catch (error) {
+    console.error('❌ Error al obtener conversaciones:', error.message);
+    next(error);
+  }
+};
+
+exports.obtenerConversacion = async (req, res, next) => {
+  try {
+    console.log(' obtenerConversacion');
+
+    const usuarioId = getUsuarioId(req);
+    const { usuario_id } = req.params;
+    const { page = 1, limit = 20 } = req.query;
 
     if (!usuarioId) {
       return res.status(401).json({ success: false, message: 'No autorizado' });
     }
 
-    if (!usuario_id || !contenido || !contenido.trim()) {
+    const offset = (parseInt(page) - 1) * parseInt(limit);
+
+    const { count, rows } = await Notificacion.findAndCountAll({
+      where: {
+        [Op.or]: [
+          { remitente_id: usuarioId, usuario_id: usuario_id },
+          { remitente_id: usuario_id, usuario_id: usuarioId }
+        ],
+        eliminado: false,
+        remitente_id: { [Op.not]: null }
+      },
+      include: [
+        { 
+          model: Usuario, 
+          as: 'remitente', 
+          attributes: ['id', 'nombre', 'apellido', 'email'] 
+        },
+        { 
+          model: Usuario, 
+          as: 'destinatario', 
+          attributes: ['id', 'nombre', 'apellido', 'email'] 
+        }
+      ],
+      order: [['created_at', 'ASC']],
+      limit: parseInt(limit),
+      offset: offset
+    });
+
+    console.log(' Conversación obtenida:', rows.length);
+
+    res.json({
+      success: true,
+      data: rows.map(n => ({
+        id: n.id,
+        remitente_id: n.remitente_id,
+        usuario_id: n.usuario_id,
+        mensaje: n.mensaje,
+        leida: n.leida,
+        fecha_lectura: n.fecha_lectura,
+        createdAt: n.createdAt,
+        remitente: n.remitente,
+        destinatario: n.destinatario
+      })),
+      pagination: {
+        total: count,
+        page: parseInt(page),
+        limit: parseInt(limit),
+        totalPages: Math.ceil(count / parseInt(limit))
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error al obtener conversación:', error.message);
+    next(error);
+  }
+};
+
+
+// ========================================
+// NOTIFICACIONES - ESTADÍSTICAS
+// ========================================
+
+exports.obtenerEstadisticasNotificaciones = async (req, res, next) => {
+  try {
+    console.log('📊 obtenerEstadisticasNotificaciones');
+
+    const usuarioId = getUsuarioId(req);
+
+    if (!usuarioId) {
+      return res.status(401).json({ success: false, message: 'No autorizado' });
+    }
+
+    const ahora = new Date();
+    const hace24h = new Date(ahora.getTime() - 24 * 60 * 60 * 1000);
+
+    const [totalRecibidas, noLeidas, leidas, ultimas24h, totalEnviadas] = await Promise.all([
+      Notificacion.count({ where: { usuario_id: usuarioId, eliminado: false } }),
+      Notificacion.count({ where: { usuario_id: usuarioId, leida: false, eliminado: false } }),
+      Notificacion.count({ where: { usuario_id: usuarioId, leida: true, eliminado: false } }),
+      Notificacion.count({
+        where: {
+          usuario_id: usuarioId,
+          createdAt: { [Op.gte]: hace24h },
+          eliminado: false
+        }
+      }),
+      Notificacion.count({ where: { remitente_id: usuarioId, eliminado: false } })
+    ]);
+
+    console.log('✅ Estadísticas obtenidas');
+
+    res.json({
+      success: true,
+      data: {
+        totalRecibidas,
+        noLeidas,
+        leidas,
+        ultimas24h,
+        totalEnviadas
+      }
+    });
+  } catch (error) {
+    console.error('❌ Error al obtener estadísticas:', error.message);
+    next(error);
+  }
+};
+
+// ========================================
+// NOTIFICACIONES - CREAR (Enviar mensaje)
+// ========================================
+
+exports.crearNotificacion = async (req, res, next) => {
+  try {
+    console.log('✉️ crearNotificacion (Enviar mensaje)');
+
+    const usuarioId = getUsuarioId(req);
+    const { usuario_id, mensaje } = req.body;
+
+    if (!usuarioId) {
+      return res.status(401).json({ success: false, message: 'No autorizado' });
+    }
+
+    if (!usuario_id || !mensaje || !mensaje.trim()) {
       return res.status(400).json({
         success: false,
-        message: 'usuario_id y contenido son obligatorios'
+        message: 'usuario_id y mensaje son obligatorios'
       });
     }
 
@@ -603,110 +414,148 @@ exports.enviarMensaje = async (req, res) => {
       });
     }
 
-    const mensaje = await Mensaje.create({
-      remitente_id: usuarioId,
-      destinatario_id: parseInt(usuario_id),
-      contenido: contenido.trim(),
-      leido: false
+    const notificacion = await Notificacion.create({
+      usuario_id: parseInt(usuario_id), // destinatario
+      remitente_id: usuarioId,          // quien envía
+      mensaje: mensaje.trim(),
+      leida: false,
+      eliminado: false
     });
 
-    console.log('✅ Mensaje enviado:', mensaje.id);
+    console.log('✅ Notificación (mensaje) enviada:', notificacion.id);
 
     res.json({
       success: true,
       message: 'Mensaje enviado correctamente',
-      data: mensaje
+      data: {
+        id: notificacion.id,
+        mensaje: notificacion.mensaje,
+        createdAt: notificacion.createdAt
+      }
     });
   } catch (error) {
-    console.error('❌ Error al enviar mensaje:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ Error al crear notificación:', error.message);
+    next(error);
   }
 };
 
 // ========================================
-// MENSAJES - ACTUALIZAR
+// NOTIFICACIONES - ACTUALIZAR
 // ========================================
 
-/**
- * Marcar mensaje como leído
- */
-exports.marcarMensajeLeido = async (req, res) => {
+exports.marcarNotificacionLeida = async (req, res, next) => {
   try {
-    console.log('👁️ marcarMensajeLeido - id:', req.params.id);
+    console.log('👁️ marcarNotificacionLeida - id:', req.params.id);
 
     const usuarioId = getUsuarioId(req);
     const { id } = req.params;
 
-    const mensaje = await Mensaje.findOne({
+    const notificacion = await Notificacion.findOne({
       where: {
         id,
-        destinatario_id: usuarioId
+        usuario_id: usuarioId // Solo puede marcar como leída sus propias notificaciones
       }
     });
 
-    if (!mensaje) {
+    if (!notificacion) {
       return res.status(404).json({
         success: false,
-        message: 'Mensaje no encontrado'
+        message: 'Notificación no encontrada'
       });
     }
 
-    await mensaje.update({
-      leido: true,
-      fecha_lectura: new Date()
+    await notificacion.update({ 
+      leida: true,
+      fecha_lectura: new Date() 
     });
 
-    console.log('✅ Mensaje marcado como leído');
+    console.log('✅ Notificación marcada como leída');
 
     res.json({
       success: true,
-      message: 'Mensaje marcado como leído'
+      message: 'Notificación marcada como leída'
     });
   } catch (error) {
-    console.error('❌ Error al marcar mensaje leído:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ Error al marcar notificación leída:', error.message);
+    next(error);
+  }
+};
+
+exports.marcarTodasNotificacionesLeidas = async (req, res, next) => {
+  try {
+    console.log('👁️ marcarTodasNotificacionesLeidas');
+
+    const usuarioId = getUsuarioId(req);
+
+    if (!usuarioId) {
+      return res.status(401).json({ success: false, message: 'No autorizado' });
+    }
+
+    await Notificacion.update(
+      { 
+        leida: true,
+        fecha_lectura: new Date() 
+      },
+      { 
+        where: { 
+          usuario_id: usuarioId, 
+          leida: false,
+          eliminado: false 
+        } 
+      }
+    );
+
+    console.log('✅ Todas las notificaciones marcadas como leídas');
+
+    res.json({
+      success: true,
+      message: 'Todas las notificaciones marcadas como leídas'
+    });
+  } catch (error) {
+    console.error('❌ Error al marcar notificaciones leídas:', error.message);
+    next(error);
   }
 };
 
 // ========================================
-// MENSAJES - ELIMINAR
+// NOTIFICACIONES - ELIMINAR
 // ========================================
 
-exports.eliminarMensaje = async (req, res) => {
+exports.eliminarNotificacion = async (req, res, next) => {
   try {
-    console.log('🗑️ eliminarMensaje - id:', req.params.id);
+    console.log('🗑️ eliminarNotificacion - id:', req.params.id);
 
     const usuarioId = getUsuarioId(req);
     const { id } = req.params;
 
-    const mensaje = await Mensaje.findOne({
+    const notificacion = await Notificacion.findOne({
       where: {
         id,
         [Op.or]: [
-          { remitente_id: usuarioId },
-          { destinatario_id: usuarioId }
+          { usuario_id: usuarioId },  // Como destinatario
+          { remitente_id: usuarioId } // Como remitente
         ]
       }
     });
 
-    if (!mensaje) {
+    if (!notificacion) {
       return res.status(404).json({
         success: false,
-        message: 'Mensaje no encontrado'
+        message: 'Notificación no encontrada'
       });
     }
 
-    await mensaje.destroy();
+    await notificacion.update({ eliminado: true });
 
-    console.log('✅ Mensaje eliminado');
+    console.log('✅ Notificación eliminada (marcada como eliminada)');
 
     res.json({
       success: true,
-      message: 'Mensaje eliminado'
+      message: 'Notificación eliminada'
     });
   } catch (error) {
-    console.error('❌ Error al eliminar mensaje:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    console.error('❌ Error al eliminar notificación:', error.message);
+    next(error);
   }
 };
 
@@ -714,7 +563,7 @@ exports.eliminarMensaje = async (req, res) => {
 // USUARIOS - BUSCAR
 // ========================================
 
-exports.buscarUsuarios = async (req, res) => {
+exports.buscarUsuarios = async (req, res, next) => {
   try {
     console.log('🔍 buscarUsuarios');
 
@@ -732,10 +581,10 @@ exports.buscarUsuarios = async (req, res) => {
       where: {
         id: { [Op.ne]: usuarioId },
         [Op.or]: [
-          { nombre: { [Op.iLike]: `%${search}%` } },
-          { apellido: { [Op.iLike]: `%${search}%` } },
-          { email: { [Op.iLike]: `%${search}%` } },
-          { dni: { [Op.iLike]: `%${search}%` } }
+          { nombre: { [Op.like]: `%${search}%` } },
+          { apellido: { [Op.like]: `%${search}%` } },
+          { email: { [Op.like]: `%${search}%` } },
+          { dni: { [Op.like]: `%${search}%` } }
         ]
       },
       attributes: ['id', 'nombre', 'apellido', 'email', 'dni'],
@@ -750,7 +599,7 @@ exports.buscarUsuarios = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al buscar usuarios:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
@@ -758,7 +607,7 @@ exports.buscarUsuarios = async (req, res) => {
 // NOTICIAS - OBTENER
 // ========================================
 
-exports.obtenerNoticias = async (req, res) => {
+exports.obtenerNoticias = async (req, res, next) => {
   try {
     console.log('📰 obtenerNoticias');
 
@@ -767,7 +616,11 @@ exports.obtenerNoticias = async (req, res) => {
 
     const { count, rows } = await Noticia.findAndCountAll({
       include: [
-        { model: Usuario, as: 'autor', attributes: ['nombre', 'apellido'] }
+        { 
+          model: Usuario, 
+          as: 'autor', 
+          attributes: ['nombre', 'apellido'] 
+        }
       ],
       order: [['fecha', 'DESC']],
       limit: parseInt(limit),
@@ -792,17 +645,21 @@ exports.obtenerNoticias = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener noticias:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-exports.obtenerNoticiaPorId = async (req, res) => {
+exports.obtenerNoticiaPorId = async (req, res, next) => {
   try {
     console.log('📰 obtenerNoticiaPorId - id:', req.params.id);
 
     const noticia = await Noticia.findByPk(req.params.id, {
       include: [
-        { model: Usuario, as: 'autor', attributes: ['nombre', 'apellido'] }
+        { 
+          model: Usuario, 
+          as: 'autor', 
+          attributes: ['nombre', 'apellido'] 
+        }
       ]
     });
 
@@ -825,6 +682,6 @@ exports.obtenerNoticiaPorId = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener noticia:', error.message);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };

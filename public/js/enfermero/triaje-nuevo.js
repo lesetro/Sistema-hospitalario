@@ -20,7 +20,7 @@ async function buscarPaciente() {
       document.getElementById('form-triaje').style.display = 'block';
     } else {
       if (confirm('Paciente no encontrado. ¿Desea registrar un nuevo paciente?')) {
-        window.location.href = `/enfermero/pacientes/nuevo?dni=${dni}`;
+         alert('Debe dirigirse a Admisión para registrar el paciente.');
       }
     }
   } catch (error) {
@@ -64,10 +64,35 @@ function seleccionarNivel(nivel) {
   
   // Marcar nueva selección
   const card = document.querySelector(`[data-nivel="${nivel}"]`);
-  card.classList.add('selected-card');
+  if (card) {
+    card.classList.add('selected-card');
+  }
   
   nivelSeleccionado = nivel;
   document.getElementById('nivel-triaje').value = nivel;
+  
+  // Mostrar mensaje simple
+  mostrarMensajeSeleccion(nivel);
+}
+
+function mostrarMensajeSeleccion(nivel) {
+  // Quitar mensaje anterior
+  const mensajeAnterior = document.querySelector('.mensaje-seleccion');
+  if (mensajeAnterior) {
+    mensajeAnterior.remove();
+  }
+  
+  // Crear mensaje nuevo
+  const mensaje = document.createElement('div');
+  mensaje.className = 'mensaje-seleccion';
+  mensaje.textContent = 'Nivel ' + nivel + ' seleccionado';
+  mensaje.style.cssText = 'background: #d4edda; color: #155724; padding: 8px; border-radius: 4px; margin-top: 10px; border: 1px solid #c3e6cb;';
+  
+  // Agregar después de las tarjetas
+  const tarjetasContainer = document.querySelector('.row.g-3');
+  if (tarjetasContainer) {
+    tarjetasContainer.after(mensaje);
+  }
 }
 
 // Enviar formulario

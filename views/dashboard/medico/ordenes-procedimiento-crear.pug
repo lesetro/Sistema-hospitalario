@@ -1,0 +1,479 @@
+extends layout
+
+block content
+  .container-fluid
+    // Breadcrumb y header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/medico") Dashboard
+            li.breadcrumb-item
+              a(href="/medico/ordenes-procedimiento") Órdenes de Procedimientos
+            li.breadcrumb-item.active Crear Orden
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-syringe.me-2
+              | Crear Orden de Procedimiento
+            p.text-muted.mb-0 Complete el formulario para crear una nueva orden de procedimiento de enfermería
+          div
+            a.btn.btn-outline-secondary(href="/medico/ordenes-procedimiento")
+              i.fas.fa-arrow-left.me-2
+              | Volver
+
+    // Formulario
+    .row
+      .col-lg-8.mx-auto
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-file-medical.me-2
+              | Datos de la Orden
+          
+          .card-body
+            form#form-crear-orden(method="POST" action="/medico/ordenes-procedimiento/crear")
+              
+              // Selección de paciente
+              .mb-4
+                label.form-label
+                  i.fas.fa-user.me-2
+                  | Paciente
+                  span.text-danger *
+                if paciente
+                  .alert.alert-info
+                    strong #{paciente.usuario.nombre} #{paciente.usuario.apellido}
+                    br
+                    small DNI: #{paciente.usuario.dni}
+                  input(type="hidden" name="paciente_id" value=paciente.id)
+                  if evaluacion
+                    input(type="hidden" name="evaluacion_medica_id" value=evaluacion.id)
+                else
+                  .input-group.mb-2
+                    span.input-group-text.bg-light
+                      i.fas.fa-search
+                    input.form-control(
+                      type="text"
+                      id="buscar-paciente"
+                      placeholder="Buscar paciente por nombre, apellido o DNI..."
+                      autocomplete="off"
+                    )
+                    button.btn.btn-outline-secondary(type="button" id="btn-limpiar" style="display: none;")
+                      i.fas.fa-times
+                  
+                  // Spinner
+                  .text-center.my-2#spinner-busqueda(style="display: none;")
+                    .spinner-border.spinner-border-sm.text-primary
+                    span.ms-2.text-muted Buscando pacientes...
+                  
+                  // Resultados
+                  #resultados-paciente.list-group.mt-2(style="display: none; max-height: 300px; overflow-y: auto;")
+                  
+                  // Campos ocultos
+                  input(type="hidden" name="paciente_id" id="paciente_id" required)
+                  input(type="hidden" name="evaluacion_medica_id" id="evaluacion_medica_id")
+                  
+                  // Paciente seleccionado
+                  #paciente-seleccionado.alert.alert-success.mt-2(style="display: none;")
+                    .d-flex.justify-content-between.align-items-center
+                      div
+                        i.fas.fa-check-circle.me-2
+                        strong Paciente:
+                        span#paciente-nombre.ms-2
+                        span#paciente-dni.badge.bg-light.text-dark.ms-2
+                        span#paciente-edad.badge.bg-info.ms-2
+                      button.btn.btn-sm.btn-outline-success(type="button" onclick="cambiarPaciente()")
+                        i.fas.fa-exchange-alt.me-1
+                        | Cambiar
+
+              // Evaluaciones médicas
+              #seccion-evaluaciones.mb-4(style="display: none;")
+                hr
+                label.form-label.fw-bold
+                  i.fas.fa-file-medical.me-2.text-success
+                  | Evaluaciones Médicas (Opcional)
+                
+                .card.bg-light
+                  .card-body
+                    select.form-select#evaluacion_medica_id_select
+                      option(value="") -- Sin evaluación asociada --
+                    
+                    small.text-muted.form-text.mt-2
+                      i.fas.fa-info-circle.me-1
+                      | Seleccione una evaluación para asociar al procedimiento
+                    
+                    #ultima-evaluacion-info.alert.alert-info.mt-2(style="display: none;")
+                      i.fas.fa-clock.me-2
+                      | Última evaluación: 
+                      strong#ultima-evaluacion-text
+
+              hr
+
+              // Nombre del procedimiento
+              .mb-3
+                label.form-label(for="nombre")
+                  i.fas.fa-tag.me-2
+                  | Nombre del Procedimiento
+                  span.text-danger *
+                input.form-control(
+                  type="text"
+                  id="nombre"
+                  name="nombre"
+                  placeholder="Ej: Curación de herida quirúrgica, Toma de muestra de sangre..."
+                  required
+                )
+                .form-text Ingrese un nombre descriptivo del procedimiento
+
+              // Descripción
+              .mb-3
+                label.form-label(for="descripcion")
+                  i.fas.fa-align-left.me-2
+                  | Descripción Detallada
+                  span.text-danger *
+                textarea.form-control(
+                  id="descripcion"
+                  name="descripcion"
+                  rows="4"
+                  placeholder="Describa el procedimiento a realizar, técnica, materiales necesarios..."
+                  required
+                )
+                .form-text Incluya detalles importantes sobre el procedimiento
+
+              // Indicaciones específicas
+              .mb-3
+                label.form-label(for="indicaciones_especificas")
+                  i.fas.fa-exclamation-circle.me-2
+                  | Indicaciones Especiales
+                textarea.form-control(
+                  id="indicaciones_especificas"
+                  name="indicaciones_especificas"
+                  rows="3"
+                  placeholder="Precauciones, contraindicaciones, observaciones especiales..."
+                )
+                .form-text Agregue cualquier indicación especial que deba tener en cuenta el enfermero
+
+              .row
+                // Duración estimada
+                .col-md-6.mb-3
+                  label.form-label(for="duracion_estimada")
+                    i.fas.fa-clock.me-2
+                    | Duración Estimada (minutos)
+                  input.form-control(
+                    type="number"
+                    id="duracion_estimada"
+                    name="duracion_estimada"
+                    min="1"
+                    placeholder="Ej: 30"
+                  )
+
+                // Prioridad
+                .col-md-6.mb-3
+                  label.form-label(for="prioridad")
+                    i.fas.fa-flag.me-2
+                    | Prioridad
+                    span.text-danger *
+                  select.form-select(id="prioridad" name="prioridad" required)
+                    option(value="NORMAL" selected) 🟢 Normal
+                    option(value="ALTA") 🟡 Alta
+                    option(value="URGENTE") 🔴 Urgente
+
+              // Requiere preparación
+              .mb-3
+                .form-check
+                  input.form-check-input(
+                    type="checkbox"
+                    id="requiere_preparacion"
+                    name="requiere_preparacion"
+                    value="true"
+                  )
+                  label.form-check-label(for="requiere_preparacion")
+                    i.fas.fa-list-check.me-2
+                    | Este procedimiento requiere preparación previa del paciente
+                .form-text Marque esta opción si el paciente debe cumplir requisitos previos (ayuno, higiene, etc.)
+
+              hr
+
+              // Botones
+              .d-grid.gap-2.d-md-flex.justify-content-md-end
+                button.btn.btn-secondary(type="button" onclick="window.history.back()")
+                  i.fas.fa-times.me-2
+                  | Cancelar
+                button.btn.btn-primary(type="submit" id="btn-submit" disabled)
+                  i.fas.fa-save.me-2
+                  | Crear Orden
+
+block scripts
+  script.
+    // ========================================
+    // VARIABLES GLOBALES
+    // ========================================
+    const inputBusqueda = document.getElementById('buscar-paciente');
+    const resultadosDiv = document.getElementById('resultados-paciente');
+    const spinner = document.getElementById('spinner-busqueda');
+    const pacienteIdInput = document.getElementById('paciente_id');
+    const evaluacionIdInput = document.getElementById('evaluacion_medica_id');
+    const evaluacionSelect = document.getElementById('evaluacion_medica_id_select');
+    const seccionEvaluaciones = document.getElementById('seccion-evaluaciones');
+    const pacienteSeleccionado = document.getElementById('paciente-seleccionado');
+    const btnSubmit = document.getElementById('btn-submit');
+    const btnLimpiar = document.getElementById('btn-limpiar');
+    
+    let timeoutBusqueda = null;
+    let pacienteActual = null;
+
+    // ========================================
+    // BÚSQUEDA DE PACIENTES
+    // ========================================
+    if (inputBusqueda) {
+      inputBusqueda.addEventListener('input', function() {
+        clearTimeout(timeoutBusqueda);
+        const busqueda = this.value.trim();
+        
+        // Mostrar/ocultar botón limpiar
+        if (btnLimpiar) {
+          btnLimpiar.style.display = busqueda.length > 0 ? 'block' : 'none';
+        }
+        
+        if (busqueda.length < 3) {
+          resultadosDiv.style.display = 'none';
+          return;
+        }
+        
+        timeoutBusqueda = setTimeout(() => {
+          buscarPacientes(busqueda);
+        }, 400);
+      });
+    }
+
+    // ========================================
+    // FUNCIÓN: Buscar pacientes
+    // ========================================
+    async function buscarPacientes(busqueda) {
+      try {
+        if (spinner) spinner.style.display = 'block';
+        resultadosDiv.style.display = 'none';
+        
+        const response = await fetch(
+          `/medico/ordenes-procedimiento/api/pacientes/buscar-con-evaluaciones?q=${encodeURIComponent(busqueda)}`
+        );
+        const data = await response.json();
+        
+        if (spinner) spinner.style.display = 'none';
+        
+        if (data.success && data.pacientes && data.pacientes.length > 0) {
+          mostrarResultados(data.pacientes);
+        } else {
+          resultadosDiv.innerHTML = `
+            <div class="list-group-item text-center text-muted py-4">
+              <i class="fas fa-user-slash fa-2x mb-2"></i>
+              <p class="mb-0">No se encontraron pacientes con "<strong>${busqueda}</strong>"</p>
+              <small>Intente con otro término de búsqueda</small>
+            </div>
+          `;
+          resultadosDiv.style.display = 'block';
+        }
+      } catch (error) {
+        console.error('❌ Error:', error);
+        if (spinner) spinner.style.display = 'none';
+        resultadosDiv.innerHTML = `
+          <div class="list-group-item text-center text-danger py-4">
+            <i class="fas fa-exclamation-triangle fa-2x mb-2"></i>
+            <p class="mb-0">Error al buscar pacientes</p>
+            <small>Intente nuevamente</small>
+          </div>
+        `;
+        resultadosDiv.style.display = 'block';
+      }
+    }
+
+    // ========================================
+    // MOSTRAR RESULTADOS
+    // ========================================
+    function mostrarResultados(pacientes) {
+      resultadosDiv.innerHTML = '';
+      
+      pacientes.forEach(paciente => {
+        const item = document.createElement('button');
+        item.type = 'button';
+        item.className = 'list-group-item list-group-item-action';
+        
+        const cantEval = paciente.evaluaciones?.length || 0;
+        
+        item.innerHTML = `
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <strong>${paciente.nombre_completo || ''}</strong>
+              <span class="badge bg-secondary ms-2">DNI: ${paciente.dni || ''}</span>
+              ${paciente.edad ? `<span class="badge bg-info ms-1">${paciente.edad} años</span>` : ''}
+              <br>
+              <small class="text-muted">
+                <i class="fas fa-id-card"></i> ${paciente.obra_social || 'Sin obra social'}
+                <span class="ms-3">
+                  <i class="fas fa-file-medical"></i> 
+                  ${cantEval} ${cantEval === 1 ? 'evaluación' : 'evaluaciones'}
+                </span>
+              </small>
+            </div>
+            <span class="badge bg-primary rounded-pill">
+              <i class="fas fa-chevron-right"></i>
+            </span>
+          </div>
+        `;
+        
+        item.addEventListener('click', (e) => {
+          e.preventDefault();
+          seleccionarPaciente(paciente);
+        });
+        
+        resultadosDiv.appendChild(item);
+      });
+      
+      resultadosDiv.style.display = 'block';
+    }
+
+    // ========================================
+    // SELECCIONAR PACIENTE
+    // ========================================
+    function seleccionarPaciente(paciente) {
+      pacienteActual = paciente;
+      pacienteIdInput.value = paciente.id;
+      
+      // Mostrar badge
+      document.getElementById('paciente-nombre').innerHTML = `<strong>${paciente.nombre_completo || ''}</strong>`;
+      document.getElementById('paciente-dni').textContent = `DNI: ${paciente.dni || ''}`;
+      document.getElementById('paciente-edad').textContent = `${paciente.edad || '?'} años`;
+      pacienteSeleccionado.style.display = 'block';
+      
+      // Limpiar búsqueda
+      inputBusqueda.value = '';
+      if (btnLimpiar) btnLimpiar.style.display = 'none';
+      resultadosDiv.style.display = 'none';
+      
+      // Cargar evaluaciones
+      if (paciente.evaluaciones && paciente.evaluaciones.length > 0) {
+        evaluacionSelect.innerHTML = '<option value="">-- Sin evaluación asociada --</option>';
+        
+        paciente.evaluaciones.forEach(eval => {
+          const option = document.createElement('option');
+          option.value = eval.id;
+          option.textContent = `${eval.fecha_formateada || ''} - ${eval.motivo || ''} (${eval.medico || 'N/A'})`;
+          evaluacionSelect.appendChild(option);
+        });
+        
+        const ultima = paciente.evaluaciones[0];
+        document.getElementById('ultima-evaluacion-text').innerHTML = 
+          `${ultima.fecha_formateada || ''} - ${ultima.motivo || ''}`;
+        document.getElementById('ultima-evaluacion-info').style.display = 'block';
+        
+        seccionEvaluaciones.style.display = 'block';
+      } else {
+        evaluacionSelect.innerHTML = '<option value="">-- Sin evaluaciones disponibles --</option>';
+        document.getElementById('ultima-evaluacion-info').style.display = 'none';
+        seccionEvaluaciones.style.display = 'block';
+      }
+      
+      btnSubmit.disabled = false;
+    }
+
+    // ========================================
+    // CAMBIAR PACIENTE
+    // ========================================
+    window.cambiarPaciente = function() {
+      pacienteActual = null;
+      pacienteIdInput.value = '';
+      evaluacionIdInput.value = '';
+      
+      pacienteSeleccionado.style.display = 'none';
+      seccionEvaluaciones.style.display = 'none';
+      
+      evaluacionSelect.innerHTML = '<option value="">-- Seleccione un paciente primero --</option>';
+      
+      inputBusqueda.focus();
+      btnSubmit.disabled = true;
+    };
+
+    // ========================================
+    // SELECCIÓN DE EVALUACIÓN
+    // ========================================
+    if (evaluacionSelect) {
+      evaluacionSelect.addEventListener('change', function() {
+        evaluacionIdInput.value = this.value;
+      });
+    }
+
+    // ========================================
+    // BOTÓN LIMPIAR
+    // ========================================
+    if (btnLimpiar) {
+      btnLimpiar.addEventListener('click', function() {
+        inputBusqueda.value = '';
+        this.style.display = 'none';
+        resultadosDiv.style.display = 'none';
+        inputBusqueda.focus();
+      });
+    }
+
+    // ========================================
+    // CERRAR RESULTADOS
+    // ========================================
+    document.addEventListener('click', function(e) {
+      if (inputBusqueda && !inputBusqueda.contains(e.target) && 
+          resultadosDiv && !resultadosDiv.contains(e.target)) {
+        resultadosDiv.style.display = 'none';
+      }
+    });
+
+    // ========================================
+    // ENVÍO DEL FORMULARIO - CON ALERT SIMPLE
+    // ========================================
+    document.getElementById('form-crear-orden').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      // Validar paciente
+      if (!pacienteIdInput.value) {
+        alert('⚠️ Debe seleccionar un paciente antes de crear la orden');
+        return;
+      }
+      
+      // Validar nombre
+      const nombre = document.getElementById('nombre').value.trim();
+      if (!nombre) {
+        alert('⚠️ Debe ingresar el nombre del procedimiento');
+        return;
+      }
+      
+      // Validar descripción
+      const descripcion = document.getElementById('descripcion').value.trim();
+      if (!descripcion) {
+        alert('⚠️ Debe ingresar la descripción del procedimiento');
+        return;
+      }
+      
+      // Recoger datos
+      const formData = new FormData(this);
+      const data = Object.fromEntries(formData.entries());
+      
+      try {
+        const response = await fetch('/medico/ordenes-procedimiento/crear', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          alert('✅ ' + result.message);
+          window.location.href = result.redirect;
+        } else {
+          alert('❌ ' + (result.message || 'Error al crear la orden'));
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('❌ Error de conexión al servidor: ' + error.message);
+      }
+    });

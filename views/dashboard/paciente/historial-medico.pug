@@ -1,0 +1,195 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .historial-medico-paciente
+    .page-header.mb-4
+      .row.align-items-center
+        .col-md-8
+          h2
+            i.fas.fa-notes-medical.text-primary.me-2
+            | Historial Médico
+          p.text-muted Registro completo de tu atención médica
+        .col-md-4.text-md-end
+          a.btn.btn-outline-info(href='/paciente/historial-medico/timeline')
+            i.fas.fa-project-diagram.me-2
+            | Línea de Tiempo
+          
+    //- Información del paciente
+    .card.border-0.shadow-sm.mb-4.bg-gradient
+      .card-body
+        .row
+          .col-md-6
+            h5
+              i.fas.fa-user.me-2
+              | #{paciente.usuario.nombre} #{paciente.usuario.apellido}
+            p.mb-1
+              strong DNI:
+              |  #{user.dni}
+            p.mb-1
+              strong Edad:
+              |  #{paciente.edad} años
+            p.mb-0
+              strong Sexo:
+              |  #{paciente.usuario.sexo}
+          .col-md-6.text-md-end
+            if paciente.obraSocial
+              span.badge.bg-success.fs-6
+                i.fas.fa-shield-alt.me-2
+                | #{paciente.obraSocial.nombre}
+            else
+              span.badge.bg-info.fs-6
+                i.fas.fa-hospital.me-2
+                | Sistema Público
+
+    //- Estadísticas
+    .row.mb-4
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-primary.text-white.mb-2
+              i.fas.fa-file-medical.fa-2x
+            h3.stat-number.text-primary #{estadisticas.total}
+            p.stat-label.mb-0 Total Registros
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-info.text-white.mb-2
+              i.fas.fa-user-md.fa-2x
+            h3.stat-number.text-info #{estadisticas.consultas}
+            p.stat-label.mb-0 Consultas
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-warning.text-white.mb-2
+              i.fas.fa-bed.fa-2x
+            h3.stat-number.text-warning #{estadisticas.internaciones}
+            p.stat-label.mb-0 Internaciones
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-danger.text-white.mb-2
+              i.fas.fa-procedures.fa-2x
+            h3.stat-number.text-danger #{estadisticas.cirugias}
+            p.stat-label.mb-0 Cirugías
+
+    //- Filtros
+    .card.border-0.shadow-sm.mb-4
+      .card-body
+        form(method='GET')
+          .row.g-3
+            .col-md-3
+              label.form-label Tipo de Evento
+              select.form-select(name='tipo_evento')
+                option(value='', selected=!filtros.tipo_evento) Todos
+                option(value='Consulta', selected=filtros.tipo_evento === 'Consulta') Consulta
+                option(value='Internacion', selected=filtros.tipo_evento === 'Internacion') Internación
+                option(value='Cirugia', selected=filtros.tipo_evento === 'Cirugia') Cirugía
+                option(value='Estudio', selected=filtros.tipo_evento === 'Estudio') Estudio
+                option(value='Otro', selected=filtros.tipo_evento === 'Otro') Otro
+            .col-md-3
+              label.form-label Desde
+              input.form-control(type='date', name='desde', value=filtros.desde || '')
+            .col-md-3
+              label.form-label Hasta
+              input.form-control(type='date', name='hasta', value=filtros.hasta || '')
+            .col-md-3.d-flex.align-items-end
+              button.btn.btn-primary.w-100(type='submit')
+                i.fas.fa-filter.me-2
+                | Filtrar
+              button.btn.btn-secondary.ms-2(type='button', onclick='location.href="/paciente/historial-medico"')
+                i.fas.fa-times
+
+    .row
+      //- Historial de eventos
+      .col-lg-8.mb-4
+        .card.border-0.shadow-sm
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-history.me-2
+              | Historial de Eventos
+          .card-body
+            if historial && historial.length > 0
+              .timeline
+                each evento in historial
+                  .timeline-item.mb-4
+                    .timeline-marker(class=`bg-${evento.tipo_evento === 'Consulta' ? 'info' : evento.tipo_evento === 'Internacion' ? 'warning' : evento.tipo_evento === 'Cirugia' ? 'danger' : evento.tipo_evento === 'Estudio' ? 'primary' : 'secondary'}`)
+                      i.fas(class=evento.tipo_evento === 'Consulta' ? 'fa-user-md' : evento.tipo_evento === 'Internacion' ? 'fa-bed' : evento.tipo_evento === 'Cirugia' ? 'fa-procedures' : evento.tipo_evento === 'Estudio' ? 'fa-x-ray' : 'fa-file-medical')
+                    .timeline-content
+                      .d-flex.justify-content-between.align-items-start
+                        div
+                          h6.mb-1
+                            span.badge(class=`bg-${evento.tipo_evento === 'Consulta' ? 'info' : evento.tipo_evento === 'Internacion' ? 'warning' : evento.tipo_evento === 'Cirugia' ? 'danger' : evento.tipo_evento === 'Estudio' ? 'primary' : 'secondary'}`)
+                              | #{evento.tipo_evento}
+                          p.text-muted.small.mb-2
+                            i.fas.fa-calendar.me-1
+                            | #{new Date(evento.fecha).toLocaleDateString('es-AR')}
+                          p.mb-0 #{evento.descripcion}
+                          if evento.motivo_consulta
+                            p.mb-0
+                              small.text-muted
+                                i.fas.fa-tag.me-1
+                                | #{evento.motivo_consulta.nombre}
+
+              if paginacion.totalPages > 1
+                nav.mt-4
+                  ul.pagination.justify-content-center.pagination-sm
+                    li.page-item(class=!paginacion.hasPrev ? 'disabled' : '')
+                      a.page-link(href=`?page=${paginacion.currentPage - 1}`) Anterior
+                    - for (let i = 1; i <= paginacion.totalPages; i++)
+                      li.page-item(class=i === paginacion.currentPage ? 'active' : '')
+                        a.page-link(href=`?page=${i}`) #{i}
+                    li.page-item(class=!paginacion.hasNext ? 'disabled' : '')
+                      a.page-link(href=`?page=${paginacion.currentPage + 1}`) Siguiente
+            else
+              .text-center.py-4
+                i.fas.fa-inbox.fa-3x.text-muted.mb-3
+                p.text-muted No hay registros en el historial médico
+
+      //- Panel lateral
+      .col-lg-4
+        //- Evaluaciones recientes
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-success.text-white
+            h6.mb-0
+              i.fas.fa-stethoscope.me-2
+              | Evaluaciones Recientes
+          .card-body
+            if evaluaciones && evaluaciones.length > 0
+              each eval in evaluaciones
+                .mb-3.pb-3.border-bottom
+                  p.mb-1
+                    strong #{new Date(eval.fecha).toLocaleDateString('es-AR')}
+                  p.mb-1.small
+                    | Dr/a. #{eval.medico.usuario.nombre} #{eval.medico.usuario.apellido}
+                    if eval.medico.especialidad
+                      br
+                      | #{eval.medico.especialidad.nombre}
+                  if eval.diagnostico
+                    p.mb-0
+                      span.badge.bg-warning.text-dark #{eval.diagnostico.nombre}
+            else
+              p.text-muted.small No hay evaluaciones registradas
+
+        //- Estudios recientes
+        .card.border-0.shadow-sm
+          .card-header.bg-info.text-white
+            h6.mb-0
+              i.fas.fa-x-ray.me-2
+              | Estudios Recientes
+          .card-body
+            if estudios && estudios.length > 0
+              each estudio in estudios
+                .mb-3.pb-3.border-bottom
+                  p.mb-1
+                    strong #{estudio.tipo_estudio.nombre}
+                  p.mb-1
+                    span.badge.bg-secondary #{estudio.tipo_estudio.categoria}
+                  p.mb-0
+                    small(class=estudio.estado === 'Realizado' ? 'text-success' : estudio.estado === 'Pendiente' ? 'text-warning' : 'text-muted')
+                      i.fas(class=estudio.estado === 'Realizado' ? 'fa-check-circle' : estudio.estado === 'Pendiente' ? 'fa-clock' : 'fa-times-circle').me-1
+                      | #{estudio.estado}
+            else
+              p.text-muted.small No hay estudios registrados
+
+block scripts
+  script(src='/js/paciente/paciente-historial-medico.js')

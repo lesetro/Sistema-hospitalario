@@ -11,38 +11,38 @@ router.use(authMiddleware);
 // ========================================
 // VISTAS
 // ========================================
-router.get('/', intervencionesController.renderIntervenciones);
+router.get('/', intervencionesController.renderCirugias);
 
 // ========================================
-// APIs - ESPECÍFICAS PRIMERO (importantes!)
+// APIs - ESPECÍFICAS PRIMERO
 // ========================================
-
-// Intervenciones próximas (ESPECÍFICA - ANTES de /:id)
-router.get('/api/intervenciones/proximas', intervencionesController.obtenerIntervencionesProximas);
-
-// Intervención por ID
-router.get('/api/intervenciones/:id', intervencionesController.obtenerIntervencionPorId);
-
-// Finalizar intervención (PUT específica)
-router.put('/api/intervenciones/:id/finalizar', intervencionesController.finalizarIntervencion);
-
-// ========================================
-// APIs - GENÉRICAS DESPUÉS
-// ========================================
-
-// Listar todas (con filtros y paginación)
-router.get('/api/intervenciones', intervencionesController.obtenerIntervenciones);
-
-// Crear intervención
-router.post('/api/intervenciones', intervencionesController.crearIntervencion);
-
-// Actualizar intervención
-router.put('/api/intervenciones/:id', intervencionesController.actualizarIntervencion);
-
-// Habitaciones disponibles
-router.get('/api/habitaciones', intervencionesController.obtenerHabitacionesDisponibles);
 
 // Estadísticas
 router.get('/api/estadisticas', intervencionesController.obtenerEstadisticas);
+
+// Quirófanos disponibles
+router.get('/api/quirofanos', intervencionesController.obtenerQuirofanos);
+
+// Detalle del paciente
+router.get('/api/paciente/:paciente_id', intervencionesController.verDetallePaciente);
+
+// ========================================
+// APIs - ACCIONES
+// ========================================
+
+// Listar pacientes para cirugía (programados + urgencias)
+router.get('/api/pacientes', intervencionesController.obtenerPacientesCirugia);
+
+// Aceptar paciente de urgencia
+router.post('/api/aceptar/:lista_espera_id', intervencionesController.aceptarPaciente);
+
+// Crear intervención quirúrgica
+router.post('/api/intervenciones', intervencionesController.crearIntervencion);
+
+// Actualizar estado de cirugía
+router.put('/api/intervenciones/:id/estado', intervencionesController.actualizarEstado);
+
+// Finalizar cirugía
+router.put('/api/intervenciones/:id/finalizar', intervencionesController.finalizarCirugia);
 
 module.exports = router;

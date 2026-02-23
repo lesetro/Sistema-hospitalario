@@ -67,11 +67,13 @@ module.exports = {
         id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
         evaluacion_medica_id: {
           type: Sequelize.INTEGER,
-          allowNull: false,
+          allowNull: true,
           references: { model: 'evaluacionesmedicas', key: 'id' },
           onUpdate: 'CASCADE',
           onDelete: 'RESTRICT'
         },
+        medico_id: { type: Sequelize.INTEGER,allowNull: true, references: { model: 'medicos', key: 'id' }},
+
         paciente_id: {
           type: Sequelize.INTEGER,
           allowNull: false,
@@ -96,6 +98,8 @@ module.exports = {
           defaultValue: 'Pendiente'
         },
         observaciones: { type: Sequelize.TEXT, allowNull: true },
+        resultados: { type: Sequelize.TEXT, allowNull: true },
+        fecha_realizacion: { type: Sequelize.DATE, allowNull: true },
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
         updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') }
       }, { transaction, engine: 'InnoDB', charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' });
@@ -104,7 +108,7 @@ module.exports = {
       await queryInterface.addIndex('estudiossolicitados', ['paciente_id'], { transaction });
       await queryInterface.addIndex('estudiossolicitados', ['tipo_estudio_id'], { transaction });
       await queryInterface.addIndex('estudiossolicitados', ['estado'], { transaction });
-
+      await queryInterface.addIndex('estudiossolicitados', ['medico_id'], { transaction });
       // ===================================
       // TURNOS ESTUDIOS
       // ===================================
@@ -158,6 +162,11 @@ module.exports = {
           type: Sequelize.ENUM('Pendiente', 'Completado'),
           defaultValue: 'Pendiente'
         },
+        medico_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'medicos', key: 'id' } },
+        paciente_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'pacientes', key: 'id' } },
+        prioridad: { type: Sequelize.ENUM('BAJA', 'MEDIA', 'ALTA'), defaultValue: 'MEDIA' },
+        fecha_orden: { type: Sequelize.DATE, allowNull: true, defaultValue: Sequelize.NOW },
+    
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
         updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') }
       }, { transaction, engine: 'InnoDB', charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' });
@@ -173,26 +182,22 @@ module.exports = {
         descripcion: { type: Sequelize.TEXT, allowNull: true },
         duracion_estimada: { type: Sequelize.INTEGER, allowNull: true },
         requiere_preparacion: { type: Sequelize.BOOLEAN, defaultValue: false },
-        tratamiento_id: {
-          type: Sequelize.INTEGER,
-          allowNull: true,
-          references: { model: 'tratamientos', key: 'id' },
-          onUpdate: 'CASCADE',
-          onDelete: 'SET NULL'
-        },
-        evaluacion_medica_id: {
-          type: Sequelize.INTEGER,
-          allowNull: false,
-          references: { model: 'evaluacionesmedicas', key: 'id' },
-          onUpdate: 'CASCADE',
-          onDelete: 'RESTRICT'
-        },
+        tratamiento_id: {type: Sequelize.INTEGER,allowNull: true,references: { model: 'tratamientos', key: 'id' },onUpdate: 'CASCADE',onDelete: 'SET NULL'},
+        evaluacion_medica_id: {type: Sequelize.INTEGER, allowNull: false,references: { model: 'evaluacionesmedicas', key: 'id' },onUpdate: 'CASCADE',onDelete: 'RESTRICT'},
+        medico_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'medicos', key: 'id' } },
+        estado: { type: Sequelize.ENUM('PENDIENTE', 'EN_PROGRESO', 'COMPLETADO', 'CANCELADO'), defaultValue: 'PENDIENTE' },
+        prioridad: { type: Sequelize.ENUM('BAJA', 'MEDIA', 'ALTA'), defaultValue: 'MEDIA' },
+        fecha_orden: { type: Sequelize.DATE, allowNull: true, defaultValue: Sequelize.NOW },
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
         updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') }
       }, { transaction, engine: 'InnoDB', charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' });
 
       await queryInterface.addIndex('procedimientosenfermeria', ['evaluacion_medica_id'], { transaction });
       await queryInterface.addIndex('procedimientosenfermeria', ['tratamiento_id'], { transaction });
+      await queryInterface.addIndex('procedimientosenfermeria', ['medico_id'], { transaction });
+      await queryInterface.addIndex('procedimientosenfermeria', ['estado'], { transaction });
+      await queryInterface.addIndex('procedimientosenfermeria', ['prioridad'], { transaction });
+      await queryInterface.addIndex('procedimientosenfermeria', ['fecha_orden'], { transaction });
 
       // ===================================
       // EVALUACIONES ENFERMERIA
@@ -206,9 +211,14 @@ module.exports = {
           onUpdate: 'CASCADE',
           onDelete: 'RESTRICT'
         },
+        internacion_id: { 
+          type: Sequelize.INTEGER, 
+          allowNull: true, 
+          references: { model: 'internaciones', key: 'id' } },
+
         enfermero_id: {
           type: Sequelize.INTEGER,
-          allowNull: false,
+          allowNull: true,
           references: { model: 'enfermeros', key: 'id' },
           onUpdate: 'CASCADE',
           onDelete: 'RESTRICT'
@@ -249,7 +259,7 @@ module.exports = {
           onDelete: 'SET NULL'
         },
         tipo_egreso: {
-          type: Sequelize.ENUM('PROCEDIMIENTO_COMPLETADO', 'DERIVACION_MEDICO', 'DERIVACION_URGENCIA', 'PENDIENTE_EVALUACION'),
+          type: Sequelize.ENUM('PROCEDIMIENTO_COMPLETADO', 'DERIVACION_MEDICO', 'DERIVACION_URGENCIA', 'PENDIENTE_EVALUACION','ORDEN_MEDICA','DERIVACION_CIRUGIA'),
           defaultValue: 'PENDIENTE_EVALUACION'
         },
         lista_espera_generada_id: {
@@ -259,6 +269,9 @@ module.exports = {
           onUpdate: 'CASCADE',
           onDelete: 'SET NULL'
         },
+        prioridad: { type: Sequelize.ENUM('BAJA', 'MEDIA', 'ALTA'), defaultValue: 'MEDIA' },
+        estado: { type: Sequelize.ENUM('Pendiente', 'En_progreso', 'Completado', 'Cancelado'), defaultValue: 'Pendiente',allowNull: true},
+
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
         updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') }
       }, { transaction, engine: 'InnoDB', charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' });
@@ -271,15 +284,22 @@ module.exports = {
       await queryInterface.addIndex('evaluacionesenfermeria', ['evaluacion_medica_id'], { transaction });
       await queryInterface.addIndex('evaluacionesenfermeria', ['lista_espera_generada_id'], { transaction });
       await queryInterface.addIndex('evaluacionesenfermeria', ['fecha'], { transaction });
-
+      await queryInterface.addIndex('evaluacionesenfermeria', ['internacion_id'], { transaction });
+      await queryInterface.addIndex('evaluacionesenfermeria', ['tipo_egreso'], { transaction });
       // ===================================
       // CONTROLES ENFERMERIA
       // ===================================
       await queryInterface.createTable('controlesenfermeria', {
         id: { type: Sequelize.INTEGER, primaryKey: true, autoIncrement: true },
+        estado: { 
+          type: Sequelize.ENUM('SOLICITADO', 'PENDIENTE', 'COMPLETADO', 'CANCELADO'), 
+          defaultValue: 'SOLICITADO'
+        },
+        paciente_id: { type: Sequelize.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' }},
+
         evaluacion_enfermeria_id: {
           type: Sequelize.INTEGER,
-          allowNull: false,
+          allowNull: true,
           references: { model: 'evaluacionesenfermeria', key: 'id' },
           onUpdate: 'CASCADE',
           onDelete: 'RESTRICT'

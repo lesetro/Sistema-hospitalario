@@ -13,7 +13,7 @@ const {
 // ============================================================================
 // RENDERIZAR VISTA PRINCIPAL - SECTORES
 // ============================================================================
-const renderSectores = async (req, res) => {
+const renderSectores = async (req, res, next) => {
   try {
     const sectores = await Sector.findAll({
       include: [{
@@ -64,20 +64,14 @@ const renderSectores = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al cargar sectores:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: 'Error al cargar la infraestructura',
-      error: process.env.NODE_ENV === 'development' ? error : {},
-      user: req.user
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // RENDERIZAR VISTA DE HABITACIONES DE UN SECTOR
 // ============================================================================
-const renderHabitaciones = async (req, res) => {
+const renderHabitaciones = async (req, res, next) => {
   try {
     const { sector_id } = req.params;
 
@@ -92,15 +86,13 @@ const renderHabitaciones = async (req, res) => {
     }
 
     const habitaciones = await Habitacion.findAll({
-      where: { sector_id },
       include: [
+        { model: Cama, as: 'camas' },
         {
-          model: Cama,
-          as: 'camas'
-        },
-        {
-          model: TipoDeServicio,
-          as: 'tipoServicio'
+         model: TipoDeServicio,
+          as: 'tipoServicio',
+          where: { sector_id },
+          required: true
         }
       ],
       order: [['numero', 'ASC']]
@@ -134,20 +126,14 @@ const renderHabitaciones = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al cargar habitaciones:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: 'Error al cargar habitaciones',
-      error: process.env.NODE_ENV === 'development' ? error : {},
-      user: req.user
-    });
+    next(error);
   }
 };
 
 // ============================================================================
 // RENDERIZAR VISTA DE CAMAS DE UNA HABITACIÓN
 // ============================================================================
-const renderCamas = async (req, res) => {
+const renderCamas = async (req, res, next) => {
   try {
     const { habitacion_id } = req.params;
 
@@ -210,20 +196,14 @@ const renderCamas = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al cargar camas:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: 'Error al cargar camas',
-      error: process.env.NODE_ENV === 'development' ? error : {},
-      user: req.user
-    });
+   next(error);
   }
 };
 
 // ============================================================================
 // API: OBTENER ESTADÍSTICAS GLOBALES
 // ============================================================================
-const getEstadisticasGlobales = async (req, res) => {
+const getEstadisticasGlobales = async (req, res, next) => {
   try {
     const [sectores, habitaciones, camas] = await Promise.all([
       Sector.count(),
@@ -246,15 +226,14 @@ const getEstadisticasGlobales = async (req, res) => {
     res.json({ success: true, estadisticas });
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener estadísticas' });
+    next(error);
   }
 };
 
 // ============================================================================
 // API: CRUD SECTORES
 // ============================================================================
-const crearSector = async (req, res) => {
+const crearSector = async (req, res, next) => {
   try {
     const { nombre, descripcion } = req.body;
 
@@ -271,12 +250,11 @@ const crearSector = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-const actualizarSector = async (req, res) => {
+const actualizarSector = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { nombre, descripcion } = req.body;
@@ -291,12 +269,11 @@ const actualizarSector = async (req, res) => {
     res.json({ success: true, message: 'Sector actualizado', sector });
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-const eliminarSector = async (req, res) => {
+const eliminarSector = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
@@ -375,15 +352,14 @@ const eliminarSector = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // ============================================================================
 // API: CRUD HABITACIONES
 // ============================================================================
-const crearHabitacion = async (req, res) => {
+const crearHabitacion = async (req, res, next) => {
   try {
     const { sector_id, numero, tipo, sexo_permitido, tipo_de_servicio_id } = req.body;
 
@@ -427,12 +403,11 @@ const crearHabitacion = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-const actualizarHabitacion = async (req, res) => {
+const actualizarHabitacion = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { numero, tipo, sexo_permitido, tipo_de_servicio_id } = req.body;
@@ -452,12 +427,11 @@ const actualizarHabitacion = async (req, res) => {
     res.json({ success: true, message: 'Habitación actualizada', habitacion });
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-const eliminarHabitacion = async (req, res) => {
+const eliminarHabitacion = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
@@ -517,15 +491,14 @@ const eliminarHabitacion = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // ============================================================================
 // API: CRUD CAMAS
 // ============================================================================
-const crearCama = async (req, res) => {
+const crearCama = async (req, res, next) => {
   try {
     const { habitacion_id, numero } = req.body;
 
@@ -567,12 +540,11 @@ const crearCama = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+   next(error);
   }
 };
 
-const crearCamasMultiples = async (req, res) => {
+const crearCamasMultiples = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
@@ -630,12 +602,11 @@ const crearCamasMultiples = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-const actualizarCama = async (req, res) => {
+const actualizarCama = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { numero, estado } = req.body;
@@ -661,12 +632,11 @@ const actualizarCama = async (req, res) => {
     res.json({ success: true, message: 'Cama actualizada', cama });
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
-const eliminarCama = async (req, res) => {
+const eliminarCama = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -690,15 +660,14 @@ const eliminarCama = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // ============================================================================
 // API: OBTENER TIPOS DE SERVICIO
 // ============================================================================
-const getTiposServicio = async (req, res) => {
+const getTiposServicio = async (req, res, next) => {
   try {
     const tipos = await TipoDeServicio.findAll({
       order: [['nombre', 'ASC']]
@@ -707,15 +676,14 @@ const getTiposServicio = async (req, res) => {
     res.json({ success: true, tipos });
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // ============================================================================
 // API: OBTENER SECTOR POR ID
 // ============================================================================
-const getSectorById = async (req, res) => {
+const getSectorById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -727,15 +695,14 @@ const getSectorById = async (req, res) => {
     res.json({ success: true, sector });
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // ============================================================================
 // API: OBTENER HABITACIÓN POR ID
 // ============================================================================
-const getHabitacionById = async (req, res) => {
+const getHabitacionById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -753,15 +720,14 @@ const getHabitacionById = async (req, res) => {
     res.json({ success: true, habitacion });
 
   } catch (error) {
-    console.error('Error:', error);
-    res.status(500).json({ success: false, message: error.message });
+    next(error);
   }
 };
 
 // ============================================================================
 // API: OBTENER CAMA POR ID
 // ============================================================================
-const getCamaById = async (req, res) => {
+const getCamaById = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -779,6 +745,23 @@ const getCamaById = async (req, res) => {
 
     res.json({ success: true, cama });
 
+  } catch (error) {
+    next(error);
+  }
+};
+const asignarServicioSector = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { sector_id } = req.body;
+
+    const servicio = await TipoDeServicio.findByPk(id);
+    if (!servicio) {
+      return res.status(404).json({ success: false, message: 'Servicio no encontrado' });
+    }
+
+    await servicio.update({ sector_id: sector_id || null });
+
+    res.json({ success: true, message: 'Servicio asignado al sector correctamente' });
   } catch (error) {
     console.error('Error:', error);
     res.status(500).json({ success: false, message: error.message });
@@ -808,5 +791,6 @@ module.exports = {
   crearCama,
   crearCamasMultiples,
   actualizarCama,
-  eliminarCama
+  eliminarCama,
+  asignarServicioSector
 };

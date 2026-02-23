@@ -4,15 +4,15 @@ const {
   EvaluacionMedica,
   Paciente,
   Usuario,
-  Medico,
-  sequelize
+  Medico
 } = require('../../models');
 const { Op } = require('sequelize');
+const db = require('../../database/db');
 
 // ========================================
 // RENDERIZAR VISTA DE DIAGNÓSTICOS
 // ========================================
-exports.renderDiagnosticos = async (req, res) => {
+exports.renderDiagnosticos = async (req, res, next) => {
   try {
     console.log('🔍 renderDiagnosticos - usuario_id:', req.user.usuario_id);
     
@@ -44,17 +44,14 @@ exports.renderDiagnosticos = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al renderizar diagnósticos:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: error.message
-    });
+    next(error);
   }
 };
 
 // ========================================
 // BUSCAR DIAGNÓSTICOS
 // ========================================
-exports.buscarDiagnosticos = async (req, res) => {
+exports.buscarDiagnosticos = async (req, res, next) => {
   try {
     console.log('🔍 buscarDiagnosticos');
     
@@ -85,17 +82,14 @@ exports.buscarDiagnosticos = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al buscar diagnósticos:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER DIAGNÓSTICOS MÁS UTILIZADOS
 // ========================================
-exports.obtenerDiagnosticosMasUtilizados = async (req, res) => {
+exports.obtenerDiagnosticosMasUtilizados = async (req, res, next) => {
   try {
     console.log('📊 obtenerDiagnosticosMasUtilizados - usuario_id:', req.user.usuario_id);
     
@@ -113,7 +107,7 @@ exports.obtenerDiagnosticosMasUtilizados = async (req, res) => {
 
     const { limite = 10 } = req.query;
 
-    // ✅ SIN GROUP BY - Traer todos los registros
+    //  SIN GROUP BY - Traer todos los registros
     console.log('🔍 Obteniendo evaluaciones con diagnósticos...');
     const evaluaciones = await EvaluacionMedica.findAll({
       where: { 
@@ -158,17 +152,14 @@ exports.obtenerDiagnosticosMasUtilizados = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener diagnósticos más utilizados:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER DIAGNÓSTICOS RECIENTES
 // ========================================
-exports.obtenerDiagnosticosRecientes = async (req, res) => {
+exports.obtenerDiagnosticosRecientes = async (req, res, next) => {
   try {
     console.log('📅 obtenerDiagnosticosRecientes - usuario_id:', req.user.usuario_id);
     
@@ -219,17 +210,14 @@ exports.obtenerDiagnosticosRecientes = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener diagnósticos recientes:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER DIAGNÓSTICO POR ID
 // ========================================
-exports.obtenerDiagnosticoPorId = async (req, res) => {
+exports.obtenerDiagnosticoPorId = async (req, res, next) => {
   try {
     console.log('🔍 obtenerDiagnosticoPorId - usuario_id:', req.user.usuario_id);
     
@@ -281,17 +269,14 @@ exports.obtenerDiagnosticoPorId = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener diagnóstico:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER PACIENTES CON DIAGNÓSTICO
 // ========================================
-exports.obtenerPacientesConDiagnostico = async (req, res) => {
+exports.obtenerPacientesConDiagnostico = async (req, res, next) => {
   try {
     console.log('👥 obtenerPacientesConDiagnostico');
     
@@ -334,17 +319,14 @@ exports.obtenerPacientesConDiagnostico = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener pacientes:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER DIAGNÓSTICOS (CON FILTROS Y PAGINACIÓN)
 // ========================================
-exports.obtenerDiagnosticos = async (req, res) => {
+exports.obtenerDiagnosticos = async (req, res, next) => {
   try {
     console.log('📋 obtenerDiagnosticos');
     
@@ -387,17 +369,14 @@ exports.obtenerDiagnosticos = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener diagnósticos:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER TIPOS DE DIAGNÓSTICO
 // ========================================
-exports.obtenerTiposDiagnostico = async (req, res) => {
+exports.obtenerTiposDiagnostico = async (req, res, next) => {
   try {
     console.log('🔍 obtenerTiposDiagnostico');
     
@@ -413,18 +392,15 @@ exports.obtenerTiposDiagnostico = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener tipos:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ESTADÍSTICAS DE DIAGNÓSTICOS
 // ========================================
-// ✅ VERSIÓN CORREGIDA - SIN sequelize.query()
-exports.obtenerEstadisticas = async (req, res) => {
+
+exports.obtenerEstadisticas = async (req, res, next) => {
   try {
     console.log('📊 obtenerEstadisticas - usuario_id:', req.user.usuario_id);
     
@@ -507,9 +483,6 @@ exports.obtenerEstadisticas = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener estadísticas:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };

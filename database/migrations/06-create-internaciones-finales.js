@@ -42,7 +42,7 @@ module.exports = {
         },
         administrativo_id: {
           type: Sequelize.INTEGER,
-          allowNull: false,
+          allowNull: true,
           references: { model: 'administrativos', key: 'id' },
           onUpdate: 'CASCADE',
           onDelete: 'RESTRICT'
@@ -68,6 +68,9 @@ module.exports = {
           allowNull: false,
           defaultValue: 'Sin_Evaluar'
         },
+        estado_ordenes: { type: Sequelize.ENUM('SIN_ORDENES', 'CON_PENDIENTES', 'TODAS_COMPLETADAS'),defaultValue: 'SIN_ORDENES'},
+        total_ordenes: { type: Sequelize.INTEGER, defaultValue: 0 },
+        ordenes_completadas: { type: Sequelize.INTEGER, defaultValue: 0 },
         fecha_inicio: { type: Sequelize.DATE, allowNull: true },
         fecha_cirugia: { type: Sequelize.DATE, allowNull: true },
         obra_social_id: {
@@ -99,6 +102,8 @@ module.exports = {
           onUpdate: 'CASCADE',
           onDelete: 'RESTRICT'
         },
+        observaciones: { type: Sequelize.TEXT, allowNull: true,defaultValue: null },
+
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
         updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') }
       }, { transaction, engine: 'InnoDB', charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' });
@@ -144,7 +149,7 @@ module.exports = {
         },
         evaluacion_medica_id: {
           type: Sequelize.INTEGER,
-          allowNull: false,
+          allowNull: true,
           references: { model: 'evaluacionesmedicas', key: 'id' },
           onUpdate: 'CASCADE',
           onDelete: 'RESTRICT'
@@ -154,15 +159,36 @@ module.exports = {
         fecha_fin: { type: Sequelize.DATE, allowNull: true },
         lista_espera_id: {
           type: Sequelize.INTEGER,
-          allowNull: false,
+          allowNull: true,
           references: { model: 'listasesperas', key: 'id' },
           onUpdate: 'CASCADE',
           onDelete: 'RESTRICT'
         },
-        resultado_cirugia: {
-          type: Sequelize.ENUM('Fallecio', 'NecesitaInternacionHabitacion', 'NecesitaInternacionUCI', 'AltaDirecta', 'Complicaciones'),
-          allowNull: true
-        },
+        estado_cirugia: {
+        type: Sequelize.ENUM(
+          'PROGRAMADA',       // Tiene fecha futura
+          'PRE_OPERATORIO',   // Preparándose para cirugía
+          'EN_CIRUGIA',       // En quirófano operando
+          'POST_OPERATORIO',  // Recuperándose
+          'FINALIZADA',       // Proceso completo
+          'CANCELADA'         // Se canceló
+        ),
+        defaultValue: 'PROGRAMADA'
+      },
+      resultado_cirugia: { 
+        type: Sequelize.ENUM(
+          'EXITOSA',
+          'EXITOSA_CON_COMPLICACIONES',
+          'REQUIERE_INTERNACION',
+          'REQUIERE_UCI',
+          'FALLECIDO',
+          'CANCELADA'
+        ), 
+        allowNull: true 
+      },
+        notas_preoperatorio: { type: Sequelize.TEXT, allowNull: true },
+        notas_postoperatorio: { type: Sequelize.TEXT, allowNull: true },
+        es_urgencia: { type: Sequelize.BOOLEAN, defaultValue: false },
         observaciones: { type: Sequelize.TEXT, allowNull: true },
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
         updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') }
@@ -175,7 +201,8 @@ module.exports = {
       await queryInterface.addIndex('intervencionesquirurgicas', ['fecha_inicio'], { transaction });
       await queryInterface.addIndex('intervencionesquirurgicas', ['fecha_fin'], { transaction });
       await queryInterface.addIndex('intervencionesquirurgicas', ['lista_espera_id'], { transaction });
-
+      await queryInterface.addIndex('intervencionesquirurgicas', ['estado_cirugia'], { transaction });
+      await queryInterface.addIndex('intervencionesquirurgicas', ['es_urgencia'], { transaction });
       // ===================================
       // ALTAS MEDICAS
       // ===================================
@@ -452,6 +479,9 @@ module.exports = {
           onUpdate: 'CASCADE',
           onDelete: 'SET NULL'
         },
+        estado: { type: Sequelize.ENUM('PENDIENTE', 'ADMINISTRADA', 'CANCELADA'), defaultValue: 'PENDIENTE' },
+        prioridad: { type: Sequelize.ENUM('BAJA', 'MEDIA', 'ALTA'), defaultValue: 'MEDIA' },
+    
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
         updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') }
       }, { transaction, engine: 'InnoDB', charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' });

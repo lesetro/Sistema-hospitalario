@@ -8,7 +8,32 @@ module.exports = {
 
       // INTERNACIONES
       await queryInterface.bulkInsert('internaciones', [
-        { id: 1, paciente_id: 1, medico_id: 1, cama_id: 2, tipo_internacion_id: 1, administrativo_id: 1, evaluacion_medica_id: 1, es_prequirurgica: false, estado_operacion: 'No aplica', estado_estudios: 'Pendientes', estado_paciente: 'Estable', fecha_inicio: '2025-11-25 10:00:00', fecha_cirugia: null, obra_social_id: 1, fecha_alta: null, lista_espera_id: 1, admision_id: 1, habitacion_id: 1, created_at: new Date(), updated_at: new Date() }
+        { id: 1, paciente_id: 1, medico_id: 1, cama_id: 2, tipo_internacion_id: 1, administrativo_id: 1, evaluacion_medica_id: 1, es_prequirurgica: false, estado_operacion: 'No aplica', estado_estudios: 'Pendientes', estado_paciente: 'Estable',ordenes_completadas:'CON_PENDIENTES', fecha_inicio: '2025-11-25 10:00:00', fecha_cirugia: null, obra_social_id: 1, fecha_alta: null, lista_espera_id: 1, admision_id: 1, habitacion_id: 1,observaciones: 'sin evoluciones importantes', created_at: new Date(), updated_at: new Date() },
+        {
+  id: 2,
+  paciente_id: 3,                       // Paciente 3 (Jorge Díaz - DNI 01234567)
+  medico_id: 2,                         // Dra. Ana Martínez
+  cama_id: 3,                           // Cama 102-A
+  tipo_internacion_id: 2,               // Tipo de internación (urgencia/programada)
+  administrativo_id: 2,                 // Admin que registró
+  evaluacion_medica_id: 2,              // Evaluación médica
+  es_prequirurgica: false,              // No es pre-quirúrgica
+  estado_operacion: 'No aplica',        // Sin cirugía
+  estado_estudios: 'Pendientes',        // Estudios pendientes
+  estado_paciente: 'Estable',           // Estado del paciente
+  ordenes_completadas: 'CON_PENDIENTES', // Órdenes médicas
+  fecha_inicio: '2025-11-23 08:00:00',  // Fecha de ingreso
+  fecha_cirugia: null,                  // Sin cirugía programada
+  obra_social_id: 3,                    // Obra social del paciente 3
+  fecha_alta: null,                     // Aún internado
+  lista_espera_id: 2,                   // Lista de espera (si corresponde)
+  admision_id: null,                    // Sin admisión previa registrada
+  habitacion_id: 2,                     // Habitación 102
+  observaciones: 'Descompensación diabética. Requiere ajuste de insulina y monitoreo de glucemia',
+  created_at: new Date(),
+  updated_at: new Date()
+}
+        
       ], { transaction });
 
       // INTERVENCIONES QUIRURGICAS
@@ -43,7 +68,7 @@ module.exports = {
 
       // RECETAS CERTIFICADOS
       await queryInterface.bulkInsert('recetascertificados', [
-        { id: 1, paciente_id: 1, medico_id: 1, tipo: 'Receta Medica', contenido: 'Enalapril 10mg - 1 comp cada 12 hs por 30 días', fecha: '2025-11-25', evaluacion_medica_id: 1, created_at: new Date(), updated_at: new Date() }
+        { id: 1, paciente_id: 1, medico_id: 1, tipo: 'Receta Medica', contenido: 'Enalapril 10mg - 1 comp cada 12 hs por 30 días', fecha: '2025-11-25', evaluacion_medica_id: 1,estado: 'PENDIENTE',prioridad: 'MEDIA', created_at: new Date(), updated_at: new Date() }
       ], { transaction });
 
       // NOTICIAS

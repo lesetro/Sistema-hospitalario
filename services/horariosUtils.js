@@ -1,9 +1,8 @@
-
 // ============================================================================
-// UTILIDADES COMPARTIDAS PARA HORARIOS DE MÉDICOS
+// UTILIDADES COMPARTIDAS PARA HORARIOS DE MÉDICOS (ACTUALIZADA)
 // ============================================================================
 
-const { Turno, TurnoPersonal, Medico } = require('../models'); // ✅ Agregar Medico aquí
+const { Turno, TurnoPersonal, Medico, TipoDeServicio, Sector, Usuario } = require('../models');
 const { Op } = require('sequelize');
 
 /**
@@ -11,19 +10,23 @@ const { Op } = require('sequelize');
  * @param {number} medico_id - ID del médico
  * @param {string} fecha - Fecha en formato YYYY-MM-DD
  * @param {number} duracion - Duración del turno en minutos (default: 20)
- * @returns {Promise<Array>} Array de horarios disponibles
+ * @param {number} tipo_servicio_id - ID del tipo de servicio (opcional)
+ * @returns {Promise<Object>} Objeto con horarios disponibles y validaciones
  */
-const obtenerHorariosDisponibles = async (medico_id, fecha, duracion = 20) => {
+const obtenerHorariosDisponibles = async (medico_id, fecha, duracion = 20, tipo_servicio_id = null) => {
   try {
-    console.log(`🔍 Buscando horarios para médico ID: ${medico_id}, fecha: ${fecha}`);
+    console.log(`🔍 Buscando horarios para médico ID: ${medico_id}, fecha: ${fecha}, servicio: ${tipo_servicio_id}`);
     
-    // 1. Obtener el usuario_id del médico
+    // 1. Obtener el médico con su información completa
+   
     const medico = await Medico.findByPk(medico_id, {
-      attributes: ['id', 'usuario_id']
+      include: [
+        { model: Usuario, as: 'usuario' },
+        { model: Sector, as: 'sector' }
+      ]
     });
 
     if (!medico) {
-      console.log(`❌ Médico ${medico_id} no encontrado`);
       return {
         success: false,
         message: 'Médico no encontrado',
@@ -31,22 +34,31 @@ const obtenerHorariosDisponibles = async (medico_id, fecha, duracion = 20) => {
       };
     }
 
-    console.log(` Médico encontrado. usuario_id: ${medico.usuario_id}`);
+    // 2. VALIDACIÓN: Si se especifica tipo_servicio, verificar compatibilidad
+    if (tipo_servicio_id) {
+      const servicioValido = await validarServicioMedico(medico_id, tipo_servicio_id);
+      
+      if (!servicioValido.disponible) {
+        return {
+          success: false,
+          message: servicioValido.mensaje,
+          horarios: []
+        };
+      }
+    }
 
-    // 2. Obtener turnos del médico usando usuario_id
+    console.log(`✅ Médico encontrado: ${medico.usuario?.nombre || 'N/A'}`);
+    console.log(`📋 Sector del médico: ${medico.sector?.nombre || 'Sin sector'} (ID: ${medico.sector_id})`);
+
+    // 3. Obtener turnos del médico usando usuario_id
     const turnosPersonal = await TurnoPersonal.findAll({
       where: {
         usuario_id: medico.usuario_id,
-        tipo: 'Atencion'
+        tipo: { [Op.in]: ['Atencion', 'Guardia Activa', 'Guardia Pasiva', 'Cirugía Programada'] }
       }
     });
 
     if (!turnosPersonal || turnosPersonal.length === 0) {
-      console.log(` Médico ${medico_id} (usuario_id: ${medico.usuario_id}) no tiene horarios de atención configurados`);
-      console.log(' Verifica que existan registros en turnospersonal con:');
-      console.log(`   - usuario_id = ${medico.usuario_id}`);
-      console.log(`   - tipo = 'Atencion'`);
-      
       return {
         success: false,
         message: 'El médico no tiene horarios de atención configurados',
@@ -54,30 +66,21 @@ const obtenerHorariosDisponibles = async (medico_id, fecha, duracion = 20) => {
       };
     }
 
-    console.log(` Médico ${medico_id} tiene ${turnosPersonal.length} horario(s) configurado(s)`);
-    console.log(' Horarios encontrados:', turnosPersonal.map(t => ({ 
-      dias: t.dias, 
-      inicio: t.hora_inicio, 
-      fin: t.hora_fin 
-    })));
+    console.log(`📅 Médico tiene ${turnosPersonal.length} horario(s) configurado(s)`);
 
-    // 3. Obtener día de la semana de la fecha
+    // 4. Obtener día de la semana de la fecha
     const fechaObj = new Date(fecha + 'T00:00:00');
     const diasSemana = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
     const diaSemana = diasSemana[fechaObj.getDay()];
 
-    console.log(` Fecha solicitada: ${fecha} → ${diaSemana}`);
+    console.log(`📅 Fecha solicitada: ${fecha} → ${diaSemana}`);
 
-    // 4. Filtrar turnos del médico para ese día
-    const turnoDelDia = turnosPersonal.find(turno => {
-      console.log(` Comparando: "${turno.dias}" contiene "${diaSemana}"?`);
+    // 5. Filtrar turnos del médico para ese día
+    const turnosDelDia = turnosPersonal.filter(turno => {
       return turno.dias.includes(diaSemana);
     });
 
-    if (!turnoDelDia) {
-      console.log(`❌ El médico NO atiende los ${diaSemana}`);
-      console.log(`📋 Días que atiende: ${turnosPersonal.map(t => t.dias).join(' | ')}`);
-      
+    if (turnosDelDia.length === 0) {
       return {
         success: false,
         message: `El médico no atiende los días ${diaSemana}`,
@@ -85,59 +88,73 @@ const obtenerHorariosDisponibles = async (medico_id, fecha, duracion = 20) => {
       };
     }
 
-    console.log(` Turno encontrado para ${diaSemana}:`);
-    console.log(`   Horario: ${turnoDelDia.hora_inicio} - ${turnoDelDia.hora_fin}`);
+    console.log(`✅ Encontrados ${turnosDelDia.length} turno(s) para ${diaSemana}`);
 
-    // 5. Obtener turnos ya asignados para esa fecha
+    // 6. Obtener turnos ya asignados para esa fecha
     const turnosOcupados = await Turno.findAll({
       where: {
         medico_id,
         fecha,
-        estado: {
-          [Op.in]: ['PENDIENTE', 'CONFIRMADO']
-        }
+        estado: { [Op.in]: ['PENDIENTE', 'CONFIRMADO'] }
       },
       attributes: ['hora_inicio', 'hora_fin']
     });
 
-    console.log(` Turnos ocupados: ${turnosOcupados.length}`);
-    if (turnosOcupados.length > 0) {
-      console.log(' Horarios ocupados:', turnosOcupados.map(t => `${t.hora_inicio}-${t.hora_fin}`));
+    console.log(`📊 Turnos ocupados: ${turnosOcupados.length}`);
+
+    // 7. Calcular capacidad disponible (si hay tipo_servicio)
+    let capacidadInfo = null;
+    if (tipo_servicio_id) {
+      capacidadInfo = await calcularCapacidadServicio(tipo_servicio_id, fecha, medico_id);
+      
+      if (capacidadInfo.capacidad_disponible <= 0) {
+        return {
+          success: false,
+          message: `Sin capacidad disponible para este servicio. Máximo: ${capacidadInfo.capacidad_total}`,
+          horarios: []
+        };
+      }
     }
 
-    // 6. Generar slots disponibles
-    const horaInicio = turnoDelDia.hora_inicio;
-    const horaFin = turnoDelDia.hora_fin;
+    // 8. Generar slots disponibles para cada turno del día
+    let todosSlotsDisponibles = [];
     
-    const slots = generarSlots(horaInicio, horaFin, duracion);
-    console.log(` Slots generados: ${slots.length} (cada ${duracion} minutos)`);
-    
-    // 7. Filtrar slots que no estén ocupados
-    const slotsDisponibles = slots.filter(slot => {
-      const ocupado = turnosOcupados.some(turno => {
-        const turnoInicio = turno.hora_inicio;
-        const turnoFin = turno.hora_fin;
+    for (const turnoDelDia of turnosDelDia) {
+      const horaInicio = turnoDelDia.hora_inicio;
+      const horaFin = turnoDelDia.hora_fin;
+      
+      console.log(`⏰ Procesando turno: ${horaInicio} - ${horaFin}`);
+      
+      const slots = generarSlots(horaInicio, horaFin, duracion);
+      console.log(`📋 Slots generados: ${slots.length} (cada ${duracion} minutos)`);
+      
+      // Filtrar slots que no estén ocupados
+      const slotsDisponibles = slots.filter(slot => {
+        const ocupado = turnosOcupados.some(turno => {
+          return haySuperposicion(slot, calcularHoraFin(slot, duracion), turno.hora_inicio, turno.hora_fin);
+        });
         
-        // Verificar si hay superposición
-        return (
-          (slot >= turnoInicio && slot < turnoFin) ||
-          (calcularHoraFin(slot, duracion) > turnoInicio && calcularHoraFin(slot, duracion) <= turnoFin)
-        );
+        return !ocupado;
       });
       
-      return !ocupado;
-    });
+      todosSlotsDisponibles = [...todosSlotsDisponibles, ...slotsDisponibles];
+    }
 
-    console.log(` Slots disponibles: ${slotsDisponibles.length}`);
-    console.log(` Horarios: ${slotsDisponibles.join(', ')}`);
+    console.log(`✅ Total slots disponibles: ${todosSlotsDisponibles.length}`);
 
     return {
       success: true,
-      horarios: slotsDisponibles,
+      horarios: todosSlotsDisponibles,
       turnoPersonal: {
-        horaInicio,
-        horaFin,
-        dia: diaSemana
+        horaInicio: turnosDelDia[0]?.hora_inicio,
+        horaFin: turnosDelDia[0]?.hora_fin,
+        dia: diaSemana,
+        tipo: turnosDelDia[0]?.tipo
+      },
+      capacidad: capacidadInfo,
+      estadisticas: {
+        turnosOcupados: turnosOcupados.length,
+        slotsDisponibles: todosSlotsDisponibles.length
       }
     };
 
@@ -153,11 +170,117 @@ const obtenerHorariosDisponibles = async (medico_id, fecha, duracion = 20) => {
 };
 
 /**
- * Generar slots de tiempo
- * @param {string} horaInicio - Hora de inicio en formato HH:MM
- * @param {string} horaFin - Hora de fin en formato HH:MM
- * @param {number} duracion - Duración de cada slot en minutos
- * @returns {Array<string>} Array de horarios en formato HH:MM
+ * Validar si un médico puede atender un tipo de servicio
+ */
+const validarServicioMedico = async (medico_id, tipo_servicio_id) => {
+  try {
+    // Obtener el servicio
+    const servicio = await TipoDeServicio.findByPk(tipo_servicio_id, {
+      include: [{ model: Sector, as: 'sector' }]
+    });
+
+    if (!servicio) {
+      return {
+        disponible: false,
+        mensaje: 'Servicio no encontrado'
+      };
+    }
+
+    // Obtener el médico con su sector
+    const medico = await Medico.findByPk(medico_id, {
+      include: [{ model: Sector, as: 'sector' }]
+    });
+
+    if (!medico) {
+      return {
+        disponible: false,
+        mensaje: 'Médico no encontrado'
+      };
+    }
+
+    // Validar que el médico esté en el mismo sector que el servicio
+    if (medico.sector_id !== servicio.sector_id) {
+      return {
+        disponible: false,
+        mensaje: `El médico pertenece al sector "${medico.sector?.nombre || 'N/A'}" y el servicio está en "${servicio.sector?.nombre || 'N/A'}"`
+      };
+    }
+
+    return {
+      disponible: true,
+      mensaje: 'Servicio válido para el médico',
+      servicio,
+      medico
+    };
+
+  } catch (error) {
+    console.error('Error en validarServicioMedico:', error);
+    return {
+      disponible: false,
+      mensaje: 'Error al validar el servicio'
+    };
+  }
+};
+
+/**
+ * Calcular capacidad disponible para un servicio
+ */
+const calcularCapacidadServicio = async (tipo_servicio_id, fecha, medico_id = null) => {
+  try {
+    // 1. Contar turnos ya asignados para este servicio en la fecha
+    const whereClause = {
+      tipo_servicio_id,
+      fecha,
+      estado: { [Op.in]: ['PENDIENTE', 'CONFIRMADO'] }
+    };
+
+    // Si se especifica médico, contar solo sus turnos
+    if (medico_id) {
+      whereClause.medico_id = medico_id;
+    }
+
+    const turnosAsignados = await Turno.count({
+      where: whereClause
+    });
+
+    // 2. Obtener capacidad del servicio (podrías agregar este campo a TipoDeServicio)
+    const servicio = await TipoDeServicio.findByPk(tipo_servicio_id);
+    const capacidadTotal = servicio.capacidad_diaria || 10; // Valor por defecto
+
+    return {
+      capacidad_total: capacidadTotal,
+      capacidad_ocupada: turnosAsignados,
+      capacidad_disponible: Math.max(0, capacidadTotal - turnosAsignados),
+      mensaje: turnosAsignados >= capacidadTotal 
+        ? 'Capacidad completa para este servicio' 
+        : `Disponible: ${capacidadTotal - turnosAsignados}/${capacidadTotal}`
+    };
+
+  } catch (error) {
+    console.error('Error en calcularCapacidadServicio:', error);
+    return {
+      capacidad_total: 10,
+      capacidad_ocupada: 0,
+      capacidad_disponible: 10,
+      mensaje: 'Error al calcular capacidad'
+    };
+  }
+};
+
+/**
+ * Verificar superposición de horarios
+ */
+function haySuperposicion(inicio1, fin1, inicio2, fin2) {
+  return (
+    (inicio1 >= inicio2 && inicio1 < fin2) ||
+    (fin1 > inicio2 && fin1 <= fin2) ||
+    (inicio2 >= inicio1 && inicio2 < fin1) ||
+    (fin2 > inicio1 && fin2 <= fin1)
+  );
+}
+
+/**
+ * Generar slots de tiempo (mantener tu función original)
  */
 function generarSlots(horaInicio, horaFin, duracion) {
   const slots = [];
@@ -182,10 +305,7 @@ function generarSlots(horaInicio, horaFin, duracion) {
 }
 
 /**
- * Calcular hora de fin dado un horario y duración
- * @param {string} horaInicio - Hora en formato HH:MM
- * @param {number} duracion - Duración en minutos
- * @returns {string} Hora de fin en formato HH:MM
+ * Calcular hora de fin
  */
 function calcularHoraFin(horaInicio, duracion) {
   const [horas, minutos] = horaInicio.split(':').map(Number);
@@ -198,35 +318,67 @@ function calcularHoraFin(horaInicio, duracion) {
 }
 
 /**
- * Validar si un horario está disponible
- * @param {number} medico_id - ID del médico
- * @param {string} fecha - Fecha en formato YYYY-MM-DD
- * @param {string} hora - Hora en formato HH:MM
- * @returns {Promise<boolean>} True si está disponible
+ * Validar si un horario está disponible (versión mejorada)
  */
-const validarHorarioDisponible = async (medico_id, fecha, hora) => {
+const validarHorarioDisponible = async (medico_id, fecha, hora, duracion = 20, tipo_servicio_id = null) => {
   try {
+    // 1. Verificar si ya existe un turno en ese horario
     const turnoExistente = await Turno.findOne({
       where: {
         medico_id,
         fecha,
-        hora_inicio: hora,
-        estado: {
-          [Op.in]: ['PENDIENTE', 'CONFIRMADO']
-        }
+        estado: { [Op.in]: ['PENDIENTE', 'CONFIRMADO'] },
+        [Op.or]: [
+          {
+            hora_inicio: { [Op.lte]: hora },
+            hora_fin: { [Op.gt]: hora }
+          },
+          {
+            hora_inicio: { [Op.lt]: calcularHoraFin(hora, duracion) },
+            hora_fin: { [Op.gte]: calcularHoraFin(hora, duracion) }
+          }
+        ]
       }
     });
     
-    return !turnoExistente;
+    if (turnoExistente) {
+      return {
+        disponible: false,
+        mensaje: 'El médico ya tiene un turno asignado en ese horario'
+      };
+    }
+
+    // 2. Si hay tipo_servicio, validar capacidad
+    if (tipo_servicio_id) {
+      const capacidad = await calcularCapacidadServicio(tipo_servicio_id, fecha, medico_id);
+      
+      if (capacidad.capacidad_disponible <= 0) {
+        return {
+          disponible: false,
+          mensaje: `Sin capacidad disponible para este servicio (${capacidad.capacidad_ocupada}/${capacidad.capacidad_total})`
+        };
+      }
+    }
+
+    return {
+      disponible: true,
+      mensaje: 'Horario disponible'
+    };
+
   } catch (error) {
     console.error('Error al validar horario:', error);
-    return false;
+    return {
+      disponible: false,
+      mensaje: 'Error al validar el horario'
+    };
   }
 };
 
 module.exports = {
   obtenerHorariosDisponibles,
   validarHorarioDisponible,
+  validarServicioMedico,
+  calcularCapacidadServicio,
   generarSlots,
   calcularHoraFin
 };

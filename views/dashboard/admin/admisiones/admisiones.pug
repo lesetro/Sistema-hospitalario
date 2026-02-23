@@ -212,6 +212,11 @@ block content
                     each sector in sectores
                       option(value=sector.id)= sector.nombre
               
+              .col-md-4#campo_servicio(style='display: block;')
+                label.form-label(for='admision_tipo_servicio_id') Servicio *
+                select#admision_tipo_servicio_id.form-select(name='tipo_servicio_id' required)
+                  option(value='') Seleccione sector primero
+                  
               .col-md-4#campo_estudio(style='display: none;')
                 label.form-label(for='admision_tipo_estudio_id') Tipo de Estudio
                 select#admision_tipo_estudio_id.form-select(name='tipo_estudio_id')
@@ -231,12 +236,12 @@ block content
               
               .col-md-4
                 label.form-label(for='admision_turno_fecha') Fecha del Turno *
-                input#admision_turno_fecha.form-control(type='date' name='turno_fecha' required)
+                input#admision_turno_fecha.form-control(type='date' name='turno_fecha' )
                 .invalid-feedback Campo requerido
               
               .col-md-4
                 label.form-label(for='admision_turno_hora') Hora del Turno *
-                select#admision_turno_hora.form-select(name='turno_hora' required disabled)
+                select#admision_turno_hora.form-select(name='turno_hora' disabled)
                   option(value='') Seleccione médico y fecha
                 .invalid-feedback Campo requerido
                 button.btn.btn-sm.btn-info.mt-2#btnCargarHorarios(type='button' disabled)
@@ -272,4 +277,4 @@ block content
 
 block scripts
   script(src='/js/admin/admision.js')
-  script(src='/js/validaciones-formularios.js')
+  

@@ -4,7 +4,7 @@
  */
 
 document.addEventListener('DOMContentLoaded', () => {
-  console.log('✅ Infraestructura.js cargado');
+  console.log(' Infraestructura.js cargado');
   
   // ============================================================================
   // VARIABLES GLOBALES
@@ -539,5 +539,79 @@ document.addEventListener('DOMContentLoaded', () => {
       }
     });
   }
+  // ============================================================================
+// ASIGNAR SERVICIO A SECTOR
+// ============================================================================
+const btnAsignarServicio = document.getElementById('btnAsignarServicio');
+if (btnAsignarServicio) {
+  btnAsignarServicio.addEventListener('click', async () => {
+    // Cargar sectores
+    const resSectores = await fetch('/configuracion/infraestructura/api/estadisticas');
+    const selectSector = document.getElementById('asignar_sector_id');
+    const selectServicio = document.getElementById('asignar_servicio_id');
+
+    // Cargar sectores desde el endpoint existente
+    const sRes = await fetch('/configuracion/normalizadores/api/sectores');
+    const sData = await sRes.json();
+    selectSector.innerHTML = '<option value="">Seleccione sector...</option>';
+    if (sData.success) {
+        sData.datos.forEach(s => {
+        selectSector.innerHTML += `<option value="${s.id}">${s.nombre}</option>`;
+      });
+    }
+
+    // Cargar servicios
+    const svRes = await fetch('/configuracion/infraestructura/api/tipos-servicio');
+    const svData = await svRes.json();
+    selectServicio.innerHTML = '<option value="">Seleccione servicio...</option>';
+    if (svData.success) {
+      svData.tipos.forEach(t => {
+        const sectorActual = t.sector_id ? ` (sector actual: ${t.sector_id})` : ' (sin sector)';
+        selectServicio.innerHTML += `<option value="${t.id}">${t.nombre}${sectorActual}</option>`;
+      });
+    }
+
+    new bootstrap.Modal(document.getElementById('modalAsignarServicio')).show();
+  });
+}
+
+const btnGuardarAsignacion = document.getElementById('btnGuardarAsignacion');
+if (btnGuardarAsignacion) {
+  btnGuardarAsignacion.addEventListener('click', async () => {
+    const servicio_id = document.getElementById('asignar_servicio_id').value;
+    const sector_id = document.getElementById('asignar_sector_id').value;
+
+    if (!servicio_id || !sector_id) {
+      mostrarAlerta('Seleccione sector y servicio', 'danger');
+      return;
+    }
+
+    btnGuardarAsignacion.disabled = true;
+    btnGuardarAsignacion.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Guardando...';
+
+    try {
+      const response = await fetch(`/configuracion/infraestructura/api/servicio/${servicio_id}/sector`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ sector_id })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        mostrarAlerta(data.message, 'success');
+        bootstrap.Modal.getInstance(document.getElementById('modalAsignarServicio')).hide();
+        setTimeout(() => location.reload(), 1000);
+      } else {
+        mostrarAlerta(data.message, 'danger');
+      }
+    } catch (error) {
+      mostrarAlerta('Error al guardar', 'danger');
+    } finally {
+      btnGuardarAsignacion.disabled = false;
+      btnGuardarAsignacion.innerHTML = '<i class="fas fa-save me-2"></i>Guardar';
+    }
+  });
+}
 
 });

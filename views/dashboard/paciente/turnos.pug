@@ -1,0 +1,236 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .turnos-paciente
+    //- Encabezado
+    .page-header.mb-4
+      .row.align-items-center
+        .col-md-8
+          h2
+            i.fas.fa-calendar-alt.text-primary.me-2
+            | Mis Turnos
+          p.text-muted Gestiona y visualiza todos tus turnos médicos
+      
+
+    //- Estadísticas rápidas
+    .row.mb-4
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-primary.text-white.mb-2
+              i.fas.fa-calendar-check.fa-2x
+            h3.stat-number.text-primary #{estadisticas.total}
+            p.stat-label.mb-0 Total de Turnos
+      
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-warning.text-white.mb-2
+              i.fas.fa-clock.fa-2x
+            h3.stat-number.text-warning #{estadisticas.pendientes}
+            p.stat-label.mb-0 Pendientes
+      
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-success.text-white.mb-2
+              i.fas.fa-check-circle.fa-2x
+            h3.stat-number.text-success #{estadisticas.confirmados}
+            p.stat-label.mb-0 Confirmados
+      
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-info.text-white.mb-2
+              i.fas.fa-check-double.fa-2x
+            h3.stat-number.text-info #{estadisticas.completados}
+            p.stat-label.mb-0 Completados
+
+    //- Próximo turno destacado
+    if proximoTurno
+      .alert.alert-info.alert-dismissible.fade.show.mb-4(role='alert')
+        .row.align-items-center
+          .col-md-8
+            h5.alert-heading
+              i.fas.fa-calendar-day.me-2
+              | Tu Próximo Turno
+            p.mb-1
+              strong Fecha:
+              |  #{new Date(proximoTurno.fecha).toLocaleDateString('es-AR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+            p.mb-1
+              strong Hora:
+              |  #{proximoTurno.hora_inicio}
+            if proximoTurno.medico
+              p.mb-0
+                strong Médico:
+                |  Dr/a. #{proximoTurno.medico.usuario.nombre} #{proximoTurno.medico.usuario.apellido}
+                if proximoTurno.medico.especialidad
+                  |  - #{proximoTurno.medico.especialidad.nombre}
+            if proximoTurno.sector
+              p.mb-0
+                strong Sector:
+                |  #{proximoTurno.sector.nombre}
+          .col-md-4.text-md-end
+            a.btn.btn-info(href=`/paciente/turnos/${proximoTurno.id}`)
+              i.fas.fa-eye.me-2
+              | Ver Detalles
+        button.btn-close(type='button', data-bs-dismiss='alert')
+
+    //- Filtros
+    .card.border-0.shadow-sm.mb-4
+      .card-body
+        form#formFiltros(method='GET', action='/paciente/turnos')
+          .row.g-3
+            .col-md-3
+              label.form-label Estado
+              select.form-select(name='estado')
+                option(value='', selected=!filtros.estado) Todos
+                option(value='PENDIENTE', selected=filtros.estado === 'PENDIENTE') Pendiente
+                option(value='CONFIRMADO', selected=filtros.estado === 'CONFIRMADO') Confirmado
+                option(value='COMPLETADO', selected=filtros.estado === 'COMPLETADO') Completado
+                option(value='CANCELADO', selected=filtros.estado === 'CANCELADO') Cancelado
+            
+            .col-md-3
+              label.form-label Desde
+              input.form-control(type='date', name='desde', value=filtros.desde || '')
+            
+            .col-md-3
+              label.form-label Hasta
+              input.form-control(type='date', name='hasta', value=filtros.hasta || '')
+            
+            .col-md-3.d-flex.align-items-end
+              button.btn.btn-primary.w-100(type='submit')
+                i.fas.fa-filter.me-2
+                | Filtrar
+              button.btn.btn-secondary.ms-2(type='button', onclick='limpiarFiltros()')
+                i.fas.fa-times
+
+    //- Lista de turnos
+    .card.border-0.shadow-sm
+      .card-header.bg-light
+        h5.mb-0
+          i.fas.fa-list.me-2
+          | Lista de Turnos
+          small.text-muted.ms-2 (#{paginacion.totalItems} turnos)
+      
+      .card-body
+        if turnos && turnos.length > 0
+          .table-responsive
+            table.table.table-hover.align-middle
+              thead
+                tr
+                  th Estado
+                  th Fecha
+                  th Hora
+                  th Profesional/Estudio
+                  th Especialidad/Tipo
+                  th Sector
+                  th Acciones
+              tbody
+                each turno in turnos
+                  tr
+                    td
+                      if turno.estado === 'PENDIENTE'
+                        span.badge.bg-warning #{turno.estado}
+                      else if turno.estado === 'CONFIRMADO'
+                        span.badge.bg-success #{turno.estado}
+                      else if turno.estado === 'COMPLETADO'
+                        span.badge.bg-info #{turno.estado}
+                      else if turno.estado === 'CANCELADO'
+                        span.badge.bg-danger #{turno.estado}
+                    
+                    td #{new Date(turno.fecha).toLocaleDateString('es-AR')}
+                    
+                    td
+                      strong #{turno.hora_inicio}
+                      if turno.hora_fin
+                        |  - #{turno.hora_fin}
+                    
+                    td
+                      if turno.medico
+                        | Dr/a. #{turno.medico.usuario.nombre} #{turno.medico.usuario.apellido}
+                      else if turno.tipo_estudio
+                        | #{turno.tipo_estudio.nombre}
+                      else
+                        span.text-muted Sin asignar
+                    
+                    td
+                      if turno.medico && turno.medico.especialidad
+                        small.text-muted #{turno.medico.especialidad.nombre}
+                      else if turno.tipo_estudio
+                        small.text-muted #{turno.tipo_estudio.categoria}
+                      else
+                        span.text-muted -
+                    
+                    td
+                      if turno.sector
+                        small #{turno.sector.nombre}
+                      else
+                        span.text-muted -
+                    
+                    td
+                      .btn-group(role='group')
+                        a.btn.btn-sm.btn-outline-primary(href=`/paciente/turnos/${turno.id}`, title='Ver Detalle')
+                          i.fas.fa-eye
+                        
+                        if turno.estado === 'PENDIENTE'
+                          button.btn.btn-sm.btn-outline-success(
+                            onclick=`confirmarTurno(${turno.id})`,
+                            title='Confirmar'
+                          )
+                            i.fas.fa-check
+                        
+                        if ['PENDIENTE', 'CONFIRMADO'].includes(turno.estado)
+                          - const fechaTurno = new Date(turno.fecha)
+                          - const hoy = new Date()
+                          if fechaTurno > hoy
+                            button.btn.btn-sm.btn-outline-danger(
+                              onclick=`mostrarModalCancelar(${turno.id})`,
+                              title='Cancelar'
+                            )
+                              i.fas.fa-times
+
+          //- Paginación
+          if paginacion.totalPages > 1
+            nav.mt-4(aria-label='Paginación de turnos')
+              ul.pagination.justify-content-center
+                li.page-item(class=!paginacion.hasPrev ? 'disabled' : '')
+                  a.page-link(href=`?page=${paginacion.currentPage - 1}&estado=${filtros.estado || ''}&desde=${filtros.desde || ''}&hasta=${filtros.hasta || ''}`) Anterior
+                
+                - for (let i = 1; i <= paginacion.totalPages; i++)
+                  li.page-item(class=i === paginacion.currentPage ? 'active' : '')
+                    a.page-link(href=`?page=${i}&estado=${filtros.estado || ''}&desde=${filtros.desde || ''}&hasta=${filtros.hasta || ''}`) #{i}
+                
+                li.page-item(class=!paginacion.hasNext ? 'disabled' : '')
+                  a.page-link(href=`?page=${paginacion.currentPage + 1}&estado=${filtros.estado || ''}&desde=${filtros.desde || ''}&hasta=${filtros.hasta || ''}`) Siguiente
+        else
+          .text-center.py-5
+            i.fas.fa-calendar-times.fa-4x.text-muted.mb-3
+            h5.text-muted No se encontraron turnos
+            p.text-muted Prueba ajustando los filtros o solicita un nuevo turno
+            a.btn.btn-primary(href='/paciente/solicitar-turno')
+              i.fas.fa-plus.me-2
+              | Solicitar Turno
+
+  //- Modal para cancelar turno
+  #modalCancelarTurno.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-danger.text-white
+          h5.modal-title
+            i.fas.fa-exclamation-triangle.me-2
+            | Cancelar Turno
+          button.btn-close.btn-close-white(type='button', data-bs-dismiss='modal')
+        .modal-body
+          p ¿Estás seguro de que deseas cancelar este turno?
+          .mb-3
+            label.form-label Motivo de cancelación (opcional)
+            textarea#motivoCancelacion.form-control(rows='3', placeholder='Describe el motivo...')
+        .modal-footer
+          button.btn.btn-secondary(type='button', data-bs-dismiss='modal') No, mantener turno
+          button#btnConfirmarCancelacion.btn.btn-danger(type='button')
+            i.fas.fa-check.me-2
+            | Sí, cancelar turno
+
+block scripts
+  script(src='/js/paciente/paciente-turnos.js')

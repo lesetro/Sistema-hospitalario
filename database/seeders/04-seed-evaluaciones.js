@@ -26,22 +26,22 @@ module.exports = {
 
       // PROCEDIMIENTOS PRE QUIRURGICOS
       await queryInterface.bulkInsert('procedimientosprequirurgicos', [
-        { id: 1, evaluacion_medica_id: 1, nombre: 'Preparación Pre-Quirúrgica', descripcion: 'Ayuno de 8 horas', estado: 'Pendiente', created_at: new Date(), updated_at: new Date() }
+        { id: 1, evaluacion_medica_id: 1, medico_id: 1,paciente_id: 1, nombre: 'Preparación Pre-Quirúrgica', descripcion: 'Ayuno de 8 horas', estado: 'Pendiente', created_at: new Date(), updated_at: new Date() }
       ], { transaction });
 
       // PROCEDIMIENTOS ENFERMERIA
       await queryInterface.bulkInsert('procedimientosenfermeria', [
-        { id: 1, evaluacion_medica_id: 1, tratamiento_id: 3, nombre: 'Administración de Suero', descripcion: 'Solución fisiológica 1000ml IV', duracion_estimada: 120, requiere_preparacion: false, created_at: new Date(), updated_at: new Date() }
+        { id: 1, evaluacion_medica_id: 1, tratamiento_id: 3,medico_id: 1, nombre: 'Administración de Suero', descripcion: 'Solución fisiológica 1000ml IV', duracion_estimada: 120, requiere_preparacion: false,estado: 'PENDIENTE', prioridad: 'MEDIA', fecha_orden: new Date(), created_at: new Date(), updated_at: new Date() }
       ], { transaction });
 
       // EVALUACIONES ENFERMERIA
       await queryInterface.bulkInsert('evaluacionesenfermeria', [
-        { id: 1, paciente_id: 1, enfermero_id: 1, medico_id: 1, fecha: '2025-11-25 09:00:00', signos_vitales: 'PA: 130/85, FC: 78, FR: 16, T: 36.5°C', procedimiento_pre_quirurgico_id: null, nivel_triaje: 'Verde', evaluacion_medica_id: 1, observaciones: 'Paciente estable', procedimiento_enfermeria_id: 1, tipo_egreso: 'PENDIENTE_EVALUACION', lista_espera_generada_id: null, created_at: new Date(), updated_at: new Date() }
+        { id: 1, paciente_id: 1, enfermero_id: 1, medico_id: 1, fecha: '2025-11-25 09:00:00', signos_vitales: 'PA: 130/85, FC: 78, FR: 16, T: 36.5°C', procedimiento_pre_quirurgico_id: null, nivel_triaje: 'Verde', evaluacion_medica_id: 1, observaciones: 'Paciente estable', procedimiento_enfermeria_id: 1, tipo_egreso: 'PENDIENTE_EVALUACION', lista_espera_generada_id: null, prioridad: 'MEDIA',estado: 'Pendiente', created_at: new Date(), updated_at: new Date() }
       ], { transaction });
 
       // CONTROLES ENFERMERIA
       await queryInterface.bulkInsert('controlesenfermeria', [
-        { id: 1, evaluacion_enfermeria_id: 1, alergias: 'Penicilina', evaluacion_medica_id: 1, antecedentes_familiares: 'Padre: Hipertensión', antecedentes_personales: 'Hipertensión hace 5 años', grupo_sanguineo: 'O', factor_rh: 'Positivo', peso: 78.5, altura: 1.75, presion_arterial: '130/85', frecuencia_cardiaca: '78', frecuencia_respiratoria: 16, temperatura: 36.5, nivel_oxigeno: '98%', nivel_glucosa: 105.0, created_at: new Date(), updated_at: new Date() }
+        { id: 1,estado : 'SOLICITADO',paciente_id : 1,  evaluacion_enfermeria_id: 1, alergias: 'Penicilina', evaluacion_medica_id: null, antecedentes_familiares: 'Padre: Hipertensión', antecedentes_personales: 'Hipertensión hace 5 años', grupo_sanguineo: 'O', factor_rh: 'Positivo', peso: 78.5, altura: 1.75, presion_arterial: '130/85', frecuencia_cardiaca: '78', frecuencia_respiratoria: 16, temperatura: 36.5, nivel_oxigeno: '98%', nivel_glucosa: 105.0, created_at: new Date(), updated_at: new Date() }
       ], { transaction });
 
       console.log('✅ Seeder 04: Evaluaciones cargadas exitosamente');

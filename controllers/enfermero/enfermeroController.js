@@ -7,13 +7,15 @@ const { Enfermero,
   Cama, 
   Internacion, 
   ListaEspera, 
-  Turno } = require('../../models');
+  Turno 
+} = require('../../models');
 const { Op } = require('sequelize');
+const utilsHorarios = require('../../services/horariosUtils');
 
 // Dashboard principal
-exports.dashboard = async (req, res) => {
+exports.dashboard = async (req, res, next) => {
   try {
-    // ✅ CORRECCIÓN
+    
     const enfermeroId = req.user.id;
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
@@ -61,7 +63,6 @@ exports.dashboard = async (req, res) => {
         where: {
           estado: 'PENDIENTE',
           creador_tipo: 'ENFERMERO',
-          // ✅ CORRECCIÓN
           creador_id: req.user.usuario_id
         }
       })
@@ -142,17 +143,14 @@ exports.dashboard = async (req, res) => {
 
   } catch (error) {
     console.error('Error en dashboard enfermero:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el dashboard',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Obtener resumen de actividad
-exports.getResumenActividad = async (req, res) => {
+exports.getResumenActividad = async (req, res, next) => {
   try {
-    // ✅ CORRECCIÓN
+    
     const enfermeroId = req.user.id;
     const { fecha_inicio, fecha_fin } = req.query;
 
@@ -196,15 +194,12 @@ exports.getResumenActividad = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener resumen:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener resumen de actividad'
-    });
+    next(error);
   }
 };
 
 // Notificaciones pendientes
-exports.getNotificaciones = async (req, res) => {
+exports.getNotificaciones = async (req, res, next) => {
   try {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
@@ -223,7 +218,7 @@ exports.getNotificaciones = async (req, res) => {
       notificaciones.push({
         tipo: 'critico',
         mensaje: `${triajeCritico} paciente(s) en triaje crítico (Rojo)`,
-        url: 'dashboard/enfermero/triaje',
+        url: '/enfermero/triaje',
         icono: 'fa-exclamation-triangle',
         cantidad: triajeCritico
       });
@@ -240,7 +235,7 @@ exports.getNotificaciones = async (req, res) => {
       notificaciones.push({
         tipo: 'procedimiento',
         mensaje: `${procedimientosPendientes} procedimiento(s) pendiente(s)`,
-        url: 'dashboard/enfermero/procedimientos',
+        url: '/enfermero/procedimientos',
         icono: 'fa-syringe',
         cantidad: procedimientosPendientes
       });
@@ -254,7 +249,7 @@ exports.getNotificaciones = async (req, res) => {
       notificaciones.push({
         tipo: 'limpieza',
         mensaje: `${camasPorLimpiar} cama(s) en proceso de limpieza`,
-        url: 'dashboard/enfermero/camas',
+        url: '/enfermero/camas',
         icono: 'fa-bed',
         cantidad: camasPorLimpiar
       });
@@ -267,10 +262,233 @@ exports.getNotificaciones = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener notificaciones:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener notificaciones'
+    next(error);
+  }
+};
+exports.obtenerMedicosUrgencias = async (req, res, next) => {
+  try {
+    console.log('🔍 Obteniendo médicos del sector Urgencias');
+    
+    const medicos = await Medico.findAll({
+      include: [
+        {
+          model: Usuario,
+          as: 'usuario',
+          attributes: ['id', 'nombre', 'apellido', 'email']
+        },
+        {
+          model: Sector,
+          as: 'sector',
+          where: { nombre: 'Urgencias' }
+        },
+        {
+          model: Especialidad,
+          as: 'especialidad',
+          attributes: ['id', 'nombre']
+        }
+      ],
+      where: {
+        // Verificar que el médico tenga horarios configurados
+        id: {
+          [Op.in]: db.sequelize.literal(`
+            SELECT DISTINCT m.id 
+            FROM medicos m
+            JOIN usuarios u ON m.usuario_id = u.id
+            JOIN turnos_personal tp ON tp.usuario_id = u.id
+            WHERE m.sector_id = (
+              SELECT id FROM sectores WHERE nombre = 'Urgencias'
+            )
+            AND tp.tipo IN ('Atencion', 'Guardia Activa')
+          `)
+        }
+      }
     });
+
+    console.log(`✅ Encontrados ${medicos.length} médicos en Urgencias`);
+
+    res.json({
+      success: true,
+      data: medicos.map(medico => ({
+        id: medico.id,
+        nombre_completo: `${medico.usuario.nombre} ${medico.usuario.apellido}`,
+        especialidad: medico.especialidad?.nombre || 'Sin especialidad',
+        email: medico.usuario.email
+      }))
+    });
+  } catch (error) {
+    console.error('❌ Error al obtener médicos:', error.message);
+    next(error);
+  }
+};
+
+// ========================================
+// OBTENER HORARIOS DISPONIBLES DE UN MÉDICO
+// ========================================
+exports.obtenerHorariosMedico = async (req, res, next) => {
+  try {
+    const { medicoId } = req.params;
+    const { fecha } = req.query;
+
+    if (!fecha) {
+      return res.status(400).json({
+        success: false,
+        message: 'La fecha es requerida'
+      });
+    }
+
+    console.log(` Obteniendo horarios para médico ${medicoId}, fecha: ${fecha}`);
+
+    // Usar la utilidad compartida
+    const resultado = await utilsHorarios.obtenerHorariosDisponibles(
+      medicoId,
+      fecha,
+      30, // Duración de 30 minutos para urgencias
+      null // Sin tipo de servicio específico
+    );
+
+    if (!resultado.success) {
+      return res.status(400).json({
+        success: false,
+        message: resultado.message
+      });
+    }
+
+    res.json({
+      success: true,
+      horarios: resultado.horarios,
+      estadisticas: resultado.estadisticas,
+      infoMedico: resultado.turnoPersonal
+    });
+  } catch (error) {
+    console.error('❌ Error al obtener horarios:', error.message);
+    next(error);
+  }
+};
+
+// ========================================
+// ASIGNAR TURNO DESDE EVALUACIÓN DE ENFERMERÍA
+// ========================================
+exports.asignarTurnoDesdeEvaluacion = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+
+  try {
+    const {
+      paciente_id,
+      medico_id,
+      fecha,
+      hora_inicio,
+      evaluacion_id,
+      observaciones
+    } = req.body;
+
+    console.log(` Asignando turno desde evaluación:`, req.body);
+
+    // 1. Validar que el horario esté disponible
+    const horarioValido = await utilsHorarios.validarHorarioDisponible(
+      medico_id,
+      fecha,
+      hora_inicio,
+      30
+    );
+
+    if (!horarioValido.disponible) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: horarioValido.mensaje
+      });
+    }
+
+    // 2. Calcular hora_fin (30 minutos después)
+    const hora_fin = utilsHorarios.calcularHoraFin(hora_inicio, 30);
+
+    // 3. Crear el turno
+    const turno = await Turno.create({
+      paciente_id,
+      medico_id,
+      fecha,
+      hora_inicio,
+      hora_fin,
+      estado: 'PENDIENTE',
+      tipo_turno: 'URGENCIA',
+      sector_id: (await Medico.findByPk(medico_id)).sector_id,
+      observaciones: observaciones || 'Derivado desde evaluación de enfermería'
+    }, { transaction });
+
+    console.log(`✅ Turno creado: ${turno.id}`);
+
+    // 4. Actualizar la evaluación de enfermería
+    if (evaluacion_id) {
+      await EvaluacionEnfermeria.update(
+        {
+          tipo_egreso: 'DERIVACION_MEDICO',
+          medico_id: medico_id,
+          observaciones: `Paciente derivado al Dr. ${medico_id} para el ${fecha} a las ${hora_inicio}`
+        },
+        {
+          where: { id: evaluacion_id },
+          transaction
+        }
+      );
+
+      console.log(`✅ Evaluación actualizada con turno`);
+    }
+
+    // 5. Actualizar lista de espera si existe
+    const listaEspera = await ListaEspera.findOne({
+      where: {
+        paciente_id,
+        estado: 'PENDIENTE'
+      },
+      transaction
+    });
+
+    if (listaEspera) {
+      await listaEspera.update(
+        {
+          estado: 'ASIGNADO',
+          turno_id: turno.id,
+          medico_id: medico_id
+        },
+        { transaction }
+      );
+      console.log(`✅ Lista de espera actualizada`);
+    }
+
+    // 6. Crear notificación para el médico
+    const medico = await Medico.findByPk(medico_id, {
+      include: [{ model: Usuario, as: 'usuario' }],
+      transaction
+    });
+
+    if (medico && medico.usuario) {
+      await Notificacion.create({
+        usuario_id: medico.usuario_id,
+        mensaje: `Tiene un nuevo turno de urgencia para el ${fecha} a las ${hora_inicio}`,
+        tipo: 'URGENCIA',
+        leida: false,
+        metadata: JSON.stringify({ turno_id: turno.id, paciente_id })
+      }, { transaction });
+      console.log(`✅ Notificación creada para el médico`);
+    }
+
+    await transaction.commit();
+
+    res.json({
+      success: true,
+      message: 'Turno asignado correctamente',
+      data: {
+        turno_id: turno.id,
+        fecha,
+        hora_inicio,
+        hora_fin,
+        medico_id
+      }
+    });
+  } catch (error) {
+    await transaction.rollback();
+    console.error('❌ Error al asignar turno:', error.message);
+    next(error);
   }
 };
 

@@ -1,0 +1,291 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .facturas-paciente
+    .page-header.mb-4
+      .d-flex.justify-content-between.align-items-center
+        div
+          h2
+            i.fas.fa-file-invoice-dollar.text-primary.me-2
+            | Detalle de Factura ##{factura.id}
+          p.text-muted Información completa de la factura
+        
+        div
+          a.btn.btn-outline-secondary.me-2(href="/paciente/facturas")
+            i.fas.fa-arrow-left.me-1
+            | Volver
+          button.btn.btn-outline-primary(onclick="window.print()")
+            i.fas.fa-print.me-1
+            | Imprimir
+
+    - const montoTotal = parseFloat(factura.monto || 0)
+    - const pagado = parseFloat(totalPagado || 0)
+    - const saldo = montoTotal - pagado
+    - const estadoFactura = saldo <= 0 ? 'Pagada' : (factura.estado || 'Pendiente')
+    - const estadoClass = estadoFactura === 'Pagada' ? 'bg-success' : estadoFactura === 'Pendiente' ? 'bg-warning' : 'bg-danger'
+
+    .row.mb-4
+      .col-lg-3.col-md-6.mb-3
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            .stat-icon.bg-primary.text-white.mb-2.mx-auto(style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;")
+              i.fas.fa-money-bill-wave.fa-2x
+            h4.stat-number.text-primary.mt-2 
+              | $#{montoTotal.toFixed(2)}
+            p.stat-label.mb-0 Monto Total
+
+      .col-lg-3.col-md-6.mb-3
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            .stat-icon.bg-info.text-white.mb-2.mx-auto(style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;")
+              i.fas.fa-calendar-alt.fa-2x
+            h5.stat-number.text-info.mt-2 
+              | #{factura.fecha_emision ? new Date(factura.fecha_emision).toLocaleDateString('es-AR') : 'No especificada'}
+            p.stat-label.mb-0 Fecha Emisión
+
+      .col-lg-3.col-md-6.mb-3
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            .stat-icon(class=estadoClass + ' mb-2 mx-auto' style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;")
+              i.fas.fa-flag.fa-2x
+            h5.stat-number.mt-2(class=estadoFactura === 'Pagada' ? 'text-success' : estadoFactura === 'Pendiente' ? 'text-warning' : 'text-danger') 
+              | #{estadoFactura}
+            p.stat-label.mb-0 Estado
+
+      .col-lg-3.col-md-6.mb-3
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            .stat-icon.bg-secondary.text-white.mb-2.mx-auto(style="width: 50px; height: 50px; border-radius: 50%; display: flex; align-items: center; justify-content: center;")
+              i.fas.fa-file-invoice.fa-2x
+            h5.stat-number.text-secondary.mt-2 
+              | #{factura.tipo_pago || factura.tipo || 'Servicio'}
+            p.stat-label.mb-0 Tipo
+
+    .row
+      .col-lg-8
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-light
+            h5.mb-0
+              i.fas.fa-info-circle.text-primary.me-2
+              | Información de la Factura
+          .card-body
+            .row
+              .col-md-6.mb-3
+                label.fw-bold.text-muted ID Factura:
+                p.mb-0 ##{factura.id}
+              
+              .col-md-6.mb-3
+                label.fw-bold.text-muted Fecha Emisión:
+                p.mb-0 #{factura.fecha_emision ? new Date(factura.fecha_emision).toLocaleString('es-AR') : 'No especificada'}
+              
+              .col-md-6.mb-3
+                label.fw-bold.text-muted Estado:
+                p.mb-0
+                  span.badge(class=estadoClass)
+                    i.fas.fa-circle.me-1
+                    | #{estadoFactura}
+              
+              .col-md-6.mb-3
+                label.fw-bold.text-muted Tipo de Pago:
+                p.mb-0
+                  - const tipoPago = factura.tipo_pago || 'Particular'
+                  - const tipoPagoClass = tipoPago === 'Particular' ? 'bg-primary' : tipoPago === 'Obra Social' ? 'bg-info' : tipoPago === 'SISTEMA PUBLICO' ? 'bg-success' : 'bg-secondary'
+                  span.badge(class=tipoPagoClass) #{tipoPago}
+              
+              .col-12.mb-3
+                label.fw-bold.text-muted Descripción:
+                p.mb-0 #{factura.descripcion || 'Factura de servicios médicos'}
+              
+              if factura.estudio_solicitado
+                .col-12.mb-3
+                  label.fw-bold.text-muted Estudio Relacionado:
+                  p.mb-0 #{factura.estudio_solicitado.nombre || factura.estudio_solicitado.descripcion || 'Estudio médico'}
+
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-light
+            h5.mb-0
+              i.fas.fa-calculator.text-primary.me-2
+              | Detalles de Montos
+          .card-body
+            .row
+              .col-md-6.mb-3
+                label.fw-bold.text-muted Monto Total:
+                p.mb-0.text-danger.fw-bold $#{montoTotal.toFixed(2)}
+              
+              .col-md-6.mb-3
+                label.fw-bold.text-muted Monto Pagado:
+                p.mb-0.text-success.fw-bold $#{pagado.toFixed(2)}
+              
+              .col-md-6.mb-3
+                label.fw-bold.text-muted Saldo Pendiente:
+                p.mb-0
+                  - const saldoClass = saldo > 0 ? 'text-warning fw-bold' : 'text-success fw-bold'
+                  span(class=saldoClass) $#{saldo.toFixed(2)}
+              
+              .col-md-6.mb-3
+                label.fw-bold.text-muted Porcentaje Pagado:
+                p.mb-0
+                  - const porcentajePagado = montoTotal > 0 ? (pagado / montoTotal) * 100 : 0
+                  - const porcentajeClass = porcentajePagado === 100 ? 'bg-success' : porcentajePagado > 0 ? 'bg-info' : 'bg-secondary'
+                  span.badge(class=porcentajeClass) #{porcentajePagado.toFixed(1)}%
+
+            .progress.mt-3(style="height: 15px;")
+              .progress-bar.bg-success(
+                role="progressbar" 
+                style=`width: ${porcentajePagado}%`
+                aria-valuenow=porcentajePagado 
+                aria-valuemin="0" 
+                aria-valuemax="100"
+              )
+                span #{porcentajePagado.toFixed(1)}%
+
+      .col-lg-4
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-light
+            h5.mb-0
+              i.fas.fa-user-injured.text-primary.me-2
+              | Información del Paciente
+          .card-body
+            .text-center.mb-3
+              .patient-avatar.mx-auto.mb-2(style="width: 80px; height: 80px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white; font-size: 2rem;")
+                i.fas.fa-user
+            .text-center.mb-3
+              h5.mb-1 #{user.nombre || ''} #{user.apellido || ''}
+              small.text-muted Paciente
+            
+            hr
+            
+            .patient-info
+              .row
+                .col-12.mb-2
+                  .d-flex.align-items-center
+                    i.fas.fa-id-card.text-muted.me-2(style="width: 20px;")
+                    small DNI: #{user.dni || 'No especificado'}
+                
+                .col-12.mb-2
+                  .d-flex.align-items-center
+                    i.fas.fa-envelope.text-muted.me-2(style="width: 20px;")
+                    small Email: #{user.email || 'No especificado'}
+                
+                if user.obra_social
+                  .col-12.mb-2
+                    .d-flex.align-items-center
+                      i.fas.fa-heartbeat.text-muted.me-2(style="width: 20px;")
+                      small Obra Social: #{user.obra_social}
+
+        if factura.medico
+          .card.border-0.shadow-sm.mb-4
+            .card-header.bg-light
+              h6.mb-0
+                i.fas.fa-user-md.text-primary.me-2
+                | Médico Responsable
+            .card-body
+              - const medico = factura.medico || {}
+              - const medicoUsuario = medico.usuario || {}
+              .d-flex.align-items-center.mb-2
+                .doctor-avatar.me-3(style="width: 50px; height: 50px; background: linear-gradient(135deg, #4CAF50 0%, #8BC34A 100%); border-radius: 50%; display: flex; align-items: center; justify-content: center; color: white;")
+                  i.fas.fa-user-md
+                div
+                  h6.mb-0 Dr. #{medicoUsuario.nombre || ''} #{medicoUsuario.apellido || ''}
+                  small.text-muted Médico
+              
+              if medico.especialidad
+                .d-flex.align-items-center.mt-2
+                  i.fas.fa-stethoscope.text-muted.me-2
+                  small #{medico.especialidad.nombre}
+
+    if pagos && pagos.length > 0
+      .row.mt-4
+        .col-12
+          .card.border-0.shadow-sm
+            .card-header.bg-light.d-flex.justify-content-between.align-items-center
+              h5.mb-0
+                i.fas.fa-history.text-primary.me-2
+                | Historial de Pagos
+              span.badge.bg-primary #{pagos.length} pago(s)
+            
+            .card-body
+              .table-responsive
+                table.table.table-hover
+                  thead
+                    tr
+                      th Fecha
+                      th ID Pago
+                      th Método
+                      th Monto
+                      th Estado
+                      th Acciones
+                  
+                  tbody
+                    each pago in pagos
+                      - const pagoEstado = pago.estado || 'Pendiente'
+                      - const pagoEstadoClass = pagoEstado === 'Completado' ? 'bg-success' : pagoEstado === 'Pendiente' ? 'bg-warning' : 'bg-danger'
+                      - const metodo = pago.metodo || 'No especificado'
+                      - const metodoBadge = metodo === 'Efectivo' ? 'bg-success' : metodo === 'Tarjeta' ? 'bg-info' : metodo === 'Transferencia' ? 'bg-primary' : metodo === 'Obra Social' ? 'bg-warning' : 'bg-secondary'
+                      tr
+                        td #{pago.fecha ? new Date(pago.fecha).toLocaleDateString('es-AR') : 'No especificada'}
+                        td 
+                          a(href=`/paciente/pagos/${pago.id}`) ##{pago.id}
+                        td
+                          span.badge(class=metodoBadge) #{metodo}
+                        td.text-success.fw-bold $#{pago.monto ? parseFloat(pago.monto).toFixed(2) : '0.00'}
+                        td
+                          span.badge(class=pagoEstadoClass) #{pagoEstado}
+                        td
+                          a.btn.btn-sm.btn-outline-primary(href=`/paciente/pagos/${pago.id}`)
+                            i.fas.fa-eye.me-1
+                            | Ver
+    else
+      .row.mt-4
+        .col-12
+          .card.border-0.shadow-sm
+            .card-body.text-center.py-5
+              i.fas.fa-money-bill-wave.fa-3x.text-muted.mb-3
+              h5.text-muted No hay pagos registrados
+              p.text-muted Esta factura no tiene pagos asociados aún.
+
+    if saldo > 0
+      .row.mt-4
+        .col-12
+          .alert.alert-warning
+            .d-flex.align-items-center
+              i.fas.fa-exclamation-triangle.fa-2x.me-3
+              div
+                h5.alert-heading Factura Pendiente de Pago
+                p.mb-0 
+                  | Esta factura tiene un saldo pendiente de $#{saldo.toFixed(2)}.
+            
+            hr
+            
+            .d-flex.justify-content-center.gap-2
+              a.btn.btn-success(href="#" onclick="alert('Pago electrónico en desarrollo. Diríjase al hospital para realizar el pago.'); return false;")
+                i.fas.fa-credit-card.me-2
+                | Pago Electrónico (En desarrollo)
+              
+              a.btn.btn-outline-primary(href="/paciente/contacto")
+                i.fas.fa-hospital.me-2
+                | Pagar en el Hospital
+
+    .row.mt-4
+      .col-12
+        .card.border-0.bg-light
+          .card-body.text-center.py-3
+            small.text-muted
+              i.fas.fa-file-alt.me-1
+              | Documento válido como factura original.
+              br
+              | Generado el: #{new Date().toLocaleString('es-AR')}
+              br
+              | ID de factura: #{factura.id}
+
+block scripts
+  script.
+    document.addEventListener('DOMContentLoaded', function() {
+      const printBtn = document.querySelector('[onclick="window.print()"]');
+      if (printBtn) {
+        printBtn.addEventListener('click', function(e) {
+          e.preventDefault();
+          window.print();
+        });
+      }
+    });

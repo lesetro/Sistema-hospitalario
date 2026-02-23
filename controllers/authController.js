@@ -12,7 +12,7 @@ const authController = {
   // ==========================================
   // MOSTRAR FORMULARIO DE LOGIN
   // ==========================================
-  getLogin: async (req, res) => {
+  getLogin: async (req, res, next) => {
     try {
       // Si ya está autenticado, redirigir a su dashboard
       if (req.user && req.user.rol_ruta) {
@@ -41,18 +41,14 @@ const authController = {
       
     } catch (error) {
       console.error('❌ Error en getLogin:', error);
-      res.status(500).render('error', {
-        title: 'Error',
-        message: 'Error al cargar la página de login',
-        error: error
-      });
+      next(error);
     }
   },
 
   // ==========================================
   // PROCESAR LOGIN
   // ==========================================
-  login: async (req, res) => {
+  login: async (req, res, next) => {
     try {
       const { email, password, remember } = req.body;
 
@@ -239,7 +235,7 @@ const authController = {
   // ==========================================
   // VERIFICAR TOKEN
   // ==========================================
-  verifyToken: async (req, res) => {
+  verifyToken: async (req, res, next) => {
     try {
       if (!req.user) {
         return res.status(401).json({
@@ -277,7 +273,7 @@ const authController = {
   // ==========================================
   // LOGOUT
   // ==========================================
-  logout: async (req, res) => {
+  logout: async (req, res, next) => {
     try {
       res.clearCookie('token');
 
@@ -312,7 +308,7 @@ const authController = {
   // ==========================================
   // MOSTRAR FORMULARIO DE REGISTRO
   // ==========================================
-  getRegister: async (req, res) => {
+  getRegister: async (req, res, next) => {
     try {
       res.render('auth/register', {
         title: 'Registrarse',
@@ -320,18 +316,14 @@ const authController = {
       });
     } catch (error) {
       console.error('❌ Error en getRegister:', error);
-      res.status(500).render('error', {
-        title: 'Error',
-        message: 'Error al cargar la página de registro',
-        error: error
-      });
+     next(error);
     }
   },
 
   // ==========================================
   // PROCESAR REGISTRO
   // ==========================================
-  register: async (req, res) => {
+  register: async (req, res, next) => {
     try {
       const { nombre, apellido, dni, email, password, telefono, fecha_nacimiento, sexo } = req.body;
 
@@ -405,7 +397,7 @@ const authController = {
   // ==========================================
   // MOSTRAR FORMULARIO DE RECUPERAR CONTRASEÑA
   // ==========================================
-  getRecuperarContrasena: async (req, res) => {
+  getRecuperarContrasena: async (req, res, next) => {
     try {
       const success = req.query.success ? 'Contraseña actualizada exitosamente. Por favor inicia sesión con tu nueva contraseña.' : null;
 
@@ -417,18 +409,14 @@ const authController = {
       });
     } catch (error) {
       console.error('❌ Error en getRecuperarContrasena:', error);
-      res.status(500).render('error', {
-        title: 'Error',
-        message: 'Error al cargar la página de recuperación',
-        error: error
-      });
+      next(error);
     }
   },
 
   // ==========================================
   // PROCESAR RECUPERAR CONTRASEÑA
   // ==========================================
-  postRecuperarContrasena: async (req, res) => {
+  postRecuperarContrasena: async (req, res, next) => {
     try {
       const { email, newPassword } = req.body;
 
@@ -476,18 +464,14 @@ const authController = {
 
     } catch (error) {
       console.error('❌ Error en postRecuperarContrasena:', error);
-      res.status(500).render('error', {
-        title: 'Error',
-        message: 'Error al procesar la solicitud',
-        error: error
-      });
+      next(error);
     }
   },
 
   // ==========================================
   // RENDERIZAR PERFIL (CON LAYOUT DINÁMICO)
   // ==========================================
-  renderPerfil: async (req, res) => {
+  renderPerfil: async (req, res, next) => {
     try {
       // Construir includes dinámicamente según el rol
       const includes = [
@@ -630,18 +614,14 @@ const authController = {
 
     } catch (error) {
       console.error('❌ Error al renderizar perfil:', error);
-      res.status(500).render('error', {
-        title: 'Error',
-        message: 'Error al cargar el perfil',
-        error: error
-      });
+      next(error);
     }
   },
 
   // ==========================================
   // OBTENER PERFIL (API)
   // ==========================================
-  obtenerPerfil: async (req, res) => {
+  obtenerPerfil: async (req, res, next) => {
     try {
       const includes = [
         {
@@ -714,17 +694,14 @@ const authController = {
 
     } catch (error) {
       console.error('❌ Error al obtener perfil:', error);
-      res.status(500).json({ 
-        success: false,
-        message: 'Error al obtener perfil' 
-      });
+      next(error);
     }
   },
 
   // ==========================================
   // ACTUALIZAR PERFIL
   // ==========================================
-  actualizarPerfil: async (req, res) => {
+  actualizarPerfil: async (req, res, next) => {
     try {
       const { telefono, email } = req.body;
       
@@ -781,17 +758,14 @@ const authController = {
 
     } catch (error) {
       console.error('❌ Error al actualizar perfil:', error);
-      res.status(500).json({ 
-        success: false,
-        message: 'Error al actualizar perfil' 
-      });
+      next(error);
     }
   },
 
   // ==========================================
   // CAMBIAR CONTRASEÑA
   // ==========================================
-  cambiarPassword: async (req, res) => {
+  cambiarPassword: async (req, res, next) => {
     try {
       const { password_actual, password_nueva, password_confirmacion } = req.body;
 
@@ -851,10 +825,7 @@ const authController = {
 
     } catch (error) {
       console.error('❌ Error al cambiar contraseña:', error);
-      res.status(500).json({
-        success: false,
-        message: 'Error al cambiar contraseña'
-      });
+      next(error);
     }
   }
 };

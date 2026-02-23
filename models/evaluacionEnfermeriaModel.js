@@ -4,7 +4,8 @@ module.exports = (sequelize, DataTypes) => {
   const EvaluacionEnfermeria = sequelize.define('EvaluacionEnfermeria', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
     paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
-    enfermero_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'enfermeros', key: 'id' } },
+    enfermero_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'enfermeros', key: 'id' } },
+    internacion_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'internaciones', key: 'id' } },
     medico_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'medicos', key: 'id' } },
     fecha: { type: DataTypes.DATE, allowNull: false },
     signos_vitales: { type: DataTypes.STRING(300), allowNull: true },
@@ -17,10 +18,14 @@ module.exports = (sequelize, DataTypes) => {
         'PROCEDIMIENTO_COMPLETADO', 
         'DERIVACION_MEDICO',        
         'DERIVACION_URGENCIA',      
-        'PENDIENTE_EVALUACION'      
+        'PENDIENTE_EVALUACION',
+        'ORDEN_MEDICA',
+        'DERIVACION_CIRUGIA'     
         ),
         defaultValue: 'PENDIENTE_EVALUACION'
     },
+    prioridad: { type: DataTypes.ENUM('BAJA', 'MEDIA', 'ALTA'), defaultValue: 'MEDIA' },
+    estado: { type: DataTypes.ENUM('Pendiente', 'En_progreso', 'Completado', 'Cancelado'), defaultValue: 'Pendiente',allowNull: true},
     lista_espera_generada_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'listasesperas', key: 'id' }}
   }, {
 
@@ -35,7 +40,9 @@ module.exports = (sequelize, DataTypes) => {
       { fields: ['procedimiento_enfermeria_id'] },
       { fields: ['evaluacion_medica_id'] },
       { fields: ['lista_espera_generada_id'] },
-      { fields: ["fecha"] }
+      { fields: ["fecha"] },
+      { fields: ['internacion_id'] }, 
+      { fields: ['tipo_egreso'] }
       
     ]
   });
@@ -46,9 +53,10 @@ module.exports = (sequelize, DataTypes) => {
     EvaluacionEnfermeria.belongsTo(models.Medico, { foreignKey: 'medico_id', as: 'medico' });
     EvaluacionEnfermeria.belongsTo(models.ProcedimientoEnfermeria, { foreignKey: 'procedimiento_enfermeria_id', as: 'procedimiento_enfermeria' });
     EvaluacionEnfermeria.belongsTo(models.ProcedimientoPreQuirurgico, { foreignKey: 'procedimiento_pre_quirurgico_id', as: 'procedimiento_pre_quirurgico' });
-    EvaluacionEnfermeria.hasOne(models.ControlEnfermeria, { foreignKey: 'evaluacion_enfermeria_id', as: 'control_enfermeria' });
+    EvaluacionEnfermeria.hasMany(models.ControlEnfermeria, { foreignKey: 'evaluacion_enfermeria_id', as: 'control_enfermeria' });
     EvaluacionEnfermeria.belongsTo(models.EvaluacionMedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacion_medica' });
     EvaluacionEnfermeria.belongsTo(models.ListaEspera, { foreignKey: 'lista_espera_generada_id', as: 'lista_espera_generada' });
+    EvaluacionEnfermeria.belongsTo(models.Internacion, { foreignKey: 'internacion_id', as: 'internacion' });
   };
  
 

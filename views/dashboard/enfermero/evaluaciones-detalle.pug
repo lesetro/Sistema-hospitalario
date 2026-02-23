@@ -17,39 +17,59 @@ block content
               i.fas.fa-user.me-2
               | Datos del Paciente
           .card-body
-            dl.row.mb-0
-              dt.col-sm-4 Nombre:
-              dd.col-sm-8= `${evaluacion.paciente.usuario.nombre} ${evaluacion.paciente.usuario.apellido}`
-              
-              dt.col-sm-4 DNI:
-              dd.col-sm-8= evaluacion.paciente.usuario.dni
-              
-              dt.col-sm-4 Edad:
-              dd.col-sm-8
-                - const edad = Math.floor((new Date() - new Date(evaluacion.paciente.usuario.fecha_nacimiento)) / (1000 * 60 * 60 * 24 * 365))
-                = `${edad} años`
-              
-              dt.col-sm-4 Sexo:
-              dd.col-sm-8= evaluacion.paciente.usuario.sexo
-              
-              if evaluacion.paciente.usuario.telefono
-                dt.col-sm-4 Teléfono:
-                dd.col-sm-8= evaluacion.paciente.usuario.telefono
+            if evaluacion && evaluacion.paciente && evaluacion.paciente.usuario
+              dl.row.mb-0
+                dt.col-sm-4 Nombre:
+                dd.col-sm-8= `${evaluacion.paciente.usuario.nombre} ${evaluacion.paciente.usuario.apellido}`
+                
+                dt.col-sm-4 DNI:
+                dd.col-sm-8= evaluacion.paciente.usuario.dni
+                
+                dt.col-sm-4 Edad:
+                dd.col-sm-8
+                  - const edad = Math.floor((new Date() - new Date(evaluacion.paciente.usuario.fecha_nacimiento)) / (1000 * 60 * 60 * 24 * 365))
+                  = `${edad} años`
+                
+                dt.col-sm-4 Sexo:
+                dd.col-sm-8= evaluacion.paciente.usuario.sexo
+                
+                if evaluacion.paciente.usuario.telefono
+                  dt.col-sm-4 Teléfono:
+                  dd.col-sm-8= evaluacion.paciente.usuario.telefono
+            else
+              p.text-danger Error: Datos del paciente no disponibles
 
       // Detalles de la evaluación
       .col-lg-8.mb-4
         .card.border-0.shadow-sm
-          .card-header.bg-info.text-white
+          .card-header(class=evaluacion.tipo_egreso === 'DERIVACION_MEDICO' ? 'bg-warning' : 'bg-info')
             h5.mb-0
               i.fas.fa-clipboard-check.me-2
               | Detalles de la Evaluación
+              if evaluacion.tipo_egreso === 'DERIVACION_MEDICO'
+                span.badge.bg-light.text-dark.ms-2 ORDEN MÉDICA
           .card-body
             dl.row
               dt.col-sm-3 Fecha/Hora:
               dd.col-sm-9= new Date(evaluacion.fecha).toLocaleString('es-AR')
               
               dt.col-sm-3 Enfermero:
-              dd.col-sm-9= `${evaluacion.enfermero.usuario.nombre} ${evaluacion.enfermero.usuario.apellido}`
+              dd.col-sm-9
+                if evaluacion.enfermero && evaluacion.enfermero.usuario
+                  = `${evaluacion.enfermero.usuario.nombre} ${evaluacion.enfermero.usuario.apellido}`
+                else if evaluacion.tipo_egreso === 'DERIVACION_MEDICO'
+                  span.badge.bg-warning.text-dark Pendiente de asignación
+                  small.text-muted.d-block (Orden médica - esperando que un enfermero la tome)
+                else
+                  span.text-muted No asignado
+              
+              if evaluacion.medico
+                dt.col-sm-3 Médico:
+                dd.col-sm-9
+                  if evaluacion.medico.usuario
+                    = `Dr. ${evaluacion.medico.usuario.nombre} ${evaluacion.medico.usuario.apellido}`
+                  else
+                    = `Médico ID: ${evaluacion.medico_id}`
               
               if evaluacion.nivel_triaje
                 dt.col-sm-3 Nivel Triaje:
@@ -76,12 +96,11 @@ block content
                     span.badge.bg-success.fs-6 Completada
                   when 'DERIVACION_MEDICO'
                     span.badge.bg-primary.fs-6 Derivada a Médico
+                    small.d-block.text-muted.mt-1 Requiere evaluación de enfermería
                   when 'DERIVACION_URGENCIA'
                     span.badge.bg-danger.fs-6 Derivada Urgencia
-              
-              if evaluacion.medico
-                dt.col-sm-3 Médico Asignado:
-                dd.col-sm-9= `Dr. ${evaluacion.medico.usuario.nombre} ${evaluacion.medico.usuario.apellido}`
+                  default
+                    span.badge.bg-secondary.fs-6= evaluacion.tipo_egreso
               
               if evaluacion.observaciones
                 dt.col-sm-12.mt-3
@@ -161,22 +180,79 @@ block content
                       strong Altura:
                       = ` ${evaluacion.control_enfermeria.altura} cm`
 
-    // Acciones
-    .row
-      .col-12
-        .card.border-0.shadow-sm
-          .card-body.text-center
-            if evaluacion.tipo_egreso === 'PENDIENTE_EVALUACION'
-              button.btn.btn-success.me-2(onclick=`completarEvaluacion(${evaluacion.id})`)
-                i.fas.fa-check.me-2
-                | Completar Evaluación
-              button.btn.btn-primary.me-2(onclick=`derivarMedico(${evaluacion.id})`)
-                i.fas.fa-user-md.me-2
-                | Derivar a Médico
-            
-            button.btn.btn-outline-secondary(onclick='window.print()')
-              i.fas.fa-print.me-2
-              | Imprimir
+    // ACCIONES - Solo visibles para enfermeros
+    if user.rol === 'ENFERMERO'
+      .row
+        .col-12
+          .card.border-0.shadow-sm
+            .card-body.text-center
+              //- CASO 1: ORDEN MÉDICA (nueva desde médico)
+              if evaluacion.tipo_egreso === 'ORDEN_MEDICA' && !evaluacion.enfermero
+                button.btn.btn-success.me-2(onclick=`tomarEvaluacion(${evaluacion.id})`)
+                  i.fas.fa-hand-holding-medical.me-2
+                  | Tomar Orden Médica
+                p.text-muted.mt-2 Orden creada por Dr. #{evaluacion.medico ? evaluacion.medico.usuario.nombre : 'Médico'}
+
+              //- CASO 2: Derivación a médico (desde enfermero)
+              else if evaluacion.tipo_egreso === 'DERIVACION_MEDICO' && !evaluacion.enfermero
+                button.btn.btn-success.me-2(onclick=`tomarEvaluacion(${evaluacion.id})`)
+                  i.fas.fa-hand-holding-medical.me-2
+                  | Tomar Derivación
+                p.text-muted.mt-2 Paciente derivado requiere evaluación
+
+              //- CASO 3: Evaluación pendiente del enfermero actual
+              else if evaluacion.tipo_egreso === 'PENDIENTE_EVALUACION' && evaluacion.enfermero && evaluacion.enfermero.id === user.enfermero_id
+                button.btn.btn-success.me-2(onclick=`completarEvaluacion(${evaluacion.id})`)
+                  i.fas.fa-check.me-2
+                  | Completar Evaluación
+                button.btn.btn-warning.me-2(onclick=`derivarMedico(${evaluacion.id})`)
+                  i.fas.fa-user-md.me-2
+                  | Derivar a Médico
+
+              //- CASO 4: Evaluación completada
+              else if evaluacion.tipo_egreso === 'PROCEDIMIENTO_COMPLETADO'
+                .alert.alert-success.mb-0
+                  i.fas.fa-check-circle.me-2
+                  | Evaluación completada el #{new Date(evaluacion.updatedAt).toLocaleDateString('es-AR')}
+
+              //- CASO 5: Mostrar información del estado actual
+              else
+                .alert.alert-info.mb-0
+                  i.fas.fa-info-circle.me-2
+                  | Estado actual: #{evaluacion.tipo_egreso}
+                  if evaluacion.enfermero
+                    |  - Asignado a: #{evaluacion.enfermero.usuario.nombre}
+
+    //- Para médicos y otros roles - Solo información
+    else
+      .row
+        .col-12
+          .card.border-0.shadow-sm
+            .card-body
+              .alert.alert-info.mb-0
+                i.fas.fa-info-circle.me-2
+                strong Estado de la orden: 
+                case evaluacion.tipo_egreso
+                  when 'ORDEN_MEDICA'
+                    if evaluacion.enfermero
+                      | Asignada a Enfermería (#{evaluacion.enfermero.usuario.nombre})
+                    else
+                      | Pendiente de asignación
+                  when 'PENDIENTE_EVALUACION'
+                    | En evaluación por #{evaluacion.enfermero ? evaluacion.enfermero.usuario.nombre : 'Enfermería'}
+                  when 'PROCEDIMIENTO_COMPLETADO'
+                    | Completada
+                  when 'DERIVACION_MEDICO'
+                    | Derivada a Médico
+                  when 'DERIVACION_URGENCIA'
+                    | Derivada a Urgencias
+                  default
+                    = evaluacion.tipo_egreso
 
 block scripts
-  script(src='/js/enfermero/evaluaciones-detalle.js')
+  if user.rol === 'ENFERMERO'
+    script(src='/js/enfermero/evaluaciones-detalle.js')
+  else
+    script.
+      // Script vacío para médicos 
+      console.log('Vista de solo lectura para médico');

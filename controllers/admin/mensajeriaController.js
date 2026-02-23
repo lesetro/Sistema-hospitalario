@@ -14,7 +14,7 @@ function getUsuarioId(req) {
 /**
  * Vista principal de mensajería
  */
-const getVistaMensajeria = async (req, res) => {
+const getVistaMensajeria = async (req, res, next) => {
   try {
     const usuarioActual = getUsuarioSesion(req);
     const usuarioId = getUsuarioId(req);
@@ -50,18 +50,14 @@ const getVistaMensajeria = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al cargar mensajería:', error);
-    res.status(500).render('error', { 
-      message: 'Error al cargar la página',
-      user: getUsuarioSesion(req)
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener estadísticas de mensajes
  */
-const getEstadisticas = async (req, res) => {
+const getEstadisticas = async (req, res, next) => {
   try {
     const usuarioId = getUsuarioId(req);
 
@@ -106,15 +102,14 @@ const getEstadisticas = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener estadísticas' });
+    next(error);
   }
 };
 
 /**
  * Obtener contador de mensajes no leídos
  */
-const getContadorNoLeidos = async (req, res) => {
+const getContadorNoLeidos = async (req, res, next) => {
   try {
     const usuarioId = getUsuarioId(req);
 
@@ -137,13 +132,14 @@ const getContadorNoLeidos = async (req, res) => {
 
   } catch (error) {
     res.json({ success: true, contador: 0 });
+    next(error);
   }
 };
 
 /**
  * Obtener mensajes según tipo (recibidos, enviados, eliminados)
  */
-const getMensajes = async (req, res) => {
+const getMensajes = async (req, res, next) => {
   try {
     const usuarioId = getUsuarioId(req);
     const { 
@@ -265,7 +261,7 @@ const getMensajes = async (req, res) => {
         id: m.id,
         mensaje: m.mensaje,
         leida: m.leida,
-        fecha: m.created_at,
+        fecha: m.createdAt,
         remitente,
         destinatario,
         rol,
@@ -285,19 +281,14 @@ const getMensajes = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener mensajes:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener mensajes',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Enviar mensaje
  */
-const enviarMensaje = async (req, res) => {
+const enviarMensaje = async (req, res, next) => {
   try {
     const { destinatario_id, mensaje } = req.body;
     const remitenteId = getUsuarioId(req);
@@ -339,18 +330,14 @@ const enviarMensaje = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al enviar mensaje:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al enviar mensaje'
-    });
+    next(error);
   }
 };
 
 /**
  * Marcar como leído
  */
-const marcarComoLeido = async (req, res) => {
+const marcarComoLeido = async (req, res, next) => {
   try {
     const { id } = req.params;
     const usuarioId = getUsuarioId(req);
@@ -369,13 +356,14 @@ const marcarComoLeido = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error al actualizar' });
+    next(error);
   }
 };
 
 /**
  * Marcar todos como leídos
  */
-const marcarTodosLeidos = async (req, res) => {
+const marcarTodosLeidos = async (req, res, next) => {
   try {
     const usuarioId = getUsuarioId(req);
 
@@ -394,13 +382,14 @@ const marcarTodosLeidos = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error al actualizar' });
+    next(error);
   }
 };
 
 /**
  * Eliminar mensaje 
  */
-const eliminarMensaje = async (req, res) => {
+const eliminarMensaje = async (req, res, next) => {
   try {
     const { id } = req.params;
     const usuarioId = getUsuarioId(req);
@@ -425,13 +414,14 @@ const eliminarMensaje = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error al eliminar' });
+    next(error);
   }
 };
 
 /**
  * Restaurar mensaje eliminado
  */
-const restaurarMensaje = async (req, res) => {
+const restaurarMensaje = async (req, res, next) => {
   try {
     const { id } = req.params;
     const usuarioId = getUsuarioId(req);
@@ -457,6 +447,7 @@ const restaurarMensaje = async (req, res) => {
 
   } catch (error) {
     res.status(500).json({ success: false, message: 'Error al restaurar' });
+    next(error);
   }
 };
 

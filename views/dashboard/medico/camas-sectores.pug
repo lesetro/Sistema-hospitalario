@@ -1,0 +1,334 @@
+extends layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/medico/camas") Dashboard Camas
+            li.breadcrumb-item.active Sectores
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-sitemap.me-2
+              | Sectores del Hospital
+            p.text-muted.mb-0 Selecciona un sector para ver sus habitaciones
+          div
+            a.btn.btn-outline-secondary(href="/medico/camas")
+              i.fas.fa-arrow-left.me-2
+              | Volver al Dashboard
+
+    // Estadísticas generales
+    .row.mb-4
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-chart-bar.me-2
+              | Resumen General
+          .card-body
+            .row.g-3
+              .col-md-3.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h2.text-primary.mb-1= estadisticas.totalSectores
+                    small.text-muted Total Sectores
+              
+              .col-md-3.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h2.text-info.mb-1= estadisticas.totalCamas
+                    small.text-muted Total Camas
+              
+              .col-md-3.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h2.text-success.mb-1= estadisticas.camasLibres
+                    small.text-muted Camas Libres
+              
+              .col-md-3.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h2.text-danger.mb-1= estadisticas.camasOcupadas
+                    small.text-muted Camas Ocupadas
+
+    // Lista de sectores
+    .row
+      each sector in sectores
+        .col-xl-4.col-lg-6.mb-4
+          .card.border-0.shadow-sm.h-100
+            .card-header.bg-white.d-flex.justify-content-between.align-items-center
+              h5.mb-0
+                i.fas.fa-hospital.me-2
+                = sector.nombre
+              span.badge(class=sector.estadisticas.porcentajeOcupacion > 80 ? 'bg-danger' : sector.estadisticas.porcentajeOcupacion > 50 ? 'bg-warning' : 'bg-success')
+                = sector.estadisticas.porcentajeOcupacion + '%'
+            
+            .card-body
+              p.card-text.text-muted= sector.descripcion || 'Sin descripción'
+              
+              // Estadísticas del sector
+              .row.g-2.mb-3
+                .col-6
+                  .d-flex.align-items-center
+                    .p-2.rounded-circle.bg-success.bg-opacity-10.me-2
+                      i.fas.fa-bed.text-success
+                    div
+                      small.text-muted.d-block Libres
+                      .fw-bold= sector.estadisticas.camasLibres
+                
+                .col-6
+                  .d-flex.align-items-center
+                    .p-2.rounded-circle.bg-danger.bg-opacity-10.me-2
+                      i.fas.fa-user-injured.text-danger
+                    div
+                      small.text-muted.d-block Ocupadas
+                      .fw-bold= sector.estadisticas.camasOcupadas
+                
+                .col-6
+                  .d-flex.align-items-center
+                    .p-2.rounded-circle.bg-warning.bg-opacity-10.me-2
+                      i.fas.fa-broom.text-warning
+                    div
+                      small.text-muted.d-block En Limpieza
+                      .fw-bold= sector.estadisticas.camasLimpieza
+                
+                .col-6
+                  .d-flex.align-items-center
+                    .p-2.rounded-circle.bg-info.bg-opacity-10.me-2
+                      i.fas.fa-layer-group.text-info
+                    div
+                      small.text-muted.d-block Total
+                      .fw-bold= sector.estadisticas.totalCamas
+              
+              // Barra de progreso de ocupación
+              .mb-3
+                .d-flex.justify-content-between.mb-1
+                  small.text-muted Ocupación
+                  small.text-muted= sector.estadisticas.porcentajeOcupacion + '%'
+                .progress(style="height: 8px")
+                  .progress-bar(
+                    class=sector.estadisticas.porcentajeOcupacion > 80 ? 'bg-danger' : sector.estadisticas.porcentajeOcupacion > 50 ? 'bg-warning' : 'bg-success'
+                    role="progressbar"
+                    style=`width: ${sector.estadisticas.porcentajeOcupacion}%`
+                    aria-valuenow=sector.estadisticas.porcentajeOcupacion
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                  )
+            
+            .card-footer.bg-white.border-0.pt-0
+              .d-grid
+                a.btn.btn-outline-primary(
+                  href=`/medico/camas/sectores/${sector.id}/habitaciones`
+                )
+                  i.fas.fa-door-open.me-2
+                  | Ver Habitaciones
+                button.btn.btn-outline-secondary.mt-2(
+                  type='button'
+                  onclick=`verDetallesSector(${sector.id})`
+                )
+                  i.fas.fa-info-circle.me-2
+                  | Más Información
+
+      else
+        .col-12
+          .card.border-0.shadow-sm
+            .card-body.text-center.py-5
+              i.fas.fa-hospital.fa-4x.text-muted.mb-3
+              h4 No hay sectores registrados
+              p.text-muted.mb-0 No se encontraron sectores en el sistema.
+
+    // Modal para detalles del sector
+    #modalDetalleSector.modal.fade(tabindex='-1')
+      .modal-dialog
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-info-circle.me-2
+              | Detalles del Sector
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            #contenido-detalle-sector
+              .text-center
+                .spinner-border.text-primary(role='status')
+                  span.visually-hidden Cargando...
+
+
+block scripts
+  script.
+    function verDetallesSector(sectorId) {
+      const modal = new bootstrap.Modal(document.getElementById('modalDetalleSector'));
+      const contenido = document.getElementById('contenido-detalle-sector');
+      
+      // Mostrar spinner de carga
+      contenido.innerHTML = `
+        <div class="text-center py-4">
+          <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando información del sector...</span>
+          </div>
+          <p class="mt-2 text-muted">Cargando información del sector...</p>
+        </div>
+      `;
+      
+      modal.show();
+      
+      // Hacer petición AJAX para obtener detalles del sector
+      fetch(`/medico/camas/api/sectores/${sectorId}/detalle`)
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.success) {
+            const sector = data.sector;
+            
+            // Construir HTML con la información del sector
+            let html = `
+              <div class="mb-4">
+                <h4 class="mb-3">
+                  <i class="fas fa-hospital me-2"></i>
+                  ${sector.nombre}
+                </h4>
+                
+                ${sector.descripcion ? `
+                <div class="alert alert-info">
+                  <i class="fas fa-info-circle me-2"></i>
+                  <strong>Descripción:</strong> ${sector.descripcion}
+                </div>
+                ` : ''}
+                
+                <div class="row g-3 mb-4">
+                  <div class="col-md-6">
+                    <div class="card border-0 bg-light">
+                      <div class="card-body">
+                        <h6 class="text-muted mb-3">Estadísticas del Sector</h6>
+                        <div class="d-flex justify-content-between mb-2">
+                          <span>Total Habitaciones:</span>
+                          <span class="fw-bold">${sector.estadisticas.totalHabitaciones}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                          <span>Total Camas:</span>
+                          <span class="fw-bold">${sector.estadisticas.totalCamas}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                          <span>Camas Libres:</span>
+                          <span class="fw-bold text-success">${sector.estadisticas.camasLibres}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                          <span>Camas Ocupadas:</span>
+                          <span class="fw-bold text-danger">${sector.estadisticas.camasOcupadas}</span>
+                        </div>
+                        <div class="d-flex justify-content-between mb-2">
+                          <span>Camas en Limpieza:</span>
+                          <span class="fw-bold text-warning">${sector.estadisticas.camasLimpieza}</span>
+                        </div>
+                        <hr>
+                        <div class="d-flex justify-content-between">
+                          <span>Ocupación:</span>
+                          <span class="fw-bold ${sector.estadisticas.porcentajeOcupacion > 80 ? 'text-danger' : sector.estadisticas.porcentajeOcupacion > 50 ? 'text-warning' : 'text-success'}">
+                            ${sector.estadisticas.porcentajeOcupacion}%
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <div class="col-md-6">
+                    <div class="card border-0 bg-light">
+                      <div class="card-body">
+                        <h6 class="text-muted mb-3">Distribución por Tipo</h6>
+                        ${sector.tiposHabitacion && sector.tiposHabitacion.length > 0 ? `
+                          ${sector.tiposHabitacion.map(tipo => `
+                            <div class="d-flex justify-content-between mb-2">
+                              <span>
+                                <i class="fas ${tipo.icono} me-1"></i>
+                                ${tipo.tipo}:
+                              </span>
+                              <span class="fw-bold">${tipo.cantidad} habitaciones</span>
+                            </div>
+                          `).join('')}
+                        ` : `
+                          <p class="text-muted mb-0 text-center">No hay información de tipos</p>
+                        `}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                ${sector.tiposServicio && sector.tiposServicio.length > 0 ? `
+                <div class="mb-4">
+                  <h6 class="text-muted mb-3">Tipos de Servicio Disponibles</h6>
+                  <div class="row g-2">
+                    ${sector.tiposServicio.map(servicio => `
+                      <div class="col-md-6">
+                        <div class="card border-0 bg-light h-100">
+                          <div class="card-body">
+                            <h6 class="mb-1">${servicio.nombre}</h6>
+                            ${servicio.descripcion ? `
+                            <p class="text-muted small mb-0">${servicio.descripcion}</p>
+                            ` : ''}
+                          </div>
+                        </div>
+                      </div>
+                    `).join('')}
+                  </div>
+                </div>
+                ` : ''}
+                
+                <div class="text-center mt-4">
+                  <button class="btn btn-primary me-2" onclick="window.location.href='/medico/camas/sectores/${sectorId}/habitaciones'">
+                    <i class="fas fa-door-open me-2"></i>
+                    Ver Habitaciones
+                  </button>
+                  <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                    <i class="fas fa-times me-2"></i>
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            `;
+            
+            contenido.innerHTML = html;
+          } else {
+            contenido.innerHTML = `
+              <div class="alert alert-danger">
+                <i class="fas fa-exclamation-triangle me-2"></i>
+                Error: ${data.message || 'No se pudo cargar la información del sector'}
+              </div>
+              <div class="text-center mt-3">
+                <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                  Cerrar
+                </button>
+              </div>
+            `;
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          contenido.innerHTML = `
+            <div class="alert alert-danger">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              Error al cargar los detalles del sector: ${error.message}
+            </div>
+            <div class="text-center mt-3">
+              <button class="btn btn-outline-secondary" data-bs-dismiss="modal">
+                Cerrar
+              </button>
+            </div>
+          `;
+        });
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+    
+      const cards = document.querySelectorAll('.card');
+      cards.forEach((card, index) => {
+        card.style.animationDelay = `${index * 0.1}s`;
+      });
+    });

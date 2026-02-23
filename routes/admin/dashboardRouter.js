@@ -6,7 +6,7 @@ const db = require('../../database/db');
 // GET /admin/dashboard - Dashboard administrativo
 router.get('/dashboard', async (req, res) => {
   try {
-    console.log("🏥 Cargando dashboard administrativo...");
+    console.log(" Cargando dashboard administrativo...");
 
     // Obtener admisiones con relaciones
     const admisiones = await Admision.findAll({

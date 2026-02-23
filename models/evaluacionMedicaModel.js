@@ -1,7 +1,5 @@
 module.exports = (sequelize, DataTypes) => {
-  //suponemos que el medico que lo reciba necesita ver que se registro por eso el turno
-  // y que se le pueda hacer una evaluacion medica
-  // de aqui podemos solicitarle EstudiosSolicitados, ProcedimientosPreQuirurgicos, ProcedimientosEnfermeria
+
   const EvaluacionMedica = sequelize.define(
     "EvaluacionMedica",
     {
@@ -83,6 +81,14 @@ module.exports = (sequelize, DataTypes) => {
     EvaluacionMedica.hasMany(models.Turno, {
       foreignKey: "evaluacion_medica_id",
       as: "turnos",
+    });
+    EvaluacionMedica.hasMany(models.IntervencionQuirurgica, {
+      foreignKey: "evaluacion_medica_id",
+      as: "intervenciones_quirurgicas",
+    });
+    EvaluacionMedica.hasMany(models.ControlEnfermeria, {
+      foreignKey: 'evaluacion_medica_id',
+      as: 'controles_enfermeria'
     });
   };
 

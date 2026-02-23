@@ -582,7 +582,7 @@ const getAdmisionesRecientes = async (limite = 5) => {
 /**
  * Controlador principal del dashboard
  */
-const getDashboard = async (req, res) => {
+const getDashboard = async (req, res, next) => {
   try {
     const usuarioId = req.user.id;
 
@@ -658,18 +658,14 @@ const getDashboard = async (req, res) => {
       admisionesRecientes
     });
   } catch (error) {
-    console.error('❌ Error en getDashboard:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el dashboard',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 /**
  * API para marcar notificación como leída
  */
-const markNotificationAsRead = async (req, res) => {
+const markNotificationAsRead = async (req, res,next) => {
   try {
     const { id } = req.params;
     const usuarioId = req.user.id;
@@ -689,15 +685,14 @@ const markNotificationAsRead = async (req, res) => {
 
     res.json({ success: true, message: 'Notificación marcada como leída' });
   } catch (error) {
-    console.error('❌ Error al marcar notificación:', error);
-    res.status(500).json({ error: 'Error al marcar notificación' });
+    next(error);
   }
 };
 
 /**
  * API para obtener notificaciones del usuario
  */
-const getNotifications = async (req, res) => {
+const getNotifications = async (req, res, next) => {
   try {
     const usuarioId = req.user.id;
     const { limit = 10, unreadOnly = false } = req.query;
@@ -725,15 +720,14 @@ const getNotifications = async (req, res) => {
       unreadCount
     });
   } catch (error) {
-    console.error('❌ Error al obtener notificaciones:', error);
-    res.status(500).json({ error: 'Error al obtener notificaciones' });
+    next(error);
   }
 };
 
 /**
  * API para obtener notificaciones del usuario
  */
-const obtenerNotificaciones = async (req, res) => {
+const obtenerNotificaciones = async (req, res,next) => {
   try {
     const usuarioId = req.user.id;
     const { limit = 10, unreadOnly = false } = req.query;
@@ -762,15 +756,14 @@ const obtenerNotificaciones = async (req, res) => {
       unreadCount
     });
   } catch (error) {
-    console.error('❌ Error al obtener notificaciones:', error);
-    res.status(500).json({ error: 'Error al obtener notificaciones' });
+    next(error);
   }
 };
 
 /**
  * API para búsqueda global
  */
-const busquedaGlobal = async (req, res) => {
+const busquedaGlobal = async (req, res, next) => {
   try {
     const { search, filter = 'all' } = req.query;
     
@@ -859,19 +852,14 @@ const busquedaGlobal = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error en búsqueda global:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error en la búsqueda',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * API para obtener detalles de una admisión
  */
-const getAdmisionDetalle = async (req, res) => {
+const getAdmisionDetalle = async (req, res,next) => {
   try {
     const { id } = req.params;
     
@@ -895,10 +883,9 @@ const getAdmisionDetalle = async (req, res) => {
     });
 
     if (!admision) {
-      return res.status(404).json({
-        success: false,
-        message: 'Admisión no encontrada'
-      });
+        const error = new Error('Admisión no encontrada');
+        error.status = 404;
+        return next(error);
     }
 
     res.json({
@@ -908,18 +895,14 @@ const getAdmisionDetalle = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener detalles de admisión:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener detalles',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * API para marcar notificación como leída
  */
-const marcarNotificacionLeida = async (req, res) => {
+const marcarNotificacionLeida = async (req, res, next) => {
   try {
     const { notificationId } = req.params;
     const usuarioId = req.user.id;
@@ -945,11 +928,7 @@ const marcarNotificacionLeida = async (req, res) => {
       message: 'Notificación marcada como leída' 
     });
   } catch (error) {
-    console.error('❌ Error al marcar notificación:', error);
-    res.status(500).json({ 
-      success: false,
-      error: 'Error al marcar notificación' 
-    });
+    next(error);
   }
 };
 

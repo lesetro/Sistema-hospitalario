@@ -19,7 +19,18 @@ block content
                     h5.card-title
                       i.fas.fa-search.me-2
                       | Buscar Evaluación de Enfermería
-                    p.text-muted.small Busque la evaluación del paciente para registrar el control
+
+                    p.text-muted.small
+                      strong Busque una Evaluación de Enfermería
+                      br
+                      | para crear un control. Cada control se asocia a una única evaluación.
+
+                    p.text-muted.small
+                      strong Propósito del Control:
+                      br
+                      | Registrar datos completos de laboratorio, signos vitales, alergias y antecedentes 
+                      | que validan y complementan la evaluación médica del paciente.
+                    
                     .input-group
                       input.form-control(type='text' id='input-busqueda' placeholder='Buscar por nombre, apellido o DNI del paciente')
                       button.btn.btn-primary(type='button' onclick='buscarEvaluacion()')
@@ -67,15 +78,18 @@ block content
                   .row.g-3
                     .col-md-6
                       label.form-label Alergias
-                      textarea.form-control(name='alergias' rows='2' placeholder='Medicamentos, alimentos, otros...')
+                      textarea.form-control(name='alergias' rows='2' placeholder='Medicamentos, alimentos, otros...' maxlength='500')
+                      small.text-muted Máx. 500 caracteres
                     
                     .col-md-6
                       label.form-label Antecedentes Personales
-                      textarea.form-control(name='antecedentes_personales' rows='2' placeholder='Enfermedades previas, cirugías...')
+                      textarea.form-control(name='antecedentes_personales' rows='2' placeholder='Enfermedades previas, cirugías...' maxlength='500')
+                      small.text-muted Máx. 500 caracteres
                     
                     .col-md-12
                       label.form-label Antecedentes Familiares
-                      textarea.form-control(name='antecedentes_familiares' rows='2' placeholder='Enfermedades hereditarias...')
+                      textarea.form-control(name='antecedentes_familiares' rows='2' placeholder='Enfermedades hereditarias...' maxlength='500')
+                      small.text-muted Máx. 500 caracteres
                     
                     .col-md-6
                       label.form-label Grupo Sanguíneo
@@ -103,11 +117,30 @@ block content
                   .row.g-3
                     .col-md-4
                       label.form-label Peso (kg)
-                      input.form-control(type='number' step='0.1' name='peso' id='input-peso' placeholder='70.5')
+                      input.form-control(
+                        type='number' 
+                        step='0.1' 
+                        name='peso' 
+                        id='input-peso' 
+                        placeholder='70.5'
+                        min='0.5'
+                        max='300'
+                        title='Entre 0.5 y 300 kg'
+                      )
+                      small.text-muted Rango: 0.5 - 300 kg
                     
                     .col-md-4
                       label.form-label Altura (cm)
-                      input.form-control(type='number' name='altura' id='input-altura' placeholder='175')
+                      input.form-control(
+                        type='number' 
+                        name='altura' 
+                        id='input-altura' 
+                        placeholder='175'
+                        min='30'
+                        max='250'
+                        title='Entre 30 y 250 cm'
+                      )
+                      small.text-muted Rango: 30 - 250 cm
                     
                     .col-md-4
                       label.form-label IMC (Calculado)
@@ -128,34 +161,83 @@ block content
                 .card-body
                   .row.g-3
                     .col-md-4
-                      label.form-label Presión Arterial
+                      label.form-label 
+                        | Presión Arterial 
+                        span.text-danger *
                       .input-group
-                        input.form-control(type='text' name='presion_arterial' placeholder='120/80')
+                        input.form-control(
+                          type='text' 
+                          name='presion_arterial' 
+                          placeholder='120/80'
+                          pattern='\\d{2,3}/\\d{2,3}'
+                          title='Formato: 120/80'
+                          required
+                        )
                         span.input-group-text mmHg
+                      small.text-muted Normal: 90/60 - 140/90
                     
                     .col-md-4
-                      label.form-label Frecuencia Cardíaca
+                      label.form-label 
+                        | Frecuencia Cardíaca 
+                        span.text-danger *
                       .input-group
-                        input.form-control(type='number' name='frecuencia_cardiaca' placeholder='70')
+                        input.form-control(
+                          type='number' 
+                          name='frecuencia_cardiaca' 
+                          placeholder='70'
+                          min='30'
+                          max='220'
+                          title='Entre 30 y 220 lpm'
+                          required
+                        )
                         span.input-group-text lpm
+                      small.text-muted Normal: 60 - 100 lpm
                     
                     .col-md-4
                       label.form-label Frecuencia Respiratoria
                       .input-group
-                        input.form-control(type='number' name='frecuencia_respiratoria' placeholder='16')
+                        input.form-control(
+                          type='number' 
+                          name='frecuencia_respiratoria' 
+                          placeholder='16'
+                          min='8'
+                          max='40'
+                          title='Entre 8 y 40 rpm'
+                        )
                         span.input-group-text rpm
+                      small.text-muted Normal: 12 - 20 rpm
                     
                     .col-md-4
-                      label.form-label Temperatura
+                      label.form-label 
+                        | Temperatura 
+                        span.text-danger *
                       .input-group
-                        input.form-control(type='number' step='0.1' name='temperatura' placeholder='36.5')
+                        input.form-control(
+                          type='number' 
+                          step='0.1' 
+                          name='temperatura' 
+                          placeholder='36.5'
+                          min='35'
+                          max='42'
+                          title='Entre 35°C y 42°C'
+                          required
+                        )
                         span.input-group-text °C
+                      small.text-muted Normal: 36 - 37.5°C
                     
                     .col-md-4
                       label.form-label Saturación de Oxígeno
                       .input-group
-                        input.form-control(type='number' name='nivel_oxigeno' placeholder='98')
+                        input.form-control(
+                          type='number' 
+                          name='nivel_oxigeno' 
+                          placeholder='98'
+                          min='70'
+                          max='100'
+                          title='Entre 70% y 100%'
+                        )
                         span.input-group-text %
+                      small.text-muted Normal: 95 - 100%
 
               // Laboratorio - Valores Sanguíneos
               .card.mb-4
@@ -168,59 +250,175 @@ block content
                   .row.g-3
                     .col-md-4
                       label.form-label Glucosa (mg/dL)
-                      input.form-control(type='number' step='0.1' name='nivel_glucosa' placeholder='90')
+                      input.form-control(
+                        type='number' 
+                        step='0.1' 
+                        name='nivel_glucosa' 
+                        placeholder='90'
+                        min='20'
+                        max='600'
+                      )
+                      small.text-muted Normal: 70 - 110
                     
                     .col-md-4
                       label.form-label Colesterol (mg/dL)
-                      input.form-control(type='text' name='nivel_colesterol' placeholder='180')
+                      input.form-control(
+                        type='number' 
+                        step='0.1' 
+                        name='nivel_colesterol' 
+                        placeholder='180'
+                        min='100'
+                        max='400'
+                      )
+                      small.text-muted Normal: < 200
                     
                     .col-md-4
                       label.form-label Triglicéridos (mg/dL)
-                      input.form-control(type='text' name='nivel_trigliceridos' placeholder='150')
+                      input.form-control(
+                        type='number' 
+                        step='0.1' 
+                        name='nivel_trigliceridos' 
+                        placeholder='150'
+                        min='50'
+                        max='500'
+                      )
+                      small.text-muted Normal: < 150
                     
                     .col-md-4
                       label.form-label Creatinina (mg/dL)
-                      input.form-control(type='text' name='nivel_creatinina' placeholder='0.9')
+                      input.form-control(
+                        type='number' 
+                        step='0.01' 
+                        name='nivel_creatinina' 
+                        placeholder='0.9'
+                        min='0.3'
+                        max='5'
+                      )
+                      small.text-muted Normal: 0.6 - 1.2
                     
                     .col-md-4
                       label.form-label Urea (mg/dL)
-                      input.form-control(type='text' name='nivel_urea' placeholder='30')
+                      input.form-control(
+                        type='number' 
+                        step='0.1' 
+                        name='nivel_urea' 
+                        placeholder='30'
+                        min='10'
+                        max='150'
+                      )
+                      small.text-muted Normal: 15 - 50
                     
                     .col-md-4
                       label.form-label Ácido Úrico (mg/dL)
-                      input.form-control(type='text' name='nivel_acido_urico' placeholder='5.5')
+                      input.form-control(
+                        type='number' 
+                        step='0.1' 
+                        name='nivel_acido_urico' 
+                        placeholder='5.5'
+                        min='2'
+                        max='12'
+                      )
+                      small.text-muted Normal: 3.5 - 7.2
                     
                     .col-md-4
                       label.form-label Hemoglobina (g/dL)
-                      input.form-control(type='text' name='nivel_hb' placeholder='14')
+                      input.form-control(
+                        type='number' 
+                        step='0.1' 
+                        name='nivel_hb' 
+                        placeholder='14'
+                        min='5'
+                        max='20'
+                      )
+                      small.text-muted Normal: 12 - 17
                     
                     .col-md-4
                       label.form-label Hematocrito (%)
-                      input.form-control(type='text' name='nivel_hct' placeholder='42')
+                      input.form-control(
+                        type='number' 
+                        step='0.1' 
+                        name='nivel_hct' 
+                        placeholder='42'
+                        min='20'
+                        max='60'
+                      )
+                      small.text-muted Normal: 37 - 50
                     
                     .col-md-4
                       label.form-label Leucocitos (mm³)
-                      input.form-control(type='text' name='nivel_leucocitos' placeholder='7000')
+                      input.form-control(
+                        type='number' 
+                        name='nivel_leucocitos' 
+                        placeholder='7000'
+                        min='1000'
+                        max='30000'
+                      )
+                      small.text-muted Normal: 4000 - 11000
                     
                     .col-md-4
                       label.form-label Plaquetas (mm³)
-                      input.form-control(type='text' name='nivel_plaquetas' placeholder='250000')
+                      input.form-control(
+                        type='number' 
+                        name='nivel_plaquetas' 
+                        placeholder='250000'
+                        min='50000'
+                        max='600000'
+                      )
+                      small.text-muted Normal: 150000 - 450000
                     
                     .col-md-4
                       label.form-label Proteínas Totales (g/dL)
-                      input.form-control(type='text' name='nivel_proteinas' placeholder='7')
+                      input.form-control(
+                        type='number' 
+                        step='0.1' 
+                        name='nivel_proteinas' 
+                        placeholder='7'
+                        min='4'
+                        max='10'
+                      )
+                      small.text-muted Normal: 6 - 8
                     
                     .col-md-4
                       label.form-label Albúmina (g/dL)
-                      input.form-control(type='text' name='nivel_albumina' placeholder='4')
+                      input.form-control(
+                        type='number' 
+                        step='0.1' 
+                        name='nivel_albumina' 
+                        placeholder='4'
+                        min='2'
+                        max='6'
+                      )
+                      small.text-muted Normal: 3.5 - 5
                     
                     .col-md-4
                       label.form-label Globulina (g/dL)
-                      input.form-control(type='text' name='nivel_globulina' placeholder='3')
+                      input.form-control(
+                        type='number' 
+                        step='0.1' 
+                        name='nivel_globulina' 
+                        placeholder='3'
+                        min='1'
+                        max='5'
+                      )
+                      small.text-muted Normal: 2 - 3.5
                     
                     .col-md-4
                       label.form-label Fosfatasa Alcalina (U/L)
-                      input.form-control(type='text' name='nivel_fosfatasa' placeholder='100')
+                      input.form-control(
+                        type='number' 
+                        name='nivel_fosfatasa' 
+                        placeholder='100'
+                        min='20'
+                        max='500'
+                      )
+                      small.text-muted Normal: 40 - 130
+
+              // Nota de campos obligatorios
+              .alert.alert-info
+                i.fas.fa-info-circle.me-2
+                | Los campos marcados con 
+                span.text-danger *
+                |  son obligatorios
 
               // Botones
               .d-flex.justify-content-between

@@ -3,15 +3,8 @@ const router = express.Router();
 const evaluacionesMedicasController = require('../../controllers/medico/evaluacionesMedicasController');
 const authMiddleware = require('../../middleware/authMiddleware');
 
-// ========================================
-// MIDDLEWARE DE AUTENTICACIÓN
-// ========================================
 
 router.use(authMiddleware);
-
-// ========================================
-// VISTAS (Renderizadas en servidor)
-// ========================================
 
 // Vista principal de evaluaciones
 router.get('/', evaluacionesMedicasController.renderEvaluaciones);
@@ -45,11 +38,11 @@ router.get('/api/tratamientos', evaluacionesMedicasController.obtenerTratamiento
 // Obtener pacientes para filtro
 router.get('/api/pacientes-filtro', evaluacionesMedicasController.obtenerPacientesParaFiltro);
 
-// ========================================
-// APIs - ESTADÍSTICAS
+router.post('/:id/solicitar-control',evaluacionesMedicasController.solicitarControlEnfermeria);
 // ========================================
 
 // Obtener estadísticas de evaluaciones
 router.get('/api/estadisticas', evaluacionesMedicasController.obtenerEstadisticas);
+router.get('/:id', evaluacionesMedicasController.verDetalle);
 
 module.exports = router;

@@ -14,11 +14,17 @@ router.get('/nueva', evaluacionesController.formularioNuevaEvaluacion);
 router.post('/nueva', evaluacionesController.crearEvaluacion);
 router.get('/:id', evaluacionesController.verEvaluacion);
 router.put('/:id', evaluacionesController.actualizarEvaluacion);
+router.get('/:id/editar', evaluacionesController.formularioEditarEvaluacion);
+router.post('/:id/tomar', evaluacionesController.tomarEvaluacion);
+
+router.put('/:id', evaluacionesController.actualizarEvaluacion);
 router.post('/:id/completar', evaluacionesController.completarEvaluacion);
 router.post('/:id/derivar-medico', evaluacionesController.derivarMedico);
 
 // API endpoints
 router.get('/api/medicos', evaluacionesController.buscarMedicos);
-router.post('/api/exportar-pdf', evaluacionesController.exportarPDF);
+router.get('/api/medicos/urgencias', evaluacionesController.obtenerMedicosUrgencias); 
+router.get('/api/medicos/:medicoId/horarios', evaluacionesController.obtenerHorariosMedico); 
+
 
 module.exports = router;

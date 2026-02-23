@@ -94,14 +94,14 @@ block content
                   label.form-label
                     i.fas.fa-flask.me-1
                     | Tipo de Estudio
-                  select.form-select(id='filtroTipoEstudio' name='tipoEstudio')
+                  select.form-select#filtroTipoEstudio(name='tipoEstudio')
                     option(value='TODOS') Todos
                 
                 .col-md-2
                   label.form-label
                     i.fas.fa-list.me-1
                     | Estado
-                  select.form-select(id='filtroEstado' name='estado')
+                  select.form-select#filtroEstado(name='estado')
                     option(value='TODOS') Todos
                     option(value='Pendiente') Pendiente
                     option(value='Realizado') Realizado
@@ -111,7 +111,7 @@ block content
                   label.form-label
                     i.fas.fa-exclamation.me-1
                     | Urgencia
-                  select.form-select(id='filtroUrgencia' name='urgencia')
+                  select.form-select#filtroUrgencia(name='urgencia')
                     option(value='TODAS') Todas
                     option(value='Normal') Normal
                     option(value='Alta') Alta
@@ -147,10 +147,10 @@ block content
               i.fas.fa-list.me-2
               | Listado de Estudios
             div
-              button.btn.btn-sm.btn-success.me-2(onclick='mostrarModalNuevoEstudio()')
+              button.btn.btn-sm.btn-success.me-2#btnNuevoEstudio
                 i.fas.fa-plus.me-2
                 | Solicitar Estudio
-              button.btn.btn-sm.btn-outline-primary(onclick='actualizarTabla()')
+              button.btn.btn-sm.btn-outline-primary#btnActualizar
                 i.fas.fa-sync-alt.me-2
                 | Actualizar
           
@@ -176,7 +176,9 @@ block content
               nav.mt-3
                 ul.pagination.justify-content-center#paginacion
 
-  // Modal Nuevo Estudio
+  //- ========================================
+  //- MODAL NUEVO ESTUDIO (CON BÚSQUEDA POR DNI)
+  //- ========================================
   #modalNuevoEstudio.modal.fade(tabindex='-1')
     .modal-dialog.modal-lg
       .modal-content
@@ -184,62 +186,91 @@ block content
           h5.modal-title
             i.fas.fa-plus-circle.me-2
             | Solicitar Nuevo Estudio
-          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
         .modal-body
           form#formNuevoEstudio
             .row.g-3
+              //- BÚSQUEDA DE PACIENTE
               .col-md-12
+                label.form-label 
+                  i.fas.fa-search.me-1
+                  | Buscar Paciente (DNI o Nombre) *
+                .input-group
+                  input.form-control#inputBuscarPaciente(
+                    type='text'
+                    placeholder='Ingrese DNI o nombre del paciente...'
+                    autocomplete='off'
+                  )
+                  button.btn.btn-outline-primary(type='button' onclick='buscarPaciente()')
+                    i.fas.fa-search
+                //- Resultados de búsqueda
+                #resultadosBusqueda.list-group.position-absolute.w-100.shadow.d-none(style='z-index: 1000; max-height: 200px; overflow-y: auto;')
+              
+              //- PACIENTE SELECCIONADO
+              .col-md-12
+                #pacienteSeleccionado.d-none
+                  .alert.alert-success.d-flex.justify-content-between.align-items-center
+                    div
+                      i.fas.fa-user-check.me-2
+                      strong#nombrePacienteSeleccionado
+                      span.ms-2.text-muted#dniPacienteSeleccionado
+                    button.btn.btn-sm.btn-outline-danger(type='button' onclick='limpiarPaciente()')
+                      i.fas.fa-times
+                  input(type='hidden' id='nuevoPacienteId' name='paciente_id')
+              
+              //- EVALUACIÓN MÉDICA
+              .col-md-12#contenedorEvaluacion.d-none
+                label.form-label 
+                  i.fas.fa-notes-medical.me-1
+                  | Evaluación Médica 
+                select.form-select#nuevoEvaluacionId(name='evaluacion_medica_id' )
+                  option(value='') Seleccione una evaluación
+                #infoEvaluacion.mt-1
+              
+              //- MENSAJE SI NO TIENE EVALUACIONES
+              .col-md-12#sinEvaluaciones.d-none
                 .alert.alert-info
                   i.fas.fa-info-circle.me-2
-                  | El estudio debe estar asociado a una evaluación médica existente
+                  strong Sin evaluaciones previas
+                  p.mb-0.mt-1 Este paciente no tiene evaluaciones médicas registradas. Puede solicitar el estudio igualmente — la evaluación es opcional.
               
-              .col-md-6
-                label.form-label Evaluación Médica *
-                input.form-control(
-                  type='number'
-                  id='nuevoEvaluacionId'
-                  name='evaluacion_medica_id'
-                  placeholder='ID de la evaluación'
-                  required
-                )
-                small.text-muted ID de la evaluación médica del paciente
-              
-              .col-md-6
-                label.form-label Paciente *
-                input.form-control(
-                  type='number'
-                  id='nuevoPacienteId'
-                  name='paciente_id'
-                  placeholder='ID del paciente'
-                  required
-                )
-              
-              .col-md-8
-                label.form-label Tipo de Estudio *
-                select.form-select(id='nuevoTipoEstudio' name='tipo_estudio_id' required)
+              //- TIPO DE ESTUDIO
+              .col-md-8#contenedorTipoEstudio.d-none
+                label.form-label 
+                  i.fas.fa-flask.me-1
+                  | Tipo de Estudio *
+                select.form-select#nuevoTipoEstudio(name='tipo_estudio_id' required)
                   option(value='') Seleccione un tipo de estudio
+                #infoTipoEstudio.mt-1
               
-              .col-md-4
-                label.form-label Urgencia *
-                select.form-select(id='nuevaUrgencia' name='urgencia' required)
+              //- URGENCIA
+              .col-md-4#contenedorUrgencia.d-none
+                label.form-label 
+                  i.fas.fa-exclamation-triangle.me-1
+                  | Urgencia *
+                select.form-select#nuevaUrgencia(name='urgencia' required)
                   option(value='Normal' selected) Normal
                   option(value='Alta') Alta
               
-              .col-md-12
-                label.form-label Observaciones
-                textarea.form-control(
-                  id='nuevasObservaciones'
+              //- OBSERVACIONES
+              .col-md-12#contenedorObservaciones.d-none
+                label.form-label 
+                  i.fas.fa-comment.me-1
+                  | Observaciones
+                textarea.form-control#nuevasObservaciones(
                   name='observaciones'
                   rows='3'
                   placeholder='Indicaciones especiales para el estudio...'
                 )
         .modal-footer
-          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
-          button.btn.btn-primary(type='submit' form='formNuevoEstudio')
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button.btn.btn-primary#btnSubmitEstudio(type='submit' form='formNuevoEstudio' disabled)
             i.fas.fa-save.me-2
             | Solicitar Estudio
 
-  // Modal Detalle Estudio
+  //- ========================================
+  //- MODAL DETALLE ESTUDIO
+  //- ========================================
   #modalDetalleEstudio.modal.fade(tabindex='-1')
     .modal-dialog.modal-lg
       .modal-content
@@ -247,13 +278,144 @@ block content
           h5.modal-title
             i.fas.fa-info-circle.me-2
             | Detalle del Estudio
-          button.btn-close(data-bs-dismiss='modal')
+          button.btn-close(type='button' data-bs-dismiss='modal')
         .modal-body#modalDetalleEstudioBody
           .text-center.py-4
             .spinner-border.text-primary
         .modal-footer
-          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cerrar
 
-block scripts
-  script(src='https://cdn.jsdelivr.net/npm/chart.js@3.9.1/dist/chart.min.js')
+  //- ========================================
+  //- MODAL CARGAR RESULTADOS (SIMULACIÓN)
+  //- ========================================
+  #modalCargarResultados.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-file-medical.me-2
+            | Cargar Resultados del Estudio
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        
+        .modal-body
+          input(type='hidden' id='estudioIdResultados')
+          
+          //- Info del estudio
+          #infoEstudioResultados.alert.alert-light.mb-4
+            .spinner-border.spinner-border-sm
+          
+          //- Tabs para diferentes opciones
+          ul.nav.nav-tabs#tabResultados(role='tablist')
+            li.nav-item(role='presentation')
+              button.nav-link.active#tab-texto(
+                data-bs-toggle='tab'
+                data-bs-target='#panel-texto'
+                type='button'
+              )
+                i.fas.fa-keyboard.me-2
+                | Ingresar Texto
+            li.nav-item(role='presentation')
+              button.nav-link#tab-archivo(
+                data-bs-toggle='tab'
+                data-bs-target='#panel-archivo'
+                type='button'
+              )
+                i.fas.fa-file-pdf.me-2
+                | Adjuntar Archivo
+          
+          .tab-content.pt-3
+            //- Panel Texto
+            #panel-texto.tab-pane.fade.show.active
+              .mb-3
+                label.form-label Resultados del Estudio *
+                textarea.form-control#resultadosTexto(
+                  rows='6'
+                  placeholder='Ingrese los resultados del estudio...\n\nEjemplo:\nHemoglobina: 14.2 g/dL\nGlucosa: 95 mg/dL\nColesterol Total: 180 mg/dL'
+                )
+            
+            //- Panel Archivo (SIMULACIÓN)
+            #panel-archivo.tab-pane.fade
+              .alert.alert-warning.mb-3
+                i.fas.fa-info-circle.me-2
+                strong Modo Simulación: 
+                | Esta funcionalidad simula la carga de archivos. En producción, los archivos se guardarían en el servidor.
+              
+              .mb-3
+                label.form-label Seleccionar Archivo (PDF, JPG, PNG)
+                .input-group
+                  input.form-control#archivoResultado(
+                    type='file'
+                    accept='.pdf,.jpg,.jpeg,.png'
+                  )
+                  button.btn.btn-outline-secondary(type='button' onclick='simularCargaArchivo()')
+                    i.fas.fa-upload.me-1
+                    | Simular Carga
+              
+              #previewArchivo.d-none
+                .card
+                  .card-body
+                    .d-flex.align-items-center
+                      i.fas.fa-file-pdf.fa-2x.text-danger.me-3#iconoArchivo
+                      div
+                        strong#nombreArchivo archivo.pdf
+                        br
+                        small.text-muted#tamanoArchivo 0 KB
+                      button.btn.btn-sm.btn-outline-danger.ms-auto(
+                        type='button'
+                        onclick='quitarArchivo()'
+                      )
+                        i.fas.fa-times
+              
+              .mb-3
+                label.form-label Notas adicionales
+                textarea.form-control#notasArchivo(
+                  rows='3'
+                  placeholder='Observaciones sobre el archivo adjunto...'
+                )
+        
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button.btn.btn-success#btnGuardarResultados(type='button' onclick='guardarResultados()')
+            i.fas.fa-save.me-2
+            | Guardar Resultados
+
+  //- ========================================
+  //- MODAL COMPLETAR ESTUDIO
+  //- ========================================
+  #modalCompletarEstudio.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-check-circle.me-2
+            | Completar Estudio
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        
+        .modal-body
+          form#formCompletarEstudio
+            input(type='hidden' id='estudioIdCompletar')
+            
+            .mb-3
+              label.form-label Resultados del estudio *
+              textarea.form-control#resultadosCompletar(
+                rows='6'
+                placeholder='Describa los resultados del estudio...'
+                required
+              )
+              small.text-muted Ingrese los resultados obtenidos del estudio
+        
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button.btn.btn-success(type='button' onclick='confirmarCompletar()')
+            i.fas.fa-check.me-2
+            | Completar Estudio
+
+block scripts  
+  script.
+    // Variables globales
+    window.paginaActual = 1;
+    window.estudiosPorPagina = 10;
+    window.chartCategorias = null;
+    window.pacientesData = [];
+    window.archivoSimulado = null;
   script(src='/js/medico/estudiosSolicitados.js')

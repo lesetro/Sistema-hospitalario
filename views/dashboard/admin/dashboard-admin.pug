@@ -234,7 +234,7 @@ block content
                           span.badge(class=`bg-${admision.estado === 'Pendiente' ? 'warning' : admision.estado === 'Completada' ? 'success' : 'secondary'}`)
                             = admision.estado
                         td
-                          small= new Date(admision.created_at).toLocaleString()
+                          small= new Date(admision.createdAt).toLocaleString()
               .text-end
                 a.btn.btn-sm.btn-outline-primary(href='/admisiones') Ver todas las admisiones →
 

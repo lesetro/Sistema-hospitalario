@@ -1,0 +1,311 @@
+extends layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/medico") Dashboard
+            li.breadcrumb-item
+              a(href="/medico/ordenes-internacion") Órdenes para Internados
+            li.breadcrumb-item.active Detalle
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-bed.me-2
+              | Detalle de Orden
+            p.text-muted.mb-0 Orden ##{orden.id}
+          div
+            if esEnfermero
+              if internacion
+                a.btn.btn-outline-secondary(href=`/enfermero/internados/${internacion.id}`)
+                  i.fas.fa-arrow-left.me-2
+                  | Volver a Internación
+              else
+                a.btn.btn-outline-secondary(href="/enfermero/internados")
+                  i.fas.fa-arrow-left.me-2
+                  | Volver a Internados
+            else
+              a.btn.btn-outline-secondary(href="/medico/ordenes-internacion")
+                i.fas.fa-arrow-left.me-2
+                | Volver a la lista
+
+    .row
+      .col-lg-8
+        // ========================================
+        // ESTADO DE LA ORDEN
+        // ========================================
+        .card.border-0.shadow-sm.mb-4
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h5.mb-1
+                  i.fas.fa-info-circle.me-2
+                  | Estado de la Orden
+                if orden.estado === 'PENDIENTE'
+                  h3
+                    span.badge.bg-warning.text-dark.p-3
+                      i.fas.fa-clock.me-2
+                      | PENDIENTE
+                  p.text-muted.mb-0 Esta orden no ha sido ejecutada
+                else if orden.estado === 'COMPLETADA'
+                  h3
+                    span.badge.bg-success.p-3
+                      i.fas.fa-check-circle.me-2
+                      | COMPLETADA
+                  p.text-muted.mb-0 Orden ejecutada correctamente
+                else if orden.estado === 'CANCELADA'
+                  h3
+                    span.badge.bg-danger.p-3
+                      i.fas.fa-times-circle.me-2
+                      | CANCELADA
+                  p.text-muted.mb-0 Esta orden fue cancelada
+              div
+                if orden.prioridad === 'URGENTE'
+                  span.badge.bg-danger.p-3.fs-5 URGENTE
+                else if orden.prioridad === 'ALTA'
+                  span.badge.bg-warning.text-dark.p-3.fs-5 ALTA
+                else
+                  span.badge.bg-secondary.p-3.fs-5 NORMAL
+
+        // ========================================
+        // CONTENIDO DE LA ORDEN
+        // ========================================
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-clipboard-list.me-2
+              | Contenido de la Orden
+          .card-body
+            .row
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-calendar.me-2
+                  | Fecha de Orden:
+                p.mb-0= new Date(orden.fecha).toLocaleString('es-AR')
+              
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-flag.me-2
+                  | Prioridad:
+                if orden.prioridad === 'URGENTE'
+                  span.badge.bg-danger URGENTE
+                else if orden.prioridad === 'ALTA'
+                  span.badge.bg-warning.text-dark ALTA
+                else
+                  span.badge.bg-secondary NORMAL
+              
+              .col-12.mb-3
+                strong
+                  i.fas.fa-file-medical-alt.me-2
+                  | Detalles de la Orden:
+                pre.bg-light.p-3.rounded(style="white-space: pre-wrap; font-family: inherit;")= orden.observaciones
+
+        // ========================================
+        // DATOS DEL PACIENTE E INTERNACIÓN
+        // ========================================
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-user.me-2
+              | Datos del Paciente
+          .card-body
+            .row
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-id-card.me-2
+                  | Nombre:
+                p.mb-0= orden.paciente.usuario.nombre + ' ' + orden.paciente.usuario.apellido
+              
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-hashtag.me-2
+                  | DNI:
+                p.mb-0= orden.paciente.usuario.dni
+              
+              if internacion
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-bed.me-2
+                    | Ubicación:
+                  p.mb-0= `Sector ${internacion.cama.habitacion.sector.nombre}`
+                  small.text-muted= `Hab. ${internacion.cama.habitacion.numero} - Cama ${internacion.cama.numero}`
+                
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-heartbeat.me-2
+                    | Estado del Paciente:
+                  if internacion.estado_paciente === 'Critico'
+                    span.badge.bg-danger Crítico
+                  else if internacion.estado_paciente === 'Grave'
+                    span.badge.bg-warning.text-dark Grave
+                  else if internacion.estado_paciente === 'Estable'
+                    span.badge.bg-success Estable
+                  else if internacion.estado_paciente === 'Sin_Evaluar'
+                    span.badge.bg-secondary Sin Evaluar
+                  else
+                    span.badge.bg-secondary= internacion.estado_paciente
+
+        // ========================================
+        // EJECUTAR ORDEN (solo para enfermeros)
+        // ========================================
+        if esEnfermero && orden.estado === 'PENDIENTE'
+          .card.border-0.shadow-sm.mb-4.border-start.border-success.border-4
+            .card-header.bg-light
+              h5.mb-0
+                i.fas.fa-play-circle.me-2
+                | Ejecutar Orden
+            .card-body
+              p.mb-3
+                strong Describa cómo ejecutó la orden
+              
+              form#formEjecutarOrden(method='POST' action=`/enfermero/internados/orden/${orden.id}/ejecutar`)
+                .mb-3
+                  label.form-label Observaciones de Ejecución
+                  textarea.form-control(
+                    name='observaciones_ejecucion'
+                    rows='3'
+                    placeholder='Ingrese cómo se ejecutó la orden...'
+                    required
+                  )
+                
+                .mb-3.form-check
+                  input.form-check-input(
+                    type='checkbox'
+                    name='hubo_complicaciones'
+                    id='hubo_complicaciones'
+                  )
+                  label.form-check-label(for='hubo_complicaciones')
+                    strong ¿Hubo complicaciones?
+                
+                .mb-3#seccionComplicaciones(style='display: none;')
+                  label.form-label Describa las Complicaciones
+                  textarea.form-control(
+                    name='complicaciones'
+                    rows='3'
+                    placeholder='Detalle cualquier complicación...'
+                  )
+                
+                .row.g-2
+                  .col-md-6
+                    button.btn.btn-success.w-100(type='submit')
+                      i.fas.fa-check-circle.me-2
+                      | Ejecutar Orden
+                  .col-md-6
+                    a.btn.btn-outline-secondary.w-100(href=`/enfermero/internados/${internacion.id}`)
+                      i.fas.fa-times.me-2
+                      | Cancelar
+
+        // ========================================
+        // EJECUCIÓN (si ya está completada)
+        // ========================================
+        if orden.estado === 'COMPLETADA' && orden.enfermero
+          .card.border-0.shadow-sm.mb-4
+            .card-header.bg-success.text-white
+              h5.mb-0
+                i.fas.fa-check-circle.me-2
+                | Registro de Ejecución
+            .card-body
+              .row
+                .col-md-6.mb-2
+                  strong
+                    i.fas.fa-user-nurse.me-2
+                    | Enfermero:
+                  p.mb-0= `${orden.enfermero.usuario.nombre} ${orden.enfermero.usuario.apellido}`
+                
+                .col-md-6.mb-2
+                  strong
+                    i.fas.fa-calendar-check.me-2
+                    | Fecha de Ejecución:
+                  p.mb-0= new Date(orden.updated_at).toLocaleString('es-AR')
+                
+                .col-12
+                  strong
+                    i.fas.fa-note-sticky.me-2
+                    | Detalles de la Ejecución:
+                  pre.bg-light.p-3.rounded(style="white-space: pre-wrap; font-family: inherit; max-height: 300px; overflow-y: auto;")= orden.observaciones
+
+      // ========================================
+      // SIDEBAR
+      // ========================================
+      .col-lg-4
+        // Médico ordenante
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-user-md.me-2
+              | Médico Ordenante
+          .card-body
+            p.mb-2
+              strong= `Dr. ${orden.medico.usuario.nombre} ${orden.medico.usuario.apellido}`
+            
+            if internacion
+              hr
+              a.btn.btn-outline-primary.w-100(href=`/medico/camas`)
+                i.fas.fa-bed.me-2
+                | Ver Internación Completa
+
+        // Otras órdenes (solo para médicos)
+        if user.rol === 'MEDICO'
+          .card.border-0.shadow-sm
+            .card-header.bg-white
+              h5.mb-0
+                i.fas.fa-clipboard-list.me-2
+                | Otras Órdenes
+            .card-body
+              a.btn.btn-outline-secondary.w-100(href=`/medico/ordenes-internacion?paciente=${orden.paciente_id}`)
+                i.fas.fa-list.me-2
+                | Ver Todas las Órdenes del Paciente
+
+block scripts
+  script.
+    // Mostrar/ocultar sección de complicaciones
+    const checkComplicaciones = document.getElementById('hubo_complicaciones');
+    const seccionComplicaciones = document.getElementById('seccionComplicaciones');
+    
+    if (checkComplicaciones) {
+      checkComplicaciones.addEventListener('change', function() {
+        seccionComplicaciones.style.display = this.checked ? 'block' : 'none';
+      });
+    }
+
+    // Enviar formulario con fetch
+    const formEjecutar = document.getElementById('formEjecutarOrden');
+    if (formEjecutar) {
+      formEjecutar.addEventListener('submit', async function(e) {
+        e.preventDefault();
+        
+        const formData = new FormData(this);
+        const data = {
+          observaciones_ejecucion: formData.get('observaciones_ejecucion'),
+          complicaciones: formData.get('complicaciones') || null
+        };
+        
+        try {
+          const response = await fetch(this.action, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data)
+          });
+          
+          const result = await response.json();
+          
+          if (result.success) {
+            alert('✅ Orden ejecutada correctamente');
+            if (result.tiene_complicaciones) {
+              alert('⚠️ Se registraron complicaciones. El médico será notificado.');
+            }
+            window.location.href = result.redirect;
+          } else {
+            alert('❌ Error: ' + result.message);
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          alert('Error al ejecutar la orden');
+        }
+      });
+    }

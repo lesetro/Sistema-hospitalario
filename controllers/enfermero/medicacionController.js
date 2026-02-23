@@ -9,14 +9,25 @@ const { EvaluacionMedica,
 const { Op } = require('sequelize');
 const db = require('../../database/db');
 
-// Listar recetas para administración
-exports.listarRecetas = async (req, res) => {
+// medicacionController.js
+
+exports.listar = async (req, res, next) => {
   try {
-    const { fecha, paciente, estado } = req.query;
+    const { estado, fecha, paciente } = req.query;
     
     const whereCondition = {
       tipo: 'Receta Medica'
     };
+
+    // ✅ CAMBIO: Ver PENDIENTE, ADMINISTRADA y CANCELADA
+    if (estado === 'PENDIENTE') {
+      whereCondition.estado = 'PENDIENTE';
+    } else if (estado === 'ADMINISTRADA') {
+      whereCondition.estado = 'ADMINISTRADA';
+    } else if (estado === 'CANCELADA') {
+      whereCondition.estado = 'CANCELADA';
+    }
+    // Si no especifica, ve TODAS (PENDIENTE + ADMINISTRADA + CANCELADA)
 
     if (fecha) {
       const fechaInicio = new Date(fecha);
@@ -35,22 +46,17 @@ exports.listarRecetas = async (req, res) => {
         {
           model: Paciente,
           as: 'paciente',
+          required: true,
           include: [{
             model: Usuario,
             as: 'usuario',
-            attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo'],
-            where: paciente ? {
-              [Op.or]: [
-                { nombre: { [Op.like]: `%${paciente}%` } },
-                { apellido: { [Op.like]: `%${paciente}%` } },
-                { dni: { [Op.like]: `%${paciente}%` } }
-              ]
-            } : {}
+            attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo']
           }]
         },
         {
           model: Medico,
           as: 'medico',
+          required: false,
           include: [{
             model: Usuario,
             as: 'usuario',
@@ -67,33 +73,23 @@ exports.listarRecetas = async (req, res) => {
       subQuery: false
     });
 
-    for (let receta of recetas) {
-      const administracion = await EvaluacionEnfermeria.findOne({
-        where: {
-          paciente_id: receta.paciente_id,
-          observaciones: {
-            [Op.like]: `%Receta #${receta.id}%`
-          }
-        },
-        order: [['fecha', 'DESC']]
-      });
-      
-      receta.dataValues.administrada = !!administracion;
-      receta.dataValues.ultima_administracion = administracion ? administracion.fecha : null;
-    }
-
+    // Filtrar paciente EN MEMORIA
     let recetasFiltradas = recetas;
-    if (estado === 'administrada') {
-      recetasFiltradas = recetas.filter(r => r.dataValues.administrada);
-    } else if (estado === 'pendiente') {
-      recetasFiltradas = recetas.filter(r => !r.dataValues.administrada);
+    if (paciente) {
+      recetasFiltradas = recetas.filter(r => 
+        r.paciente.usuario.nombre.toLowerCase().includes(paciente.toLowerCase()) ||
+        r.paciente.usuario.apellido.toLowerCase().includes(paciente.toLowerCase()) ||
+        r.paciente.usuario.dni.includes(paciente)
+      );
     }
 
+    // ✅ ESTADÍSTICAS: Incluir CANCELADAS
     const estadisticas = {
-      total: recetas.length,
-      pendientes: recetas.filter(r => !r.dataValues.administrada).length,
-      administradas: recetas.filter(r => r.dataValues.administrada).length,
-      hoy: recetas.filter(r => {
+      total: recetasFiltradas.length,
+      pendientes: recetasFiltradas.filter(r => r.estado === 'PENDIENTE').length,
+      administradas: recetasFiltradas.filter(r => r.estado === 'ADMINISTRADA').length,
+      canceladas: recetasFiltradas.filter(r => r.estado === 'CANCELADA').length,
+      hoy: recetasFiltradas.filter(r => {
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
         const fechaReceta = new Date(r.fecha);
@@ -102,25 +98,151 @@ exports.listarRecetas = async (req, res) => {
       }).length
     };
 
+    console.log('👩‍⚕️ Enfermero - Medicación');
+    console.log('Filtro:', { estado, fecha, paciente });
+    console.log('Recetas encontradas:', {
+      total: recetas.length,
+      pendientes: estadisticas.pendientes,
+      administradas: estadisticas.administradas,
+      canceladas: estadisticas.canceladas
+    });
+
     res.render('dashboard/enfermero/medicacion', {
       title: 'Administración de Medicación',
       user: req.user,
       recetas: recetasFiltradas,
       estadisticas,
-      filtros: { fecha, paciente, estado }
+      filtros: { estado, fecha, paciente }
     });
 
   } catch (error) {
-    console.error('Error al listar recetas:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar recetas',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    console.error('❌ Error al listar recetas:', error);
+    next(error);
   }
 };
 
+exports.verDetalle = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const receta = await RecetaCertificado.findByPk(id, {
+      include: [
+        {
+          model: Paciente,
+          as: 'paciente',
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo', 'telefono']
+          }]
+        },
+        {
+          model: Medico,
+          as: 'medico',
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido']
+          }]
+        },
+        {
+          model: EvaluacionMedica,
+          as: 'evaluacionMedica',
+          required: false
+        }
+      ]
+    });
+
+    if (!receta) {
+      return res.status(404).render('error', {
+        message: 'Receta no encontrada',
+        user: req.user
+      });
+    }
+
+    const edadPaciente = calcularEdad(receta.paciente.usuario.fecha_nacimiento);
+
+    res.render('dashboard/enfermero/medicacion-detalle', {
+      title: 'Detalle de Receta',
+      user: req.user,
+      receta,
+      administraciones: [],  
+      edadPaciente
+    });
+
+  } catch (error) {
+    console.error('Error al ver receta:', error);
+    next(error);
+  }
+};
+
+
+
+// Ver detalle de receta (IGUAL, sin cambios)
+exports.verReceta = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const receta = await RecetaCertificado.findByPk(id, {
+      include: [
+        {
+          model: Paciente,
+          as: 'paciente',
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo', 'telefono']
+          }]
+        },
+        {
+          model: Medico,
+          as: 'medico',
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido']
+          }]
+        },
+        {
+          model: EvaluacionMedica,
+          as: 'evaluacionMedica',
+          required: false
+        }
+      ]
+    });
+
+    if (!receta) {
+      return res.status(404).render('error', {
+        message: 'Receta no encontrada'
+      });
+    }
+
+    //  Usa ESTADO real, no busca en EvaluacionEnfermeria
+    const administraciones = [];
+    if (receta.estado === 'ADMINISTRADA') {
+      
+    }
+
+    const edadPaciente = calcularEdad(receta.paciente.usuario.fecha_nacimiento);
+
+    res.render('dashboard/enfermero/medicacion-detalle', {
+      title: 'Detalle de Receta',
+      user: req.user,
+      receta,
+      administraciones,
+      edadPaciente
+    });
+
+  } catch (error) {
+    console.error('Error al ver receta:', error);
+    next(error);
+  }
+};
+
+
+
 // Ver detalle de receta
-exports.verReceta = async (req, res) => {
+exports.verReceta = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -177,24 +299,24 @@ exports.verReceta = async (req, res) => {
       order: [['fecha', 'DESC']]
     });
 
+    //  CALCULAR LA EDAD AQUÍ
+    const edadPaciente = calcularEdad(receta.paciente.usuario.fecha_nacimiento);
+
     res.render('dashboard/enfermero/medicacion-detalle', {
       title: 'Detalle de Receta',
       user: req.user,
       receta,
-      administraciones
+      administraciones,
+      edadPaciente //  Pasar la edad calculada
     });
 
   } catch (error) {
     console.error('Error al ver receta:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el detalle',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
-
 // Formulario para administrar medicación
-exports.formularioAdministrar = async (req, res) => {
+exports.formularioAdministrar = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -235,19 +357,15 @@ exports.formularioAdministrar = async (req, res) => {
 
   } catch (error) {
     console.error('Error al cargar formulario:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el formulario',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Registrar administración de medicación
-exports.registrarAdministracion = async (req, res) => {
+exports.registrarAdministracion = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
-    // ✅ CORRECCIÓN
     const enfermeroId = req.user.id;
     const { id } = req.params;
     const {
@@ -270,6 +388,18 @@ exports.registrarAdministracion = async (req, res) => {
         message: 'Receta no encontrada'
       });
     }
+
+    // Verificar que la receta no esté ya administrada
+    if (receta.estado === 'ADMINISTRADA') {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Esta medicación ya ha sido administrada anteriormente'
+      });
+    }
+
+    // Agregar información de administración al contenido de la receta
+    const contenidoActualizado = `${receta.contenido}\n\n=== REGISTRO DE ADMINISTRACIÓN ===\nAdministrado por: ${req.user.nombre} ${req.user.apellido}\nFecha administración: ${new Date().toLocaleString('es-AR')}\nMedicamentos: ${medicamentos_administrados}\nVía: ${via_administracion}\nDosis: ${dosis_administrada}`;
 
     const registroAdministracion = `
 === ADMINISTRACIÓN DE MEDICACIÓN ===
@@ -295,6 +425,13 @@ ${reacciones_adversas ? `\n=== REACCIONES ADVERSAS ===\n${reacciones_adversas}\n
 ${observaciones || 'Ninguna'}
     `.trim();
 
+    // 1. ACTUALIZAR LA RECETA - Solo campos que existen
+    await receta.update({
+      estado: 'ADMINISTRADA',
+      contenido: contenidoActualizado  // Guardamos el registro en el contenido
+    }, { transaction });
+
+    // 2. Crear la evaluación de enfermería
     const evaluacion = await EvaluacionEnfermeria.create({
       paciente_id: receta.paciente_id,
       enfermero_id: enfermeroId,
@@ -302,32 +439,32 @@ ${observaciones || 'Ninguna'}
       fecha: new Date(),
       signos_vitales: signos_vitales_pre || null,
       observaciones: registroAdministracion,
-      tipo_egreso: reacciones_adversas ? 'DERIVACION_MEDICO' : 'PROCEDIMIENTO_COMPLETADO'
+      tipo_egreso: reacciones_adversas ? 'DERIVACION_MEDICO' : 'PROCEDIMIENTO_COMPLETADO',
+      estado: 'Completado'
     }, { transaction });
 
     await transaction.commit();
+
+    // 3. Forzar la actualización de la caché si es necesario
+    await receta.reload();
 
     res.json({
       success: true,
       message: 'Administración de medicación registrada correctamente',
       evaluacion_id: evaluacion.id,
+      estado_receta: 'ADMINISTRADA',
       tiene_reacciones: !!reacciones_adversas,
-      redirect: `dashboard/enfermero/medicacion/${id}`
+      redirect: `/enfermero/medicacion/${id}`
     });
 
   } catch (error) {
     await transaction.rollback();
     console.error('Error al registrar administración:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al registrar la administración',
-      error: error.message
-    });
+    next(error);
   }
 };
-
 // Buscar paciente para medicación
-exports.buscarPaciente = async (req, res) => {
+exports.buscarPaciente = async (req, res, next) => {
   try {
     const { busqueda } = req.query;
 
@@ -377,15 +514,12 @@ exports.buscarPaciente = async (req, res) => {
 
   } catch (error) {
     console.error('Error al buscar paciente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al buscar paciente'
-    });
+    next(error);
   }
 };
 
 // Obtener recetas de un paciente
-exports.recetasPaciente = async (req, res) => {
+exports.recetasPaciente = async (req, res, next) => {
   try {
     const { paciente_id } = req.params;
 
@@ -418,15 +552,12 @@ exports.recetasPaciente = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener recetas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener recetas'
-    });
+    next(error);
   }
 };
 
 // Verificar interacciones medicamentosas (básico)
-exports.verificarInteracciones = async (req, res) => {
+exports.verificarInteracciones = async (req, res, next) => {
   try {
     const { medicamentos } = req.body;
 
@@ -464,15 +595,12 @@ exports.verificarInteracciones = async (req, res) => {
 
   } catch (error) {
     console.error('Error al verificar interacciones:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al verificar interacciones'
-    });
+    next(error);
   }
 };
 
 // Estadísticas de medicación
-exports.estadisticas = async (req, res) => {
+exports.estadisticas = async (req, res, next) => {
   try {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
@@ -506,11 +634,20 @@ exports.estadisticas = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener estadísticas'
-    });
+    next(error);
   }
 };
 
+const calcularEdad = (fechaNacimiento) => {
+  const hoy = new Date();
+  const nacimiento = new Date(fechaNacimiento);
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const mes = hoy.getMonth() - nacimiento.getMonth();
+  
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+    edad--;
+  }
+  
+  return edad;
+};
 module.exports = exports;

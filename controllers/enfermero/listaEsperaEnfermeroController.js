@@ -13,11 +13,34 @@ const { Op } = require('sequelize');
 const db = require('../../database/db');
 
 // Listar lista de espera (SOLO CONSULTA)
-exports.listarListaEspera = async (req, res) => {
+exports.listarListaEspera = async (req, res, next) => {
   try {
-    const { tipo_turno, prioridad, estado, sector } = req.query;
+    const { tipo_turno, prioridad, estado } = req.query;
     
-    const whereCondition = {};
+    // 1. OBTENER ENFERMERO CON SU SECTOR
+    const enfermero = await Enfermero.findOne({
+      where: { usuario_id: req.user.usuario_id },
+      include: [{ model: Sector, as: 'sector' }]
+    });
+
+    if (!enfermero || !enfermero.sector_id) {
+      return res.render('dashboard/enfermero/lista-espera', {
+        title: 'Lista de Espera',
+        user: req.user,
+        listaEspera: [],
+        error: 'No tiene un sector asignado',
+        estadisticas: { total: 0, pendientes: 0, asignados: 0, alta_prioridad: 0, urgentes: 0 }
+      });
+    }
+
+    console.log(`🔍 Enfermero sector ${enfermero.sector_id} (${enfermero.sector?.nombre}) viendo lista de espera`);
+    
+    // 2. CONDICIONES DE BÚSQUEDA
+    const whereCondition = {
+      estado: {
+        [Op.in]: ['PENDIENTE', 'ASIGNADO']
+      }
+    };
     
     if (tipo_turno) {
       whereCondition.tipo_turno_id = tipo_turno;
@@ -29,32 +52,12 @@ exports.listarListaEspera = async (req, res) => {
     
     if (estado) {
       whereCondition.estado = estado;
-    } else {
-      // Por defecto, solo mostrar pendientes y asignados
-      whereCondition.estado = {
-        [Op.in]: ['PENDIENTE', 'ASIGNADO']
-      };
     }
 
-    const includeHabitacion = sector ? {
-      model: Habitacion,
-      as: 'habitacion',
-      required: false,
-      include: [{
-        model: Sector,
-        as: 'sector',
-        where: { id: sector }
-      }]
-    } : {
-      model: Habitacion,
-      as: 'habitacion',
-      required: false,
-      include: [{
-        model: Sector,
-        as: 'sector'
-      }]
-    };
-
+    // 3. OBTENER LISTA DE ESPERA DEL SECTOR
+    // Necesitamos importar TipoDeServicio si vamos a filtrar por sector
+    const { TipoDeServicio } = require('../../models');
+    
     const listaEspera = await ListaEspera.findAll({
       where: whereCondition,
       include: [
@@ -81,87 +84,72 @@ exports.listarListaEspera = async (req, res) => {
           as: 'especialidad',
           required: false
         },
-        includeHabitacion,
         {
-          model: Administrativo,
-          as: 'administrativo_creador',
+          model: Habitacion,
+          as: 'habitacion',
           required: false,
           include: [{
-            model: Usuario,
-            as: 'usuario',
-            attributes: ['nombre', 'apellido']
+            model: Sector,
+            as: 'sector',
+            where: { id: enfermero.sector_id } // Solo habitaciones de su sector
           }]
         },
+        // Filtrar por TipoDeServicio del sector
         {
-          model: Enfermero,
-          as: 'enfermero_creador',
+          model: TipoDeServicio,
+          as: 'tipo_servicio',
           required: false,
-          include: [{
-            model: Usuario,
-            as: 'usuario',
-            attributes: ['nombre', 'apellido']
-          }]
-        },
-        {
-          model: Medico,
-          as: 'medico_creador',
-          required: false,
-          include: [{
-            model: Usuario,
-            as: 'usuario',
-            attributes: ['nombre', 'apellido']
-          }]
+          where: {
+            sector_id: enfermero.sector_id
+          }
         }
       ],
       order: [
-        ['prioridad', 'ASC'], // ALTA primero
-        ['fecha_registro', 'ASC'] // Más antiguos primero
-      ],
-      subQuery: false
+        ['prioridad', 'ASC'],
+        ['fecha_registro', 'ASC']
+      ]
     });
 
-    // Obtener datos para filtros
-    const [tiposTurno, sectores] = await Promise.all([
-      TipoTurno.findAll({
-        attributes: ['id', 'nombre'],
-        order: [['nombre', 'ASC']]
-      }),
-      Sector.findAll({
-        attributes: ['id', 'nombre'],
-        order: [['nombre', 'ASC']]
-      })
-    ]);
+    console.log(` Lista de espera del sector: ${listaEspera.length} registros`);
 
-    // Estadísticas
+    // 4. OBTENER DATOS PARA FILTROS (solo tipos de turno relevantes)
+    const tiposTurno = await TipoTurno.findAll({
+      attributes: ['id', 'nombre'],
+      order: [['nombre', 'ASC']]
+    });
+
+    // 5. ESTADÍSTICAS DEL SECTOR
     const estadisticas = {
       total: listaEspera.length,
       pendientes: listaEspera.filter(l => l.estado === 'PENDIENTE').length,
       asignados: listaEspera.filter(l => l.estado === 'ASIGNADO').length,
       alta_prioridad: listaEspera.filter(l => l.prioridad === 'ALTA').length,
-      urgentes: listaEspera.filter(l => l.prioridad === 'ALTA' && l.estado === 'PENDIENTE').length
+      urgentes: listaEspera.filter(l => l.prioridad === 'ALTA' && l.estado === 'PENDIENTE').length,
+      sector: enfermero.sector?.nombre
     };
 
     res.render('dashboard/enfermero/lista-espera', {
-      title: 'Lista de Espera',
+      title: `Lista de Espera - ${enfermero.sector?.nombre}`,
       user: req.user,
       listaEspera,
       tiposTurno,
-      sectores,
       estadisticas,
-      filtros: { tipo_turno, prioridad, estado, sector }
+      filtros: { tipo_turno, prioridad, estado },
+      enfermeroInfo: {
+        nombre: req.user.nombre,
+        sector: enfermero.sector?.nombre,
+        sector_id: enfermero.sector_id
+      }
     });
 
   } catch (error) {
-    console.error('Error al listar lista de espera:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar lista de espera',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    console.error('❌ Error al listar lista de espera:', error);
+    next(error);
   }
 };
 
 // Ver detalle de registro en lista de espera
-exports.verDetalle = async (req, res) => {
+exports.verDetalle = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -253,15 +241,12 @@ exports.verDetalle = async (req, res) => {
 
   } catch (error) {
     console.error('Error al ver detalle:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el detalle',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Obtener siguiente paciente a llamar
-exports.siguientePaciente = async (req, res) => {
+exports.siguientePaciente = async (req, res, next) => {
   try {
     const { tipo_turno_id, sector_id } = req.query;
 
@@ -352,15 +337,12 @@ exports.siguientePaciente = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener siguiente paciente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener siguiente paciente'
-    });
+    next(error);
   }
 };
 
 // Buscar paciente en lista de espera
-exports.buscarPaciente = async (req, res) => {
+exports.buscarPaciente = async (req, res, next) => {
   try {
     const { busqueda } = req.query;
 
@@ -425,15 +407,12 @@ exports.buscarPaciente = async (req, res) => {
 
   } catch (error) {
     console.error('Error al buscar paciente:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error en la búsqueda'
-    });
+    next(error);
   }
 };
 
 // Obtener estadísticas por tipo de turno
-exports.estadisticasPorTipo = async (req, res) => {
+exports.estadisticasPorTipo = async (req, res, next) => {
   try {
     const tiposTurno = await TipoTurno.findAll({
       attributes: ['id', 'nombre']
@@ -481,15 +460,12 @@ exports.estadisticasPorTipo = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener estadísticas'
-    });
+    next(error);
   }
 };
 
 // Pacientes con mayor tiempo de espera
-exports.mayorTiempoEspera = async (req, res) => {
+exports.mayorTiempoEspera = async (req, res, next) => {
   try {
     const registros = await ListaEspera.findAll({
       where: {
@@ -535,10 +511,7 @@ exports.mayorTiempoEspera = async (req, res) => {
 
   } catch (error) {
     console.error('Error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener registros'
-    });
+    next(error);
   }
 };
 

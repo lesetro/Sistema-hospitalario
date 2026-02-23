@@ -7,14 +7,23 @@ const {
   Admision,
   Cama,
   Habitacion,
-  sequelize
+  ListaEspera,
+  Notificacion,
+  TipoTurno,
+  Enfermero,
+  EvaluacionEnfermeria,
+  Sector,
+  ObraSocial,
+  Especialidad,
+  TipoInternacion
 } = require('../../models');
 const { Op } = require('sequelize');
+const db = require('../../database/db');
 
 // ========================================
 // RENDERIZAR VISTA
 // ========================================
-exports.renderAltasMedicas = async (req, res) => {
+exports.renderAltasMedicas = async (req, res, next) => {
   try {
     console.log('🔍 renderAltasMedicas - usuario_id:', req.user.usuario_id);
     
@@ -24,7 +33,7 @@ exports.renderAltasMedicas = async (req, res) => {
           model: Medico,
           as: 'medico',
           include: [
-            { model: require('../../models').Especialidad, as: 'especialidad' }
+            { model: Especialidad, as: 'especialidad' }
           ]
         }
       ]
@@ -48,19 +57,16 @@ exports.renderAltasMedicas = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al renderizar altas médicas:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: error.message
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ALTAS
 // ========================================
-exports.obtenerAltas = async (req, res) => {
+exports.obtenerAltas = async (req, res, next) => {
   try {
-    console.log('📋 obtenerAltas - usuario_id:', req.user.usuario_id);
+    console.log(' obtenerAltas - usuario_id:', req.user.usuario_id);
     
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
@@ -165,17 +171,14 @@ exports.obtenerAltas = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener altas:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ALTA POR ID
 // ========================================
-exports.obtenerAltaPorId = async (req, res) => {
+exports.obtenerAltaPorId = async (req, res, next) => {
   try {
     console.log('🔍 obtenerAltaPorId - usuario_id:', req.user.usuario_id);
     
@@ -207,7 +210,7 @@ exports.obtenerAltaPorId = async (req, res) => {
               attributes: { exclude: ['password'] }
             },
             {
-              model: require('../../models').ObraSocial,
+              model: ObraSocial,
               as: 'obraSocial',
               attributes: ['id', 'nombre']
             }
@@ -222,7 +225,7 @@ exports.obtenerAltaPorId = async (req, res) => {
               as: 'habitacion',
               include: [
                 {
-                  model: require('../../models').Sector,
+                  model: Sector,
                   as: 'sector'
                 }
               ]
@@ -232,7 +235,7 @@ exports.obtenerAltaPorId = async (req, res) => {
               as: 'cama'
             },
             {
-              model: require('../../models').TipoInternacion,
+              model: TipoInternacion,
               as: 'tipoInternacion'
             }
           ]
@@ -260,146 +263,154 @@ exports.obtenerAltaPorId = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener alta:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // CREAR ALTA
 // ========================================
-exports.crearAlta = async (req, res) => {
-  const transaction = await sequelize.transaction();
-
+exports.crearAlta = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
   try {
-    console.log('✅ crearAlta - usuario_id:', req.user.usuario_id);
+    console.log(' CREANDO ALTA MÉDICA');
+    console.log(' Datos recibidos:', req.body);
     
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
-    });
-
-    if (!medico) {
-      await transaction.rollback();
-      console.error('❌ Médico no encontrado');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
-      });
-    }
-
-    const {
-      paciente_id,
-      tipo_alta,
-      instrucciones_post_alta,
-      internacion_id,
+    const { 
+      paciente_id, 
+      internacion_id, 
       admision_id,
-      estado_paciente
+      tipo_alta,
+      estado_paciente,
+      instrucciones_post_alta
     } = req.body;
-
-    // Validaciones
+    
+    // Validaciones básicas
+    if (!paciente_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'Debe especificar un paciente'
+      });
+    }
+    
     if (!internacion_id && !admision_id) {
-      await transaction.rollback();
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Debe especificar una internación o una admisión' 
+        message: 'Debe especificar una internación o una admisión'
       });
     }
-
-    const paciente = await Paciente.findByPk(paciente_id, { transaction });
-    if (!paciente) {
-      await transaction.rollback();
-      return res.status(404).json({ 
-        success: false,
-        message: 'Paciente no encontrado' 
-      });
-    }
-
-    // Validar internación si existe
+    
+    // Validar que la internación existe
     if (internacion_id) {
-      const internacion = await Internacion.findOne({
-        where: {
-          id: internacion_id,
-          medico_id: medico.id
-        },
-        transaction
+      console.log(`🔍 Buscando internación ${internacion_id}...`);
+      
+      const internacion = await Internacion.findByPk(internacion_id, {
+        include: [{ model: Paciente, as: 'paciente' }]
       });
       
       if (!internacion) {
-        await transaction.rollback();
-        return res.status(404).json({ 
+        console.error(`❌ Internación ${internacion_id} NO encontrada`);
+        return res.status(404).json({
           success: false,
-          message: 'Internación no encontrada o no pertenece a este médico' 
+          message: `La internación con ID ${internacion_id} no existe`
         });
       }
       
-      if (internacion.fecha_alta) {
-        await transaction.rollback();
-        return res.status(400).json({ 
+      console.log(`✅ Internación ${internacion_id} encontrada`);
+      
+      // Validar que el paciente coincide
+      if (internacion.paciente_id != paciente_id) {
+        return res.status(400).json({
           success: false,
-          message: 'La internación ya tiene alta médica registrada' 
+          message: 'El paciente no coincide con la internación'
+        });
+      }
+      
+      // Validar que no tiene alta previa
+      if (internacion.fecha_alta) {
+        return res.status(400).json({
+          success: false,
+          message: 'Esta internación ya tiene fecha de alta registrada'
         });
       }
     }
-
-    // Validar admisión si existe
+    
+    // Si es admisión, validar que existe
     if (admision_id) {
-      const admision = await Admision.findByPk(admision_id, { transaction });
+      console.log(`🔍 Buscando admisión ${admision_id}...`);
+      
+      const admision = await Admision.findByPk(admision_id);
       
       if (!admision) {
-        await transaction.rollback();
-        return res.status(404).json({ 
+        console.error(`❌ Admisión ${admision_id} NO encontrada`);
+        return res.status(404).json({
           success: false,
-          message: 'Admisión no encontrada' 
+          message: `La admisión con ID ${admision_id} no existe`
         });
       }
       
-      if (admision.estado === 'Completada') {
-        await transaction.rollback();
-        return res.status(400).json({ 
-          success: false,
-          message: 'La admisión ya está completada' 
-        });
-      }
+      console.log(`✅ Admisión ${admision_id} encontrada`);
     }
-
-    // Crear alta médica
-    const alta = await AltaMedica.create({
+    
+    // Obtener médico desde el usuario logueado
+    const medico = await Medico.findOne({
+      where: { usuario_id: req.user.usuario_id }
+    });
+    
+    if (!medico) {
+      return res.status(404).json({
+        success: false,
+        message: 'Médico no encontrado'
+      });
+    }
+    
+    // Crear la alta médica
+    const altaData = {
       paciente_id,
       medico_id: medico.id,
       fecha_alta: new Date(),
       tipo_alta,
+      estado_paciente,
       instrucciones_post_alta,
-      internacion_id,
-      admision_id,
-      estado_paciente
-    }, { transaction });
-
+      internacion_id: internacion_id || null,
+      admision_id: admision_id || null
+    };
+    
+    console.log('📝 Creando alta con datos:', altaData);
+    
+    const alta = await AltaMedica.create(altaData, { transaction });
+    
     await transaction.commit();
-
-    console.log('✅ Alta creada:', alta.id);
-
+    
+    console.log(`✅ Alta médica creada exitosamente. ID: ${alta.id}`);
+    
     res.json({
       success: true,
       message: 'Alta médica registrada correctamente',
       data: alta
     });
+    
   } catch (error) {
     await transaction.rollback();
-    console.error('❌ Error al crear alta:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message || 'Error al crear alta médica' 
-    });
+    console.error('❌ Error al crear alta médica:', error);
+    
+    // Mensaje más específico para error de foreign key
+    if (error.name === 'SequelizeForeignKeyConstraintError') {
+      return res.status(400).json({
+        success: false,
+        message: 'Error de referencia: La internación o admisión especificada no existe'
+      });
+    }
+    
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ESTADÍSTICAS
 // ========================================
-// ✅ CORREGIDO - SIN sequelize.fn() y .get()
-exports.obtenerEstadisticas = async (req, res) => {
+exports.obtenerEstadisticas = async (req, res, next) => {
   try {
     console.log('📊 obtenerEstadisticas - usuario_id:', req.user.usuario_id);
     
@@ -416,13 +427,11 @@ exports.obtenerEstadisticas = async (req, res) => {
     }
 
     console.log('🔍 Contando total de altas...');
-    // Total de altas
     const totalAltas = await AltaMedica.count({
       where: { medico_id: medico.id }
     });
 
     console.log('🔍 Contando altas este mes...');
-    // Este mes
     const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
     const esteMes = await AltaMedica.count({
       where: {
@@ -432,7 +441,6 @@ exports.obtenerEstadisticas = async (req, res) => {
     });
 
     console.log('🔍 Contando altas esta semana...');
-    // Esta semana
     const hoy = new Date();
     const inicioSemana = new Date(hoy);
     inicioSemana.setDate(hoy.getDate() - hoy.getDay());
@@ -444,7 +452,6 @@ exports.obtenerEstadisticas = async (req, res) => {
     });
 
     console.log('🔍 Contando altas hoy...');
-    // Hoy
     const inicioHoy = new Date(hoy.getFullYear(), hoy.getMonth(), hoy.getDate());
     const hoyAltas = await AltaMedica.count({
       where: {
@@ -454,14 +461,12 @@ exports.obtenerEstadisticas = async (req, res) => {
     });
 
     console.log('🔍 Obteniendo altas por tipo...');
-    // ✅ SIN GROUP BY - traer todo y contar en JavaScript
     const porTipoData = await AltaMedica.findAll({
       where: { medico_id: medico.id },
       attributes: ['tipo_alta'],
       raw: true
     });
 
-    // ✅ CONTAR EN JAVASCRIPT
     const tipos = {};
     porTipoData.forEach(item => {
       const tipo = item.tipo_alta;
@@ -487,17 +492,14 @@ exports.obtenerEstadisticas = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener estadísticas:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ALTAS RECIENTES
 // ========================================
-exports.obtenerAltasRecientes = async (req, res) => {
+exports.obtenerAltasRecientes = async (req, res, next) => {
   try {
     console.log('📅 obtenerAltasRecientes - usuario_id:', req.user.usuario_id);
     
@@ -542,17 +544,14 @@ exports.obtenerAltasRecientes = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener altas recientes:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER PENDIENTES DE ALTA
 // ========================================
-exports.obtenerPendientesAlta = async (req, res) => {
+exports.obtenerPendientesAlta = async (req, res, next) => {
   try {
     console.log('⏳ obtenerPendientesAlta - usuario_id:', req.user.usuario_id);
     
@@ -568,8 +567,7 @@ exports.obtenerPendientesAlta = async (req, res) => {
       });
     }
 
-    console.log('🔍 Obteniendo internaciones sin alta...');
-    // Internaciones sin alta
+    // 1. Internaciones sin alta
     const internaciones = await Internacion.findAll({
       where: {
         medico_id: medico.id,
@@ -602,8 +600,7 @@ exports.obtenerPendientesAlta = async (req, res) => {
       limit: 20
     });
 
-    console.log('🔍 Obteniendo admisiones pendientes...');
-    // Admisiones pendientes (sin internación y sin alta)
+    // 2. Admisiones pendientes
     const admisiones = await Admision.findAll({
       where: {
         medico_id: medico.id,
@@ -631,23 +628,232 @@ exports.obtenerPendientesAlta = async (req, res) => {
       limit: 20
     });
 
-    // Filtrar admisiones que no tienen internación asociada
     const admisionesSinInternacion = admisiones.filter(adm => !adm.internacion);
 
-    console.log('✅ Pendientes obtenidos - Internaciones:', internaciones.length, 'Admisiones:', admisionesSinInternacion.length);
+    // 3. LISTAS DE ESPERA PARA ALTAS MÉDICAS (DESDE ENFERMERÍA)
+    
+    const listasEsperaAltas = await ListaEspera.findAll({
+      where: {
+        estado: 'PENDIENTE'
+        //  Removida la condición de tipo_turno del where principal
+      },
+      include: [
+        {
+          model: Paciente,
+          as: 'paciente',
+          include: [
+            {
+              model: Usuario,
+              as: 'usuario',
+              attributes: ['nombre', 'apellido', 'dni', 'telefono']
+            }
+          ]
+        },
+        {
+          model: TipoTurno,
+          as: 'tipo_turno',
+          attributes: ['nombre', 'descripcion'],
+          
+          where: {
+            nombre: { [Op.like]: '%Alta%' }  
+          },
+          required: true  
+        },
+        {
+          model: EvaluacionEnfermeria,
+          as: 'evaluaciones_enfermeria',
+          attributes: ['id', 'observaciones', 'fecha', 'signos_vitales'],
+          required: false
+        },
+        {
+          model: Enfermero,
+          as: 'enfermero_creador',
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido']
+          }],
+          required: false
+        }
+      ],
+      order: [['fecha_registro', 'ASC']],
+      limit: 20
+    });
+
+    console.log('✅ Pendientes obtenidos:', {
+      internaciones: internaciones.length,
+      admisiones: admisionesSinInternacion.length,
+      listasEsperaAltas: listasEsperaAltas.length
+    });
 
     res.json({
       success: true,
       data: {
         internaciones,
-        admisiones: admisionesSinInternacion
+        admisiones: admisionesSinInternacion,
+        listasEsperaAltas
       }
     });
   } catch (error) {
     console.error('❌ Error al obtener pendientes de alta:', error.message);
-    res.status(500).json({ 
+    next(error);
+  }
+};
+
+// ========================================
+// CREAR ALTA DESDE SOLICITUD DE ENFERMERÍA
+// ========================================
+exports.crearAltaDesdeSolicitud = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
+  try {
+    console.log('🏥 CREANDO ALTA DESDE SOLICITUD DE ENFERMERÍA');
+    console.log('📋 Datos recibidos:', req.body);
+    
+    const { 
+      lista_espera_id,
+      tipo_alta,
+      estado_paciente,
+      instrucciones_post_alta
+    } = req.body;
+    
+    if (!lista_espera_id) {
+      return res.status(400).json({
+        success: false,
+        message: 'ID de lista de espera es requerido'
+      });
+    }
+    
+    const medico = await Medico.findOne({
+      where: { usuario_id: req.user.usuario_id },
+      include: [{
+        model: Usuario,
+        as: 'usuario',
+        attributes: ['nombre', 'apellido']
+      }],
+      transaction
+    });
+    
+    if (!medico) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Médico no encontrado'
+      });
+    }
+    
+    const listaEspera = await ListaEspera.findOne({
+      where: {
+        id: lista_espera_id,
+        estado: 'PENDIENTE'
+      },
+      include: [
+        {
+          model: Paciente,
+          as: 'paciente',
+          include: [{ model: Usuario, as: 'usuario' }]
+        },
+        {
+          model: EvaluacionEnfermeria,
+          as: 'evaluaciones_enfermeria',
+          attributes: ['id', 'observaciones', 'signos_vitales']
+        }
+      ],
+      transaction
+    });
+    
+    if (!listaEspera) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Solicitud de alta no encontrada o ya fue procesada'
+      });
+    }
+    
+    const paciente = await Paciente.findByPk(listaEspera.paciente_id, {
+      transaction
+    });
+    
+    if (!paciente) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Paciente no encontrado'
+      });
+    }
+    
+    const altaData = {
+      paciente_id: listaEspera.paciente_id,
+      medico_id: medico.id,
+      fecha_alta: new Date(),
+      tipo_alta: tipo_alta || 'Alta Voluntaria',
+      estado_paciente: estado_paciente || 'Estable',
+      instrucciones_post_alta: instrucciones_post_alta || 'Seguimiento ambulatorio',
+      origen: 'ENFERMERIA',
+      lista_espera_id: lista_espera_id
+    };
+    
+    console.log('📝 Creando alta con datos:', altaData);
+    
+    const alta = await AltaMedica.create(altaData, { transaction });
+    
+    await listaEspera.update({
+      estado: 'COMPLETADO',
+      fecha_completado: new Date()
+    }, { transaction });
+    
+    if (listaEspera.creador_id && listaEspera.creador_tipo === 'ENFERMERO') {
+      try {
+        await Notificacion.create({
+          usuario_id: listaEspera.creador_id,
+          remitente_id: req.user.usuario_id,
+          mensaje: `✅ ALTA MÉDICA OTORGADA\nPaciente: ${listaEspera.paciente?.usuario?.nombre || 'N/A'}\nMédico: Dr. ${medico.usuario?.nombre || 'N/A'}\nFecha: ${new Date().toLocaleDateString()}\nTipo de alta: ${altaData.tipo_alta}`,
+          leida: false,
+          tipo: 'ALTA_MEDICA'
+        }, { transaction });
+        console.log('✅ Notificación enviada al enfermero');
+      } catch (error) {
+        console.error('❌ Error al notificar enfermero:', error.message);
+      }
+    }
+    
+    if (listaEspera.paciente?.usuario?.id) {
+      try {
+        await Notificacion.create({
+          usuario_id: listaEspera.paciente.usuario.id,
+          remitente_id: req.user.usuario_id,
+          mensaje: `🏥 ALTA MÉDICA\nEstimado paciente, se le ha otorgado el alta médica.\nMédico: Dr. ${medico.usuario?.nombre || 'N/A'}\nFecha: ${new Date().toLocaleDateString()}\nInstrucciones: ${altaData.instrucciones_post_alta || 'Seguimiento ambulatorio'}`,
+          leida: false,
+          tipo: 'ALTA_PACIENTE'
+        }, { transaction });
+        console.log('✅ Notificación enviada al paciente');
+      } catch (error) {
+        console.error('❌ Error al notificar paciente:', error.message);
+      }
+    }
+    
+    await transaction.commit();
+    
+    console.log(`✅ Alta médica creada desde solicitud. ID: ${alta.id}`);
+    
+    res.json({
+      success: true,
+      message: 'Alta médica otorgada correctamente',
+      data: {
+        alta_id: alta.id,
+        paciente_id: alta.paciente_id,
+        fecha_alta: alta.fecha_alta
+      }
+    });
+    
+  } catch (error) {
+    await transaction.rollback();
+    console.error('❌ Error al crear alta desde solicitud:', error);
+    
+    res.status(500).json({
       success: false,
-      message: error.message 
+      message: 'Error al procesar la solicitud de alta',
+      error: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
 };
@@ -655,7 +861,7 @@ exports.obtenerPendientesAlta = async (req, res) => {
 // ========================================
 // OBTENER PACIENTES PARA FILTRO
 // ========================================
-exports.obtenerPacientesParaFiltro = async (req, res) => {
+exports.obtenerPacientesParaFiltro = async (req, res, next) => {
   try {
     console.log('👥 obtenerPacientesParaFiltro - usuario_id:', req.user.usuario_id);
     
@@ -673,7 +879,6 @@ exports.obtenerPacientesParaFiltro = async (req, res) => {
 
     const { busqueda } = req.query;
 
-    // Obtener pacientes únicos del médico que tienen altas
     const altas = await AltaMedica.findAll({
       where: { medico_id: medico.id },
       attributes: ['paciente_id'],
@@ -717,9 +922,6 @@ exports.obtenerPacientesParaFiltro = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener pacientes:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };

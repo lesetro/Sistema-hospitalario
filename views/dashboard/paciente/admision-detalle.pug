@@ -1,0 +1,86 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .container-fluid
+    nav(aria-label='breadcrumb')
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href='/paciente') Inicio
+        li.breadcrumb-item
+          a(href='/paciente/admisiones') Mis Admisiones
+        li.breadcrumb-item.active Detalle de Admisión ##{admision.id}
+
+    .d-flex.justify-content-between.align-items-center.mb-4
+      h2.mb-0
+        i.fas.fa-clipboard-list.me-2.text-primary
+        | Detalle de Admisión
+      a.btn.btn-outline-secondary(href='/paciente/admisiones')
+        i.fas.fa-arrow-left.me-2
+        | Volver
+
+    .alert(class=admision.estado === 'Completada' ? 'alert-success' : admision.estado === 'Pendiente' ? 'alert-warning' : 'alert-danger')
+      h5.alert-heading Estado: #{admision.estado}
+
+    .row.g-4
+      .col-lg-6
+        .card.shadow-sm.border-0
+          .card-header.bg-primary.text-white
+            h5.mb-0 Información de Admisión
+          .card-body
+            dl.row
+              dt.col-sm-4 Fecha
+              dd.col-sm-8 #{new Date(admision.fecha).toLocaleString('es-AR')}
+              dt.col-sm-4 Motivo
+              dd.col-sm-8 #{admision.motivo ? admision.motivo.nombre : '-'}
+              dt.col-sm-4 Forma ingreso
+              dd.col-sm-8 #{admision.forma_ingreso ? admision.forma_ingreso.nombre : '-'}
+              dt.col-sm-4 Sector
+              dd.col-sm-8 #{admision.sector ? admision.sector.nombre : '-'}
+              dt.col-sm-4 Especialidad
+              dd.col-sm-8 #{admision.especialidad ? admision.especialidad.nombre : '-'}
+              dt.col-sm-4 Tipo estudio
+              dd.col-sm-8 #{admision.tipo_estudio ? admision.tipo_estudio.nombre : '-'}
+              dt.col-sm-4 Motivo consulta
+              dd.col-sm-8 #{admision.motivo_consulta ? admision.motivo_consulta.nombre : '-'}
+
+      .col-lg-6
+        .card.shadow-sm.border-0
+          .card-header.bg-info.text-white
+            h5.mb-0 Paciente y Responsable
+          .card-body
+            dl.row
+              dt.col-sm-4 Paciente
+              dd.col-sm-8
+                if admision.paciente && admision.paciente.usuario
+                  strong #{admision.paciente.usuario.nombre} #{admision.paciente.usuario.apellido}
+                  small.d-block.text-muted DNI: #{admision.paciente.usuario.dni || '-'}
+                else
+                  strong Datos no disponibles
+              dt.col-sm-4 Responsable
+              dd.col-sm-8
+                if admision.administrativo && admision.administrativo.usuario
+                  | #{admision.administrativo.usuario.nombre} #{admision.administrativo.usuario.apellido}
+                else
+                  | - (Sistema)
+
+      if admision.turno
+        .col-12
+          .card.shadow-sm.border-0
+            .card-header.bg-secondary.text-white
+              h5.mb-0 Turno Asociado
+            .card-body
+              .row
+                .col-md-4
+                  strong Fecha y hora
+                  p.mb-0 #{new Date(admision.turno.fecha).toLocaleDateString('es-AR')} #{admision.turno.hora_inicio}
+                .col-md-4
+                  strong Estado
+                  p.mb-0
+                    span.badge(class=admision.turno.estado === 'CONFIRMADO' ? 'bg-success' : 'bg-warning')
+                      | #{admision.turno.estado}
+                .col-md-4.text-end
+                  a.btn.btn-sm.btn-outline-primary(href=`/paciente/turnos/${admision.turno.id}`)
+                    i.fas.fa-eye.me-1
+                    | Ver turno
+
+block scripts

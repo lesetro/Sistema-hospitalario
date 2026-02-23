@@ -16,6 +16,7 @@ module.exports = (sequelize, DataTypes) => {
     Sector.hasMany(models.Turno, { foreignKey: 'sector_id', as: 'turnos' });
     Sector.hasMany(models.Admision, { foreignKey: 'sector_id', as: 'admisiones' });
     Sector.hasMany(models.Habitacion, { foreignKey: 'sector_id', as: 'habitaciones' });
+    Sector.hasMany(models.TipoDeServicio, { foreignKey: 'sector_id', as: 'tipos_de_servicio' });
   };
 
   return Sector;

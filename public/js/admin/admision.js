@@ -159,45 +159,92 @@ document.addEventListener('DOMContentLoaded', () => {
   // MODAL: CREAR ADMISIÓN
   // ============================================================================
   function abrirModalCrearAdmision(paciente) {
-  console.log('Datos del paciente recibidos:', paciente);
-  
-  const modalEl = document.getElementById('modalCrearAdmision');
-  if (!modalEl) {
-    console.error('Modal modalCrearAdmision no encontrado');
-    alert('Error: No se encontró el formulario de admisión');
-    return;
+    console.log('Datos del paciente recibidos:', paciente);
+    
+    const modalEl = document.getElementById('modalCrearAdmision');
+    if (!modalEl) {
+      console.error('Modal modalCrearAdmision no encontrado');
+      alert('Error: No se encontró el formulario de admisión');
+      return;
+    }
+    
+    const modal = new bootstrap.Modal(modalEl);
+    
+    // Validar elementos antes de asignar
+    const nombreEl = document.getElementById('nombre_paciente_admision');
+    const pacienteIdEl = document.getElementById('admision_paciente_id');
+    const usuarioIdEl = document.getElementById('admision_usuario_id');
+    
+    if (nombreEl) {
+      nombreEl.textContent = `${paciente.nombre || 'N/A'} ${paciente.apellido || ''} (DNI: ${paciente.dni || 'N/A'})`;
+    }
+    
+    if (pacienteIdEl) {
+      pacienteIdEl.value = paciente.id || '';
+    }
+    
+    if (usuarioIdEl) {
+      usuarioIdEl.value = paciente.usuario_id || '';
+    }
+    
+    // Fecha actual
+    const fechaEl = document.getElementById('admision_fecha');
+    if (fechaEl) {
+      fechaEl.valueAsDate = new Date();
+    }
+    
+    //  Mostrar campo de Servicio por defecto
+    const campoServicio = document.getElementById('campo_servicio');
+    if (campoServicio) {
+      campoServicio.style.display = 'block';
+    }
+    
+    modal.show();
   }
-  
-  const modal = new bootstrap.Modal(modalEl);
-  
-  // Validar elementos antes de asignar
-  const nombreEl = document.getElementById('nombre_paciente_admision');
-  const pacienteIdEl = document.getElementById('admision_paciente_id');
-  const usuarioIdEl = document.getElementById('admision_usuario_id');
-  
-  if (nombreEl) {
-    nombreEl.textContent = `${paciente.nombre || 'N/A'} ${paciente.apellido || ''} (DNI: ${paciente.dni || 'N/A'})`;
-  }
-  
-  if (pacienteIdEl) {
-    pacienteIdEl.value = paciente.id || '';
-  }
-  
-  if (usuarioIdEl) {
-    usuarioIdEl.value = paciente.usuario_id || '';
-  }
-  
-  // Fecha actual
-  const fechaEl = document.getElementById('admision_fecha');
-  if (fechaEl) {
-    fechaEl.valueAsDate = new Date();
-  }
-  
-  modal.show();
-}
   
   // ============================================================================
-  // TIPO DE TURNO - MOSTRAR/OCULTAR CAMPOS
+  // FUNCIÓN: CARGAR SERVICIOS POR SECTOR
+  // ============================================================================
+  async function cargarServiciosPorSector() {
+    const sectorSelect = document.getElementById('admision_sector_id');
+    const servicioSelect = document.getElementById('admision_tipo_servicio_id');
+    
+    if (!sectorSelect || !servicioSelect) return;
+    
+    const sectorId = sectorSelect.value;
+    
+    if (!sectorId) {
+      servicioSelect.innerHTML = '<option value="">Seleccione sector primero</option>';
+      servicioSelect.disabled = true;
+      return;
+    }
+    
+    try {
+      const response = await fetch(`/admisiones/api/servicios-por-sector?sector_id=${sectorId}`);
+      const data = await response.json();
+      
+      if (data.success) {
+        servicioSelect.innerHTML = '<option value="">Seleccione servicio...</option>';
+        
+        data.servicios.forEach(servicio => {
+          const option = document.createElement('option');
+          option.value = servicio.id;
+          option.textContent = `${servicio.nombre}${servicio.descripcion ? ` - ${servicio.descripcion}` : ''}`;
+          servicioSelect.appendChild(option);
+        });
+        
+        servicioSelect.disabled = false;
+      } else {
+        servicioSelect.innerHTML = '<option value="">Error al cargar servicios</option>';
+      }
+    } catch (error) {
+      console.error('Error al cargar servicios:', error);
+      servicioSelect.innerHTML = '<option value="">Error al cargar</option>';
+    }
+  }
+  
+  // ============================================================================
+  // TIPO DE TURNO - MOSTRAR/OCULTAR CAMPOS 
   // ============================================================================
   const tipoTurnoSelect = document.getElementById('admision_tipo_turno_id');
   if (tipoTurnoSelect) {
@@ -205,6 +252,9 @@ document.addEventListener('DOMContentLoaded', () => {
       const option = this.options[this.selectedIndex];
       const requiereEstudio = option.dataset.requiereEstudio === 'true';
       const requiereEspecialidad = option.dataset.requiereEspecialidad === 'true';
+      
+      //  Mostrar siempre el campo Servicio
+      document.getElementById('campo_servicio').style.display = 'block';
       
       // Mostrar/ocultar campos
       document.getElementById('campo_estudio').style.display = requiereEstudio ? 'block' : 'none';
@@ -214,6 +264,12 @@ document.addEventListener('DOMContentLoaded', () => {
       // Reset médico
       document.getElementById('admision_medico_id').innerHTML = '<option value="">Seleccione especialidad o sector</option>';
       document.getElementById('admision_medico_id').disabled = true;
+      
+      //  Cargar servicios si ya hay sector seleccionado
+      const sectorSelect = document.getElementById('admision_sector_id');
+      if (sectorSelect && sectorSelect.value) {
+        cargarServiciosPorSector();
+      }
     });
   }
   
@@ -257,12 +313,15 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // ============================================================================
-  // FILTRAR MÉDICOS POR SECTOR
+  // FILTRAR MÉDICOS POR SECTOR 
   // ============================================================================
   const sectorSelect = document.getElementById('admision_sector_id');
   if (sectorSelect) {
     sectorSelect.addEventListener('change', async function() {
       const sectorId = this.value;
+      
+      // Primero cargar servicios
+      cargarServiciosPorSector();
       
       if (!sectorId) {
         document.getElementById('admision_medico_id').innerHTML = '<option value="">Seleccione sector primero</option>';
@@ -384,12 +443,31 @@ document.addEventListener('DOMContentLoaded', () => {
   }
   
   // ============================================================================
-  // GUARDAR ADMISIÓN
+  // GUARDAR ADMISIÓN 
   // ============================================================================
   const btnGuardarAdmision = document.getElementById('btnGuardarAdmision');
   if (btnGuardarAdmision) {
     btnGuardarAdmision.addEventListener('click', async () => {
       const form = document.getElementById('formCrearAdmision');
+      const servicioSelect = document.getElementById('admision_tipo_servicio_id');
+      
+      //  Validar campo servicio
+      if (!servicioSelect || !servicioSelect.value) {
+        alert('❌ El campo "Servicio" es obligatorio');
+        if (servicioSelect) {
+          servicioSelect.focus();
+        } else {
+          document.getElementById('campo_servicio').scrollIntoView({ behavior: 'smooth' });
+        }
+        return;
+      }
+      
+      //  Validar que el servicio tenga opciones válidas
+      if (servicioSelect && servicioSelect.options.length <= 1) {
+        alert('❌ Por favor, seleccione un sector para ver los servicios disponibles');
+        document.getElementById('admision_sector_id').focus();
+        return;
+      }
       
       if (!form.checkValidity()) {
         form.classList.add('was-validated');
@@ -497,7 +575,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (historial.tiene_estudios) {
       html += `
         <div class="card mb-3">
-          <div class="card-header bg-info text-white">
+          <div class="card-header bg-info.text-white">
             <h5 class="mb-0"><i class="fas fa-microscope me-2"></i>Estudios Pendientes</h5>
           </div>
           <div class="card-body">
@@ -526,7 +604,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const evaluacion = historial.ultima_evaluacion;
       html += `
         <div class="card mb-3">
-          <div class="card-header bg-success text-white">
+          <div class="card-header bg-success.text-white">
             <h5 class="mb-0"><i class="fas fa-stethoscope me-2"></i>Última Evaluación Médica</h5>
           </div>
           <div class="card-body">

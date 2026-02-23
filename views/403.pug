@@ -1,0 +1,133 @@
+doctype html
+html(lang='es')
+  head
+    meta(charset='UTF-8')
+    meta(name='viewport', content='width=device-width, initial-scale=1.0')
+    title Error 403 - Acceso Prohibido
+    link(href='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css', rel='stylesheet')
+    link(rel='stylesheet', href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css')
+    style.
+      body {
+        background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+        min-height: 100vh;
+      }
+      .shield-container {
+        position: relative;
+        width: 200px;
+        height: 200px;
+        margin: 0 auto;
+      }
+      .shield {
+        font-size: 180px;
+        color: #dc3545;
+        position: absolute;
+        animation: shieldPulse 2s infinite;
+      }
+      .lock {
+        font-size: 80px;
+        color: white;
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+      }
+      @keyframes shieldPulse {
+        0%, 100% { transform: scale(1); }
+        50% { transform: scale(1.05); }
+      }
+      .permission-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 1rem;
+        margin: 2rem 0;
+      }
+
+  body
+    .container.min-vh-100.d-flex.flex-column.justify-content-center
+      .row.justify-content-center
+        .col-lg-8.text-center
+          .shield-container.mb-4
+            i.fas.fa-shield-alt.shield
+            i.fas.fa-lock.lock
+          
+          h1.display-3.fw-bold.text-dark.mb-3 403
+          h2.text-danger.mb-4 Acceso Prohibido
+          
+          .alert.alert-danger.mb-4
+            i.fas.fa-exclamation-circle.me-2
+            strong Acceso Restringido
+            p.mb-0.mt-2 No tienes los permisos necesarios para acceder a este recurso.
+          
+          .permission-grid
+            .card.text-center.h-100
+              .card-body
+                i.fas.fa-user-md.text-primary.mb-3(style='font-size: 2.5rem;')
+                h5 Médicos
+                p.small.text-muted Acceso completo a historiales y diagnósticos
+                
+            .card.text-center.h-100
+              .card-body
+                i.fas.fa-user-nurse.text-success.mb-3(style='font-size: 2.5rem;')
+                h5 Enfermeros
+                p.small.text-muted Permiso para triaje y seguimiento básico
+                
+            .card.text-center.h-100
+              .card-body
+                i.fas.fa-user-shield.text-warning.mb-3(style='font-size: 2.5rem;')
+                h5 Administradores
+                p.small.text-muted Control total del sistema
+          
+          .row.mt-5
+            .col-md-6.mb-3
+              a.btn.btn-primary.btn-lg.w-100(href='/')
+                i.fas.fa-arrow-left.me-2
+                | Volver al Inicio
+            
+            .col-md-6.mb-3
+              button.btn.btn-outline-dark.btn-lg.w-100(
+                onclick='solicitarAcceso()'
+              )
+                i.fas.fa-envelope.me-2
+                | Solicitar Acceso
+          
+          .mt-4
+            p.text-muted.small
+              i.fas.fa-info-circle.me-1
+              | Si crees que deberías tener acceso, contacta al administrador del sistema
+            
+            .d-flex.justify-content-center.gap-3.mt-3
+              a.text-decoration-none(href='mailto:admin@hospital.com')
+                i.fas.fa-envelope.me-1
+                | admin@hospital.com
+              span.text-muted |
+              a.text-decoration-none(href='tel:+123456789')
+                i.fas.fa-phone.me-1
+                | Ext. 123
+
+    script.
+      function solicitarAcceso() {
+        const motivo = prompt('Por favor, indica por qué necesitas acceso a este recurso:');
+        if (motivo) {
+          alert('Tu solicitud ha sido enviada al administrador. Te contactaremos pronto.');
+          // Aquí podrías hacer una petición AJAX para enviar la solicitud
+        }
+      }
+      
+      // Mostrar mensaje de rol actual
+      document.addEventListener('DOMContentLoaded', () => {
+        // Esto podría venir del servidor
+        const userRole = 'Enfermero'; // Cambiar según el usuario logueado
+        const message = `Tu rol actual es: ${userRole}`;
+        
+        const roleAlert = document.createElement('div');
+        roleAlert.className = 'alert alert-info alert-dismissible fade show mt-3';
+        roleAlert.innerHTML = `
+          <i class="fas fa-id-card me-2"></i>
+          ${message}
+          <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        `;
+        
+        document.querySelector('.alert.alert-danger').after(roleAlert);
+      });
+
+    script(src='https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js')

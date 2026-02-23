@@ -72,8 +72,9 @@ async function cancelarProcedimiento() {
 
 // Validación de formulario
 document.querySelector('textarea[name="observaciones"]')?.addEventListener('blur', function() {
-  if (this.value.trim().length < 20) {
+  if (this.value.trim().length < 20 && this.value.trim().length > 0) {
     alert('Las observaciones deben tener al menos 20 caracteres');
     this.focus();
+    this.select(); 
   }
 });

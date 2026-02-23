@@ -2,11 +2,11 @@ document.addEventListener('DOMContentLoaded', () => {
   cargarUsuarios();
   cargarRoles();
 
-  // Eventos de filtros
-  document.getElementById('busqueda')?.addEventListener('input', debounce(cargarUsuarios, 500));
-  document.getElementById('filtro-estado')?.addEventListener('change', cargarUsuarios);
-  document.getElementById('filtro-sexo')?.addEventListener('change', cargarUsuarios);
-  document.getElementById('filtro-rol')?.addEventListener('change', cargarUsuarios);
+  
+  document.getElementById('busqueda')?.addEventListener('input', debounce(() => cargarUsuarios(1), 500));
+  document.getElementById('filtro-estado')?.addEventListener('change', () => cargarUsuarios(1));
+  document.getElementById('filtro-sexo')?.addEventListener('change', () => cargarUsuarios(1));
+  document.getElementById('filtro-rol')?.addEventListener('change', () => cargarUsuarios(1));
   
   // Eventos de botones
   document.getElementById('btnLimpiarFiltros')?.addEventListener('click', limpiarFiltros);
@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('btnGuardarEdicion')?.addEventListener('click', guardarEdicion);
   document.getElementById('btnConfirmarBloquear')?.addEventListener('click', confirmarBloquear);
   document.getElementById('btnConfirmarReset')?.addEventListener('click', confirmarReset);
+  document.getElementById('btnCompletarUrgencia')?.addEventListener('click', completarDatosUrgencia);
   
   // Validar contraseñas en tiempo real
   const nuevoPass = document.getElementById('nuevo-password');
@@ -38,6 +39,55 @@ document.addEventListener('DOMContentLoaded', () => {
 // Variables globales
 let paginaActual = 1;
 let timeoutBusqueda = null;
+
+// ============================================================================
+// UTILIDAD: PARSEAR FECHA ISO A FORMATO LOCAL
+// ============================================================================
+function formatearFecha(fechaISO) {
+  if (!fechaISO) return 'Sin fecha';
+  
+  try {
+    const fecha = new Date(fechaISO);
+    
+    if (isNaN(fecha.getTime())) {
+      console.warn('Fecha inválida:', fechaISO);
+      return 'Fecha inválida';
+    }
+    
+    return fecha.toLocaleDateString('es-AR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit'
+    });
+  } catch (error) {
+    console.error('Error al formatear fecha:', error);
+    return 'Error en fecha';
+  }
+}
+
+function formatearFechaHora(fechaISO) {
+  if (!fechaISO) return 'Sin fecha';
+  
+  try {
+    const fecha = new Date(fechaISO);
+    
+    if (isNaN(fecha.getTime())) {
+      return 'Fecha inválida';
+    }
+    
+    return fecha.toLocaleString('es-AR', {
+      year: 'numeric',
+      month: '2-digit',
+      day: '2-digit',
+      hour: '2-digit',
+      minute: '2-digit',
+      second: '2-digit'
+    });
+  } catch (error) {
+    console.error('Error al formatear fecha:', error);
+    return 'Error en fecha';
+  }
+}
 
 // ============================================================================
 // CARGAR DATOS
@@ -79,7 +129,6 @@ async function cargarRoles() {
     const data = await response.json();
     
     if (data.success) {
-      // Puedes usar los roles si necesitas en el frontend
       window.roles = data.roles;
     }
   } catch (error) {
@@ -106,7 +155,9 @@ function renderizarUsuarios(usuarios) {
   }
 
   tbody.innerHTML = usuarios.map(usuario => {
-    const fechaRegistro = new Date(usuario.created_at).toLocaleDateString('es-AR');
+    const fechaRegistro = usuario.rol_especifico?.fecha_asignacion 
+  ? formatearFecha(usuario.rol_especifico.fecha_asignacion)
+  : 'Sin fecha';
     
     let badgeEstado = '';
     switch(usuario.estado) {
@@ -142,11 +193,16 @@ function renderizarUsuarios(usuarios) {
       }
     }
 
+    // ✅ DETECTAR SI ES URGENCIA
+    const esUrgencia = usuario.nombre.includes('URGENCIA');
+    const badgeUrgencia = esUrgencia ? '<span class="badge bg-danger ms-1">🚨 URGENCIA</span>' : '';
+
     return `
       <tr>
         <td>
           <strong>${usuario.dni}</strong>
           ${badgeRol}
+          ${badgeUrgencia}
         </td>
         <td>${usuario.nombreCompleto}</td>
         <td>${usuario.email}</td>
@@ -181,34 +237,28 @@ function renderizarUsuarios(usuarios) {
 // ============================================================================
 window.verDetalles = async function(id) {
   try {
-
     mostrarLoading(true);
     
     const response = await fetch(`/usuarios/api/${id}/detalles`);
     const data = await response.json();
 
     if (data.success) {
-      // Datos personales
       document.getElementById('detalle-nombre').textContent = data.usuario.nombreCompleto;
       document.getElementById('detalle-dni').textContent = data.usuario.dni;
       document.getElementById('detalle-sexo').textContent = data.usuario.sexo;
-      document.getElementById('detalle-fecha-nacimiento').textContent = new Date(data.usuario.fecha_nacimiento).toLocaleDateString('es-AR');
+      document.getElementById('detalle-fecha-nacimiento').textContent = formatearFecha(data.usuario.fecha_nacimiento);
       document.getElementById('detalle-email').textContent = data.usuario.email;
       document.getElementById('detalle-telefono').textContent = data.usuario.telefono || 'Sin teléfono';
       document.getElementById('detalle-edad').textContent = `${data.usuario.edad} años`;
       document.getElementById('detalle-rol-principal').textContent = data.usuario.rol_principal;
       document.getElementById('detalle-rol-secundario').textContent = data.usuario.rol_secundario;
       document.getElementById('detalle-estado').textContent = data.usuario.estado;
-      document.getElementById('detalle-fecha-registro').textContent = new Date(data.usuario.created_at).toLocaleString('es-AR');
-      document.getElementById('detalle-ultima-actualizacion').textContent = new Date(data.usuario.updated_at).toLocaleString('es-AR');
+      document.getElementById('detalle-fecha-registro').textContent = formatearFechaHora(data.usuario.created_at);
+      document.getElementById('detalle-ultima-actualizacion').textContent = formatearFechaHora(data.usuario.updated_at);
 
-      // Información específica del rol
       renderizarInfoRolEspecifico(data.rol_especifico);
-      
-      // Estadísticas
       renderizarEstadisticas(data.estadisticas);
       
-      // Mostrar modal
       const modal = new bootstrap.Modal(document.getElementById('modalDetalles'));
       
       modal._element.addEventListener('hidden.bs.modal', () => {
@@ -383,7 +433,7 @@ async function crearUsuario() {
 }
 
 // ============================================================================
-// EDITAR USUARIO
+// EDITAR USUARIO - CON DETECCIÓN DE URGENCIA
 // ============================================================================
 window.editarUsuario = async function(id) {
   try {
@@ -393,16 +443,20 @@ window.editarUsuario = async function(id) {
     const data = await response.json();
 
     if (data.success) {
-      document.getElementById('editar-id').value = id;
-      document.getElementById('editar-nombre').value = data.usuario.nombreCompleto;
-      document.getElementById('editar-dni').value = data.usuario.dni;
-      document.getElementById('editar-email').value = data.usuario.email;
-      document.getElementById('editar-telefono').value = data.usuario.telefono || '';
-      document.getElementById('editar-rol-secundario').value = data.usuario.rol_secundario_id || '';
-      document.getElementById('editar-estado').value = data.usuario.estado;
+      const usuario = data.usuario;
+      
+      //  DETECTAR SI ES URGENCIA
+      const esUrgencia = usuario.nombre.includes('URGENCIA');
+      
+      console.log(`👤 Usuario ${id} - ¿Es urgencia?: ${esUrgencia}`);
 
-      const modal = new bootstrap.Modal(document.getElementById('modalEditar'));
-      modal.show();
+      if (esUrgencia) {
+        //  MOSTRAR MODAL ESPECIAL PARA URGENCIA
+        mostrarModalCompletarUrgencia(usuario);
+      } else {
+        //  MOSTRAR MODAL NORMAL
+        mostrarModalEditarNormal(usuario);
+      }
     } else {
       mostrarAlerta('error', data.message);
     }
@@ -413,6 +467,39 @@ window.editarUsuario = async function(id) {
     mostrarLoading(false);
   }
 };
+
+// ============================================================================
+// MODAL PARA EDITAR USUARIO NORMAL
+// ============================================================================
+function mostrarModalEditarNormal(usuario) {
+  document.getElementById('editar-id').value = usuario.id;
+  document.getElementById('editar-nombre').value = usuario.nombreCompleto;
+  document.getElementById('editar-dni').value = usuario.dni;
+  document.getElementById('editar-email').value = usuario.email;
+  document.getElementById('editar-telefono').value = usuario.telefono || '';
+  document.getElementById('editar-rol-secundario').value = usuario.rol_secundario_id || '';
+  document.getElementById('editar-estado').value = usuario.estado;
+
+  const modal = new bootstrap.Modal(document.getElementById('modalEditar'));
+  modal.show();
+}
+
+// ============================================================================
+// MODAL ESPECIAL PARA COMPLETAR URGENCIA
+// ============================================================================
+function mostrarModalCompletarUrgencia(usuario) {
+  document.getElementById('urgencia-id').value = usuario.id;
+  document.getElementById('urgencia-nombre-actual').textContent = usuario.nombre;
+  
+  // Limpiar campos
+  document.getElementById('urgencia-dni').value = '';
+  document.getElementById('urgencia-nombre').value = '';
+  document.getElementById('urgencia-apellido').value = '';
+  document.getElementById('urgencia-fecha-nacimiento').value = '';
+
+  const modal = new bootstrap.Modal(document.getElementById('modalCompletarUrgencia'));
+  modal.show();
+}
 
 async function guardarEdicion() {
   const form = document.getElementById('formEditarUsuario');
@@ -450,6 +537,51 @@ async function guardarEdicion() {
   } catch (error) {
     console.error('Error al actualizar usuario:', error);
     mostrarAlerta('error', 'Error al actualizar usuario');
+  }
+}
+
+// ============================================================================
+// GUARDAR DATOS COMPLETADOS DE URGENCIA
+// ============================================================================
+async function completarDatosUrgencia() {
+  const form = document.getElementById('formCompletarUrgencia');
+  
+  if (!form.checkValidity()) {
+    form.classList.add('was-validated');
+    return;
+  }
+
+  try {
+    const id = document.getElementById('urgencia-id').value;
+    const datos = {
+      dni_real: document.getElementById('urgencia-dni').value,
+      nombre_real: document.getElementById('urgencia-nombre').value,
+      apellido_real: document.getElementById('urgencia-apellido').value,
+      fecha_nacimiento_real: document.getElementById('urgencia-fecha-nacimiento').value
+    };
+
+    console.log('🏥 Completando datos de urgencia:', datos);
+
+    const response = await fetch(`/usuarios/api/${id}/completar-urgencia`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(datos)
+    });
+
+    const data = await response.json();
+
+    if (data.success) {
+      mostrarAlerta('success', '✅ Registro de urgencia completado correctamente');
+      bootstrap.Modal.getInstance(document.getElementById('modalCompletarUrgencia')).hide();
+      form.reset();
+      form.classList.remove('was-validated');
+      cargarUsuarios();
+    } else {
+      mostrarAlerta('error', data.message);
+    }
+  } catch (error) {
+    console.error('Error al completar urgencia:', error);
+    mostrarAlerta('error', 'Error al completar datos');
   }
 }
 
@@ -564,11 +696,9 @@ function renderizarPaginacion(pagination) {
 
   let html = '<ul class="pagination justify-content-center mb-0">';
   
-  // Anterior
   html += `<li class="page-item ${page === 1 ? 'disabled' : ''}">
     <a class="page-link" href="#" data-page="${page - 1}">« Anterior</a></li>`;
   
-  // Páginas
   const maxPages = 5;
   let startPage = Math.max(1, page - Math.floor(maxPages / 2));
   let endPage = Math.min(totalPages, startPage + maxPages - 1);
@@ -582,13 +712,11 @@ function renderizarPaginacion(pagination) {
       <a class="page-link" href="#" data-page="${i}">${i}</a></li>`;
   }
 
-  // Siguiente
   html += `<li class="page-item ${page === totalPages ? 'disabled' : ''}">
     <a class="page-link" href="#" data-page="${page + 1}">Siguiente »</a></li></ul>`;
   
   container.innerHTML = html;
 
-  // Eventos
   container.querySelectorAll('.page-link').forEach(link => {
     link.addEventListener('click', (e) => {
       e.preventDefault();

@@ -33,10 +33,20 @@ module.exports = (sequelize, DataTypes) => {
         allowNull: false,
         defaultValue: 'PENDIENTE'
       },
+      medico_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true,
+        references: { model: 'medicos', key: 'id' }
+      },
       habitacion_id: {
         type: DataTypes.INTEGER,
         allowNull: true,
         references: { model: 'habitaciones', key: 'id' }
+      },
+      tipo_servicio_id: {
+        type: DataTypes.INTEGER,
+        allowNull: true, 
+        references: { model: 'tiposdeservicio', key: 'id' }
       },
       creador_tipo: {type: DataTypes.ENUM('ADMINISTRATIVO', 'ENFERMERO', 'MEDICO'), allowNull: false, defaultValue: 'ADMINISTRATIVO'},
       creador_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'usuarios', key: 'id' } },
@@ -138,6 +148,18 @@ module.exports = (sequelize, DataTypes) => {
      ListaEspera.hasOne(models.TurnoEstudio, {
         foreignKey: 'lista_espera_id',
         as: 'turno_estudio'
+    });
+    ListaEspera.belongsTo(models.TipoDeServicio, {
+      foreignKey: 'tipo_servicio_id',
+      as: 'tipo_servicio'
+    });
+    ListaEspera.belongsTo(models.Medico, {
+      foreignKey: 'medico_id',
+      as: 'medico_asignado'
+    });
+    ListaEspera.hasMany(models.EvaluacionEnfermeria, {
+      foreignKey: 'lista_espera_generada_id',
+      as: 'evaluaciones_enfermeria'
     });
      
     };

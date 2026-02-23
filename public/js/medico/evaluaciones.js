@@ -9,37 +9,60 @@ document.addEventListener('DOMContentLoaded', function() {
   cargarDiagnosticos();
   cargarTratamientos();
   cargarEvaluaciones();
+  cargarUrgenciasPendientes();
   
-  // Formulario de filtros
   document.getElementById('formFiltros').addEventListener('submit', function(e) {
     e.preventDefault();
     paginaActual = 1;
     cargarEvaluaciones();
   });
-  
-  // Formulario nueva evaluación
+
   document.getElementById('formNuevaEvaluacion').addEventListener('submit', function(e) {
     e.preventDefault();
     crearEvaluacion();
   });
-  
-  // Formulario editar evaluación
+
   document.getElementById('formEditarEvaluacion').addEventListener('submit', function(e) {
     e.preventDefault();
     actualizarEvaluacion();
   });
-  
-  // Búsqueda de diagnósticos en tiempo real
+
   let timeoutDiagnostico;
   document.getElementById('filtroDiagnostico')?.addEventListener('input', function(e) {
     clearTimeout(timeoutDiagnostico);
     timeoutDiagnostico = setTimeout(() => {
-      if (e.target.value.length >= 3) {
-        cargarDiagnosticos(e.target.value);
-      }
+      if (e.target.value.length >= 3) cargarDiagnosticos(e.target.value);
     }, 300);
   });
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const pacienteDni = urlParams.get('paciente_dni');
+  if (pacienteDni) {
+    precargarPacienteEnEvaluacion(pacienteDni);
+  }
 });
+
+//  Fuera del DOMContentLoaded
+async function precargarPacienteEnEvaluacion(dni) {
+  try {
+    const res = await fetch(`/medico/evaluaciones/api/pacientes-filtro?busqueda=${dni}`);
+    const data = await res.json();
+
+    if (data.success && data.data.length > 0) {
+      const paciente = data.data[0];
+      document.getElementById('busquedaPaciente').value = `${paciente.usuario.nombre} ${paciente.usuario.apellido}`;
+      document.getElementById('nuevoPaciente').innerHTML = `
+        <option value="${paciente.id}" selected>
+          ${paciente.usuario.nombre} ${paciente.usuario.apellido} (${paciente.usuario.dni})
+        </option>
+      `;
+    }
+  } catch (error) {
+    console.error('Error al precargar paciente:', error);
+  } finally {
+    new bootstrap.Modal(document.getElementById('modalNuevaEvaluacion')).show();
+  }
+}
 
 // Cargar estadísticas
 async function cargarEstadisticas() {
@@ -59,34 +82,44 @@ async function cargarEstadisticas() {
 }
 
 // Cargar pacientes para filtro y nueva evaluación
+// Declarar la variable fuera para que persista
+let timeoutPaciente;
+
 async function cargarPacientesParaFiltro() {
-  try {
-    const response = await fetch('/medico/evaluaciones/api/pacientes-filtro');
-    const data = await response.json();
+  document.getElementById('busquedaPaciente').addEventListener('input', e => {
+    clearTimeout(timeoutPaciente);
     
-    if (data.success) {
-      const selectFiltro = document.getElementById('filtroPaciente');
-      const selectNuevo = document.getElementById('nuevoPaciente');
+    timeoutPaciente = setTimeout(async () => {
+      const valor = e.target.value.trim();
       
-      data.data.forEach(paciente => {
-        const nombre = `${paciente.usuario.nombre} ${paciente.usuario.apellido} (${paciente.usuario.dni})`;
+      const select = document.getElementById('nuevoPaciente');
+      
+      if (valor.length < 3) {
+        select.innerHTML = '<option value="">Escriba para buscar...</option>';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/medico/evaluaciones/api/pacientes-filtro?busqueda=${encodeURIComponent(valor)}`);
+        const data = await res.json();
         
-        // Para filtro
-        const optionFiltro = document.createElement('option');
-        optionFiltro.value = paciente.id;
-        optionFiltro.textContent = nombre;
-        selectFiltro.appendChild(optionFiltro);
-        
-        // Para nueva evaluación
-        const optionNuevo = document.createElement('option');
-        optionNuevo.value = paciente.id;
-        optionNuevo.textContent = nombre;
-        selectNuevo.appendChild(optionNuevo);
-      });
-    }
-  } catch (error) {
-    console.error('Error al cargar pacientes:', error);
-  }
+        if (data.success) {
+          select.innerHTML = '<option value="">Seleccione paciente</option>';
+          data.data.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p.id;
+            opt.textContent = `${p.usuario.nombre} ${p.usuario.apellido} (${p.usuario.dni})`;
+            select.appendChild(opt);
+          });
+        } else {
+          select.innerHTML = '<option value="">No se encontraron resultados</option>';
+        }
+      } catch (error) {
+        select.innerHTML = '<option value="">Error al buscar</option>';
+        console.error(error);
+      }
+    }, 400);
+  });
 }
 
 // Cargar diagnósticos
@@ -234,6 +267,10 @@ function mostrarEvaluaciones(evaluaciones) {
             '<span class="text-muted">Sin tratamiento</span>'
           }
         </td>
+        <td class="text-monospace">
+          <div>Eval: <strong>${evaluacion.id}</strong></div>
+          <div>Pac: <strong>${evaluacion.paciente?.usuario?.id || '-'}</strong></div>
+        </td>
         <td>
           <div class="btn-group" role="group">
             <button class="btn btn-sm btn-outline-info" 
@@ -245,6 +282,12 @@ function mostrarEvaluaciones(evaluaciones) {
                     onclick="mostrarModalEditar(${evaluacion.id})"
                     title="Editar">
               <i class="fas fa-edit"></i>
+            </button>
+             
+            <button class="btn btn-sm btn-outline-success" 
+                    onclick="abrirModalSolicitarControl(${evaluacion.id}, '${evaluacion.paciente?.usuario?.nombre || ''} ${evaluacion.paciente?.usuario?.apellido || ''}')"
+                    title="Solicitar Control de Enfermería">
+                    <i class="fas fa-clipboard-check"></i>
             </button>
           </div>
         </td>
@@ -348,117 +391,8 @@ async function crearEvaluacion() {
 }
 
 // Ver detalle de evaluación
-async function verDetalleEvaluacion(id) {
-  try {
-    const response = await fetch(`/medico/evaluaciones/api/evaluaciones/${id}`);
-    const data = await response.json();
-    
-    if (data.success) {
-      const ev = data.data;
-      const fecha = new Date(ev.fecha);
-      
-      document.getElementById('modalDetalleEvaluacionBody').innerHTML = `
-        <div class="row g-3">
-          <div class="col-md-6">
-            <h6 class="text-primary mb-3">
-              <i class="fas fa-user-circle me-2"></i>
-              Información del Paciente
-            </h6>
-            <table class="table table-sm">
-              <tr>
-                <th width="40%">Paciente:</th>
-                <td>${ev.paciente?.usuario?.nombre} ${ev.paciente?.usuario?.apellido}</td>
-              </tr>
-              <tr>
-                <th>DNI:</th>
-                <td>${ev.paciente?.usuario?.dni}</td>
-              </tr>
-              <tr>
-                <th>Obra Social:</th>
-                <td>${ev.paciente?.obraSocial?.nombre || 'Sin obra social'}</td>
-              </tr>
-            </table>
-          </div>
-          
-          <div class="col-md-6">
-            <h6 class="text-primary mb-3">
-              <i class="fas fa-calendar me-2"></i>
-              Información de la Evaluación
-            </h6>
-            <table class="table table-sm">
-              <tr>
-                <th width="40%">Fecha:</th>
-                <td>${fecha.toLocaleDateString('es-AR')} ${fecha.toLocaleTimeString('es-AR')}</td>
-              </tr>
-              ${ev.diagnostico ? `
-                <tr>
-                  <th>Diagnóstico:</th>
-                  <td>
-                    <strong>${ev.diagnostico.codigo}</strong> - ${ev.diagnostico.nombre}
-                    <br>
-                    <small class="text-muted">${ev.diagnostico.tipoDiagnostico?.nombre || ''}</small>
-                  </td>
-                </tr>
-              ` : ''}
-              ${ev.tratamiento ? `
-                <tr>
-                  <th>Tratamiento:</th>
-                  <td>${ev.tratamiento.nombre}</td>
-                </tr>
-              ` : ''}
-            </table>
-          </div>
-          
-          ${ev.observaciones_diagnostico ? `
-            <div class="col-12">
-              <h6 class="text-primary mb-2">
-                <i class="fas fa-notes-medical me-2"></i>
-                Observaciones
-              </h6>
-              <div class="alert alert-info">
-                ${ev.observaciones_diagnostico}
-              </div>
-            </div>
-          ` : ''}
-          
-          ${ev.procedimientos_enfermeria?.length > 0 ? `
-            <div class="col-12">
-              <h6 class="text-primary mb-2">
-                <i class="fas fa-syringe me-2"></i>
-                Procedimientos de Enfermería
-              </h6>
-              <ul class="list-group">
-                ${ev.procedimientos_enfermeria.map(proc => `
-                  <li class="list-group-item">${proc.nombre}</li>
-                `).join('')}
-              </ul>
-            </div>
-          ` : ''}
-          
-          ${ev.recetas_certificados?.length > 0 ? `
-            <div class="col-12">
-              <h6 class="text-primary mb-2">
-                <i class="fas fa-file-prescription me-2"></i>
-                Recetas y Certificados
-              </h6>
-              <ul class="list-group">
-                ${ev.recetas_certificados.map(rc => `
-                  <li class="list-group-item">
-                    <strong>${rc.tipo}:</strong> ${rc.contenido.substring(0, 100)}...
-                  </li>
-                `).join('')}
-              </ul>
-            </div>
-          ` : ''}
-        </div>
-      `;
-      
-      new bootstrap.Modal(document.getElementById('modalDetalleEvaluacion')).show();
-    }
-  } catch (error) {
-    console.error('Error:', error);
-    mostrarAlerta('error', 'Error al cargar detalle');
-  }
+function verDetalleEvaluacion(id) {
+  window.location.href = `/medico/evaluaciones/${id}`;
 }
 
 // Mostrar modal editar
@@ -482,7 +416,42 @@ async function mostrarModalEditar(id) {
     mostrarAlerta('error', 'Error al cargar evaluación');
   }
 }
-
+async function cargarUrgenciasPendientes() {
+  try {
+    const response = await fetch('/medico/emergencias/api/lista?estado=PENDIENTE,ASIGNADO');
+    const data = await response.json();
+    
+    const loading = document.getElementById('loading-urgencias');
+    const tabla = document.getElementById('tabla-urgencias');
+    const tbody = document.getElementById('tbody-urgencias');
+    
+    //  Si no existen los elementos, salir sin error
+    if (!loading || !tabla || !tbody) return;
+    
+    loading.classList.add('d-none');
+    tabla.classList.remove('d-none');
+    
+    if (data.success && data.data.length > 0) {
+      tbody.innerHTML = data.data.map(e => `
+        <tr>
+          <td>${e.paciente?.usuario?.nombre} ${e.paciente?.usuario?.apellido}</td>
+          <td>${e.evaluacion_enfermeria?.nivel_triaje || 'Sin triaje'}</td>
+          <td>${Math.floor((Date.now() - new Date(e.fecha_registro)) / 60000)} min</td>
+          <td>${e.evaluacion_enfermeria?.enfermero?.usuario?.nombre || 'N/A'}</td>
+          <td>
+            <button class="btn btn-sm btn-primary" onclick="atenderPaciente(${e.id}, ${e.paciente_id})">
+              Atender
+            </button>
+          </td>
+        </tr>
+      `).join('');
+    } else {
+      tbody.innerHTML = '<tr><td colspan="5" class="text-center">No hay urgencias pendientes</td></tr>';
+    }
+  } catch (error) {
+    console.error(error);
+  }
+}
 // Actualizar evaluación
 async function actualizarEvaluacion() {
   try {
@@ -544,4 +513,47 @@ function mostrarAlerta(tipo, mensaje) {
   setTimeout(() => {
     alertContainer.remove();
   }, 5000);
+}
+//  Función para solicitar control
+function abrirModalSolicitarControl(evaluacionId, pacienteName) {
+  document.getElementById('solicitarControlEvaluacionId').value = evaluacionId;
+  document.getElementById('solicitarControlEvaluacionInfo').textContent = pacienteName;
+  
+  const modal = new bootstrap.Modal(document.getElementById('modalSolicitarControl'));
+  modal.show();
+}
+
+//  Confirmar solicitud de control
+function confirmarSolicitarControl() {
+  const evaluacionId = document.getElementById('solicitarControlEvaluacionId').value;
+  
+  if (!evaluacionId) {
+    mostrarAlerta('error', 'Error: ID de evaluación no válido');
+    return;
+  }
+
+  fetch(`/medico/evaluaciones/${evaluacionId}/solicitar-control`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      evaluacion_medica_id: evaluacionId
+    })
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      mostrarAlerta('success', 'Control de enfermería solicitado correctamente');
+      bootstrap.Modal.getInstance(document.getElementById('modalSolicitarControl')).hide();
+      cargarEvaluaciones(); // Recargar tabla
+      cargarEstadisticas(); // Actualizar estadísticas
+    } else {
+      mostrarAlerta('error', data.message || 'No se pudo solicitar el control');
+    }
+  })
+  .catch(error => {
+    console.error('Error:', error);
+    mostrarAlerta('error', 'Error al solicitar el control');
+  });
 }

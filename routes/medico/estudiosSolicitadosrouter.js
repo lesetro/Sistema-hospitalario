@@ -4,14 +4,9 @@ const estudiosSolicitadosController = require('../../controllers/medico/estudios
 const authMiddleware = require('../../middleware/authMiddleware');
 
 // ========================================
-// MIDDLEWARE DE AUTENTICACIÓN
+// MIDDLEWARE DE AUTENTICACIÓN Y AUTORIZACIÓN
 // ========================================
-// ✅ CRÍTICO: authMiddleware DEBE estar aquí
 router.use(authMiddleware);
-
-// ========================================
-// VISTAS (Renderizadas en servidor)
-// ========================================
 
 // Vista principal de estudios solicitados
 router.get('/', estudiosSolicitadosController.renderEstudiosSolicitados);
@@ -20,34 +15,40 @@ router.get('/', estudiosSolicitadosController.renderEstudiosSolicitados);
 // APIs - ESTUDIOS PRINCIPALES
 // ========================================
 
-// ✅ ORDEN: Rutas específicas PRIMERO, genéricas DESPUÉS
-
-// Obtener tipos de estudio
+// 1. Obtener tipos de estudio (para formularios)
 router.get('/api/tipos-estudio', estudiosSolicitadosController.obtenerTiposEstudio);
 
-// Obtener distribución por categoría
+// 2. Obtener distribución por categoría (para gráficos)
 router.get('/api/por-categoria', estudiosSolicitadosController.obtenerEstudiosPorCategoria);
 
-// Obtener estudio específico por ID
-router.get('/api/estudios/:id', estudiosSolicitadosController.obtenerEstudioPorId);
+// 3. Obtener estadísticas (para dashboard)
+router.get('/api/estadisticas', estudiosSolicitadosController.obtenerEstadisticas);
 
-// Cancelar estudio específico
-router.delete('/api/estudios/:id/cancelar', estudiosSolicitadosController.cancelarEstudio);
-
-// Obtener todos los estudios (con filtros y paginación)
+// 4. Obtener todos los estudios (con filtros y paginación)
 router.get('/api/estudios', estudiosSolicitadosController.obtenerEstudios);
 
-// Crear nuevo estudio
+// 5. Crear nuevo estudio
 router.post('/api/estudios', estudiosSolicitadosController.crearEstudio);
 
-// Actualizar estudio
+// ========================================
+// APIs - OPERACIONES SOBRE UN ESTUDIO ESPECÍFICO
+// ========================================
+
+router.get('/api/estudios/:id', estudiosSolicitadosController.obtenerEstudioPorId);
+
 router.put('/api/estudios/:id', estudiosSolicitadosController.actualizarEstudio);
 
-// ========================================
-// APIs - ESTADÍSTICAS
-// ========================================
+// 8. Cancelar estudio (PUT /:id/cancelar)
+router.put('/api/estudios/:id/cancelar', estudiosSolicitadosController.cancelarEstudio);
 
-// Obtener estadísticas de estudios
-router.get('/api/estadisticas', estudiosSolicitadosController.obtenerEstadisticas);
+// 9. Completar estudio (PUT /:id/completar)
+router.put('/api/estudios/:id/completar', estudiosSolicitadosController.completarEstudio);
+
+// Buscar pacientes por DNI o nombre
+router.get('/api/buscar-pacientes', estudiosSolicitadosController.buscarPacientes);
+
+// Obtener evaluaciones de un paciente específico
+router.get('/api/paciente/:pacienteId/evaluaciones', estudiosSolicitadosController.obtenerEvaluacionesPaciente);
+
 
 module.exports = router;

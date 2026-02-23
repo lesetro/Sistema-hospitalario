@@ -1,0 +1,160 @@
+extends layout
+
+block content
+  .container-fluid
+    // Breadcrumb y header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/medico") Dashboard
+            li.breadcrumb-item
+              a(href="/medico/ordenes-prequirurgico") Órdenes Pre-quirúrgicas
+            li.breadcrumb-item.active Editar Orden
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-edit.me-2
+              | Editar Orden Pre-quirúrgica
+            p.text-muted.mb-0 Modifique los datos de la preparación
+          div
+            a.btn.btn-outline-secondary(href=`/medico/ordenes-prequirurgico/${procedimiento.id}`)
+              i.fas.fa-arrow-left.me-2
+              | Volver
+
+    // Alerta si ya fue completado
+    if procedimiento.estado === 'Completado'
+      .row.mb-4
+        .col-12
+          .alert.alert-warning
+            i.fas.fa-exclamation-triangle.me-2
+            strong Atención:
+            |  Esta orden ya fue completada y no puede ser editada.
+
+    // Formulario
+    .row
+      .col-lg-8.mx-auto
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-file-medical.me-2
+              | Datos de la Orden Pre-quirúrgica
+          
+          .card-body
+            form#form-editar-prequirurgico(method="POST" action=`/medico/ordenes-prequirurgico/${procedimiento.id}`)
+              input(type="hidden" name="_method" value="PUT")
+              
+              // Información del paciente (solo lectura)
+              .mb-4
+                label.form-label
+                  i.fas.fa-user.me-2
+                  | Paciente
+                .alert.alert-info
+                  strong #{procedimiento.evaluacion_medica.paciente.usuario.nombre} #{procedimiento.evaluacion_medica.paciente.usuario.apellido}
+                  br
+                  small DNI: #{procedimiento.evaluacion_medica.paciente.usuario.dni}
+
+              hr
+
+              // Nombre
+              .mb-3
+                label.form-label(for="nombre")
+                  i.fas.fa-tag.me-2
+                  | Nombre de la Preparación
+                input.form-control(
+                  type="text"
+                  id="nombre"
+                  name="nombre"
+                  value=procedimiento.nombre
+                  required
+                )
+
+              // Descripción
+              .mb-3
+                label.form-label(for="descripcion")
+                  i.fas.fa-align-left.me-2
+                  | Descripción de la Cirugía
+                  span.text-danger *
+                textarea.form-control(
+                  id="descripcion"
+                  name="descripcion"
+                  rows="3"
+                  required
+                )= procedimiento.descripcion.split('===')[0].trim()
+
+              // Observaciones especiales
+              .mb-3
+                label.form-label(for="observaciones_especiales")
+                  i.fas.fa-exclamation-triangle.me-2
+                  | Observaciones Especiales del Médico
+                textarea.form-control(
+                  id="observaciones_especiales"
+                  name="observaciones_especiales"
+                  rows="3"
+                )= procedimiento.descripcion.includes('OBSERVACIONES ESPECIALES') ? procedimiento.descripcion.split('OBSERVACIONES ESPECIALES DEL MÉDICO')[1].split('===')[0].trim() : ''
+
+              // Checklist requerido
+              .mb-3
+                label.form-label(for="checklist_requerido")
+                  i.fas.fa-list-check.me-2
+                  | Checklist Específico
+                textarea.form-control(
+                  id="checklist_requerido"
+                  name="checklist_requerido"
+                  rows="4"
+                )= procedimiento.descripcion.includes('CHECKLIST REQUERIDO') ? procedimiento.descripcion.split('CHECKLIST REQUERIDO')[1].split('===')[0].trim() : ''
+
+              // Prioridad
+              .mb-3
+                label.form-label(for="prioridad")
+                  i.fas.fa-flag.me-2
+                  | Prioridad
+                  span.text-danger *
+                select.form-select(id="prioridad" name="prioridad" required)
+                  option(value="ALTA" selected=procedimiento.prioridad === 'ALTA') Alta
+                  option(value="URGENTE" selected=procedimiento.prioridad === 'URGENTE') Urgente
+                  option(value="NORMAL" selected=procedimiento.prioridad === 'NORMAL') Normal
+
+              hr
+
+              // Botones
+              .d-grid.gap-2.d-md-flex.justify-content-md-end
+                a.btn.btn-secondary(href=`/medico/ordenes-prequirurgico/${procedimiento.id}`)
+                  i.fas.fa-times.me-2
+                  | Cancelar
+                button.btn.btn-primary(type="submit")
+                  i.fas.fa-save.me-2
+                  | Guardar Cambios
+
+block scripts
+  script.
+    document.getElementById('form-editar-prequirurgico').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const data = Object.fromEntries(formData.entries());
+      
+      try {
+        const response = await fetch(`/medico/ordenes-prequirurgico/${#{procedimiento.id}}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          alert(result.message);
+          window.location.href = result.redirect;
+        } else {
+          alert('Error: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al actualizar la orden');
+      }
+    });

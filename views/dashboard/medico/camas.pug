@@ -1,0 +1,265 @@
+extends layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-hospital-user.me-2
+              | Gestión de Camas
+            p.text-muted.mb-0 Panel de control de disponibilidad y estado de camas
+          div
+            button.btn.btn-outline-primary(type='button' onclick='actualizarEstadisticas()')
+              i.fas.fa-sync-alt.me-2
+              | Actualizar
+
+    // Tarjetas de navegación principal
+    .row.g-4.mb-5
+      .col-xl-3.col-md-6
+        .card.border-0.shadow-sm.h-100.text-center.hover-card(onclick="window.location.href='/medico/camas/camas-sectores'")
+          .card-body.p-4
+            .p-3.rounded-circle.bg-primary.bg-opacity-10.d-inline-flex.mb-3
+              i.fas.fa-sitemap.fa-2x.text-primary
+            h4.card-title Ver Sectores
+            p.card-text.text-muted
+              | Navega por los sectores del hospital y sus habitaciones
+            
+
+      .col-xl-3.col-md-6
+        .card.border-0.shadow-sm.h-100.text-center.hover-card(onclick="window.location.href='/medico/camas/disponibles'")
+          .card-body.p-4
+            .p-3.rounded-circle.bg-success.bg-opacity-10.d-inline-flex.mb-3
+              i.fas.fa-bed.fa-2x.text-success
+            h4.card-title Camas Disponibles
+            p.card-text.text-muted
+              | Encuentra camas libres para nuevas internaciones
+            .mt-3
+              span#disponibles-count.badge.bg-success 0
+              span.ms-2.text-muted camas libres
+
+      .col-xl-3.col-md-6
+        .card.border-0.shadow-sm.h-100.text-center.hover-card(onclick="window.location.href='/medico/camas/limpieza'")
+          .card-body.p-4
+            .p-3.rounded-circle.bg-warning.bg-opacity-10.d-inline-flex.mb-3
+              i.fas.fa-broom.fa-2x.text-warning
+            h4.card-title Camas en Limpieza
+            p.card-text.text-muted
+              | Controla el estado de limpieza de las camas
+            .mt-3
+              span#limpieza-count.badge.bg-warning.text-dark 0
+              span.ms-2.text-muted en limpieza
+
+      .col-xl-3.col-md-6
+        .card.border-0.shadow-sm.h-100.text-center.hover-card(data-bs-toggle='modal' data-bs-target='#modalEstadisticas')
+          .card-body.p-4
+            .p-3.rounded-circle.bg-info.bg-opacity-10.d-inline-flex.mb-3
+              i.fas.fa-chart-bar.fa-2x.text-info
+            h4.card-title Estadísticas
+            p.card-text.text-muted
+              | Estadísticas generales del sistema de camas
+            .mt-3
+              span.badge.bg-info
+                i.fas.fa-chart-line.me-1
+                | Ver Detalles
+
+    // Estadísticas rápidas
+    .row.mb-5
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-chart-pie.me-2
+              | Vista Rápida del Hospital
+          .card-body
+            .row.g-3
+              .col-md-3.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h3.text-primary.mb-1#total-sectores 0
+                    small.text-muted Sectores
+              
+              .col-md-3.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h3.text-info.mb-1#total-habitaciones 0
+                    small.text-muted Habitaciones
+              
+              .col-md-3.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h3.text-success.mb-1#total-camas-libres 0
+                    small.text-muted Camas Libres
+              
+              .col-md-3.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h3.text-danger.mb-1#total-camas-ocupadas 0
+                    small.text-muted Camas Ocupadas
+
+    // Acciones rápidas
+    .row.mb-5
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-bolt.me-2
+              | Acciones Rápidas
+          .card-body
+            .row.g-3
+              .col-lg-2.col-md-4.col-sm-6
+                button.btn.btn-outline-primary.w-100(type='button' onclick="window.location.href='/medico/camas/sectores'")
+                  i.fas.fa-sitemap.me-2
+                  | Sectores
+              
+              .col-lg-2.col-md-4.col-sm-6
+                button.btn.btn-outline-success.w-100(type='button' onclick="window.location.href='/medico/camas/disponibles'")
+                  i.fas.fa-bed.me-2
+                  | Disponibles
+              
+              .col-lg-2.col-md-4.col-sm-6
+                button.btn.btn-outline-warning.w-100(type='button' onclick="window.location.href='/medico/camas/limpieza'")
+                  i.fas.fa-broom.me-2
+                  | Limpieza
+              
+              .col-lg-2.col-md-4.col-sm-6
+                button.btn.btn-outline-info.w-100(type='button' data-bs-toggle='modal' data-bs-target='#modalBusqueda')
+                  i.fas.fa-search.me-2
+                  | Buscar Cama
+              
+              .col-lg-2.col-md-4.col-sm-6
+                button.btn.btn-outline-secondary.w-100(type='button' data-bs-toggle='modal' data-bs-target='#modalReportes')
+                  i.fas.fa-file-alt.me-2
+                  | Reportes
+              
+              .col-lg-2.col-md-4.col-sm-6
+                button.btn.btn-outline-dark.w-100(type='button' onclick='actualizarTodo()')
+                  i.fas.fa-sync-alt.me-2
+                  | Actualizar Todo
+
+    // Modal: Estadísticas detalladas
+    #modalEstadisticas.modal.fade(tabindex='-1')
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header.bg-primary.text-white
+            h5.modal-title
+              i.fas.fa-chart-bar.me-2
+              | Estadísticas Detalladas
+            button.btn-close.btn-close-white(data-bs-dismiss='modal')
+          .modal-body
+            #contenido-estadisticas
+              .text-center.py-4
+                .spinner-border.text-primary(role='status')
+                  span.visually-hidden Cargando estadísticas...
+
+    // Modal: Búsqueda rápida
+    #modalBusqueda.modal.fade(tabindex='-1')
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-search.me-2
+              | Búsqueda Avanzada de Camas
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            .row
+              .col-md-6.mb-3
+                label.form-label Número de Cama
+                input.form-control(type='text' id='buscar-cama-input' placeholder='Ej: 101, 205...')
+              .col-md-6.mb-3
+                label.form-label Número de Habitación
+                input.form-control(type='text' id='buscar-habitacion-input' placeholder='Ej: 101, 102...')
+        
+            .row
+              .col-md-6.mb-3
+                label.form-label Sector
+                select.form-select(id='buscar-sector-select')
+                  option(value='') Todos los sectores
+          
+              .col-md-6.mb-3
+                label.form-label Tipo de Servicio
+                select.form-select(id='buscar-tipo-servicio-select')
+                  option(value='') Todos los servicios
+        
+            .row
+              .col-md-6.mb-3
+                label.form-label Estado de la Cama
+                select.form-select(id='buscar-estado-select')
+                  option(value='Todos') Todos los estados
+                  option(value='libre') Libre
+                  option(value='ocupada') Ocupada
+                  option(value='limpieza') En Limpieza
+                  
+          
+              .col-md-6.mb-3
+                label.form-label Sexo Permitido
+                select.form-select(id='buscar-sexo-select')
+                  option(value='Todos') Todos
+                  option(value='masculino') Masculino
+                  option(value='femenino') Femenino
+                  option(value='unisex') Mixto
+        
+            .d-grid.gap-2
+              button.btn.btn-primary(type='button' onclick='buscarCama()')
+                i.fas.fa-search.me-2
+                | Buscar Camas
+        
+            #resultados-busqueda.mt-4
+          .modal-footer
+            small.text-muted Complete uno o más campos para realizar la búsqueda
+
+    // Modal: Reportes
+    #modalReportes.modal.fade(tabindex='-1')
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-file-alt.me-2
+              | Generar Reportes
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            .row.g-3
+              .col-md-6
+                .card.border-0.shadow-sm.h-100
+                  .card-body.text-center
+                    i.fas.fa-bed.fa-3x.text-primary.mb-3
+                    h5.card-title Ocupación Diaria
+                    p.card-text.text-muted Reporte de ocupación por día
+                    button.btn.btn-outline-primary.mt-2(onclick='generarReporte("ocupacion")')
+                      i.fas.fa-download.me-2
+                      | Generar
+              
+              .col-md-6
+                .card.border-0.shadow-sm.h-100
+                  .card-body.text-center
+                    i.fas.fa-broom.fa-3x.text-warning.mb-3
+                    h5.card-title Tiempos de Limpieza
+                    p.card-text.text-muted Tiempos promedio de limpieza
+                    button.btn.btn-outline-warning.mt-2(onclick='generarReporte("limpieza")')
+                      i.fas.fa-download.me-2
+                      | Generar
+              
+              .col-md-6
+                .card.border-0.shadow-sm.h-100
+                  .card-body.text-center
+                    i.fas.fa-exchange-alt.fa-3x.text-success.mb-3
+                    h5.card-title Rotación de Camas
+                    p.card-text.text-moved Rotación de pacientes por cama
+                    button.btn.btn-outline-success.mt-2(onclick='generarReporte("rotacion")')
+                      i.fas.fa-download.me-2
+                      | Generar
+              
+              .col-md-6
+                .card.border-0.shadow-sm.h-100
+                  .card-body.text-center
+                    i.fas.fa-chart-line.fa-3x.text-info.mb-3
+                    h5.card-title Estadísticas Mensuales
+                    p.card-text.text-muted Resumen mensual completo
+                    button.btn.btn-outline-info.mt-2(onclick='generarReporte("mensual")')
+                      i.fas.fa-download.me-2
+                      | Generar
+
+block scripts
+  script(src='/js/medico/dashboard-camas.js')

@@ -8,7 +8,7 @@ const {
 } = require('../../models');
 
 // Finalizar limpieza de cama
-const finalizarLimpiezaCama = async (req, res) => {
+const finalizarLimpiezaCama = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   try {
     const { cama_id } = req.params;
@@ -60,12 +60,7 @@ const finalizarLimpiezaCama = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al finalizar limpieza:', error);
-    res.status(500).json({ 
-      success: false,
-      message: 'Error al finalizar limpieza', 
-      error: error.message 
-    });
+    next(error);
   }
 };
 
@@ -113,7 +108,7 @@ const crearAlertaCamaDisponible = async (listaEspera, sector_id, transaction) =>
 };
 
 // Obtener estado de todas las camas por sector
-const getEstadoCamasPorSector = async (req, res) => {
+const getEstadoCamasPorSector = async (req, res, next) => {
   try {
     const estadoCamas = await Sector.findAll({
       include: [{
@@ -171,11 +166,7 @@ const getEstadoCamasPorSector = async (req, res) => {
     res.json({ sectores: estadisticas });
 
   } catch (error) {
-    console.error('Error al obtener estado de camas:', error);
-    res.status(500).json({ 
-      message: 'Error al obtener estado de camas', 
-      error: error.message 
-    });
+    next(error);
   }
 };
 

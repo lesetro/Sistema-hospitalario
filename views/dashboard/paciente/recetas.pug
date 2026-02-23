@@ -1,0 +1,157 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .recetas-paciente
+    .page-header.mb-4
+      .row.align-items-center
+        .col-md-8
+          h2
+            i.fas.fa-file-prescription.text-primary.me-2
+            | Recetas y Certificados
+          p.text-muted Documentos médicos emitidos
+        .col-md-4.text-md-end
+          a.btn.btn-outline-secondary(href='/paciente')
+            i.fas.fa-arrow-left.me-2
+            | Volver
+
+    //- Estadísticas
+    .row.mb-4
+      .col-md-4.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-primary.text-white.mb-2
+              i.fas.fa-file-medical.fa-2x
+            h3.stat-number.text-primary #{estadisticas.total}
+            p.stat-label.mb-0 Total Documentos
+      .col-md-4.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-success.text-white.mb-2
+              i.fas.fa-prescription.fa-2x
+            h3.stat-number.text-success #{estadisticas.recetas}
+            p.stat-label.mb-0 Recetas Médicas
+      .col-md-4.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-info.text-white.mb-2
+              i.fas.fa-certificate.fa-2x
+            h3.stat-number.text-info #{estadisticas.certificados}
+            p.stat-label.mb-0 Certificados
+
+    //- Filtros
+    .card.border-0.shadow-sm.mb-4
+      .card-body
+        form(method='GET')
+          .row.g-3
+            .col-md-3
+              label.form-label Tipo
+              select.form-select(name='tipo')
+                option(value='', selected=!filtros.tipo) Todos
+                option(value='Receta Medica', selected=filtros.tipo === 'Receta Medica') Receta Médica
+                option(value='Certificado', selected=filtros.tipo === 'Certificado') Certificado
+            .col-md-3
+              label.form-label Desde
+              input.form-control(type='date', name='desde', value=filtros.desde || '')
+            .col-md-3
+              label.form-label Hasta
+              input.form-control(type='date', name='hasta', value=filtros.hasta || '')
+            .col-md-3.d-flex.align-items-end
+              button.btn.btn-primary.w-100(type='submit')
+                i.fas.fa-filter.me-2
+                | Filtrar
+              button.btn.btn-secondary.ms-2(type='button', onclick='location.href="/paciente/recetas"')
+                i.fas.fa-times
+
+    //- Lista de documentos
+    .card.border-0.shadow-sm
+      .card-header.bg-light
+        h5.mb-0
+          i.fas.fa-list.me-2
+          | Mis Documentos Médicos
+      .card-body
+        if documentos && documentos.length > 0
+          .list-group.list-group-flush
+            each doc in documentos
+              .list-group-item
+                .row.align-items-center
+                  .col-md-9
+                    .d-flex.align-items-start
+                      .flex-shrink-0.me-3
+                        .doc-icon(class=doc.tipo === 'Receta Medica' ? 'bg-success' : 'bg-info' class='text-white')
+                          i.fas(class=doc.tipo === 'Receta Medica' ? 'fa-prescription' : 'fa-certificate')
+                      .flex-grow-1
+                        .d-flex.align-items-center.mb-2
+                          h6.mb-0.me-2 #{doc.tipo}
+                          span.badge(class=doc.tipo === 'Receta Medica' ? 'bg-success' : 'bg-info')
+                            | #{doc.tipo === 'Receta Medica' ? 'Receta' : 'Certificado'}
+                        
+                        p.mb-1.text-muted
+                          i.fas.fa-user-md.me-2
+                          | Dr/a. #{doc.medico.usuario.nombre} #{doc.medico.usuario.apellido}
+                          if doc.medico.especialidad
+                            br
+                            small #{doc.medico.especialidad.nombre}
+                        
+                        p.mb-1
+                          small.text-muted
+                            i.fas.fa-calendar.me-2
+                            | Fecha: #{new Date(doc.fecha).toLocaleDateString('es-AR')}
+                        
+                        if doc.evaluacionMedica && doc.evaluacionMedica.diagnostico
+                          p.mb-0
+                            small
+                              span.badge.bg-warning.text-dark #{doc.evaluacionMedica.diagnostico.nombre}
+                  
+                  .col-md-3.text-md-end
+                    .btn-group(role='group')
+                      a.btn.btn-sm.btn-outline-primary(href=`/paciente/recetas/${doc.id}`)
+                        i.fas.fa-eye.me-1
+                        | Ver
+                      
+
+          if paginacion.totalPages > 1
+            nav.mt-4
+              ul.pagination.justify-content-center
+                li.page-item(class=!paginacion.hasPrev ? 'disabled' : '')
+                  a.page-link(href=`?page=${paginacion.currentPage - 1}`) Anterior
+                - for (let i = 1; i <= paginacion.totalPages; i++)
+                  li.page-item(class=i === paginacion.currentPage ? 'active' : '')
+                    a.page-link(href=`?page=${i}`) #{i}
+                li.page-item(class=!paginacion.hasNext ? 'disabled' : '')
+                  a.page-link(href=`?page=${paginacion.currentPage + 1}`) Siguiente
+        else
+          .text-center.py-5
+            i.fas.fa-file-prescription.fa-4x.text-muted.mb-3
+            h5.text-muted No tienes recetas o certificados registrados
+            p.text-muted Los documentos son emitidos por tu médico durante las consultas
+
+    //- Información adicional
+    .row.mt-4
+      .col-md-6
+        .card.border-0.shadow-sm
+          .card-header.bg-info.text-white
+            h6.mb-0
+              i.fas.fa-info-circle.me-2
+              | Sobre las Recetas
+          .card-body
+            ul.mb-0
+              li Guarda las recetas en lugar seguro
+              li Verifica fecha de vencimiento
+              li Presenta la receta original en farmacia
+              li Consulta con tu médico ante dudas sobre medicación
+      
+      .col-md-6
+        .card.border-0.shadow-sm
+          .card-header.bg-secondary.text-white
+            h6.mb-0
+              i.fas.fa-certificate.me-2
+              | Sobre los Certificados
+          .card-body
+            ul.mb-0
+              li Los certificados tienen validez oficial
+              li Utilízalos según corresponda (trabajo, estudio, etc)
+              li Conserva copias para tu registro
+              li Solicita nuevos certificados si los necesitas
+
+block scripts
+  script(src='/js/paciente/paciente-recetas.js')

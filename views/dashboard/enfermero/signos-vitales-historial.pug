@@ -1,0 +1,466 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-history.me-2
+              | Historial de Signos Vitales
+            nav(aria-label="breadcrumb")
+              ol.breadcrumb.mb-0
+                li.breadcrumb-item
+                  a(href="/enfermero") Dashboard
+                li.breadcrumb-item
+                  a(href="/enfermero/signos-vitales") Signos Vitales
+                li.breadcrumb-item.active #{paciente.usuario.nombre} #{paciente.usuario.apellido}
+          div
+            a.btn.btn-primary.me-2(href=`/enfermero/signos-vitales/registro?paciente_id=${paciente.id}`)
+              i.fas.fa-plus-circle.me-2
+              | Nuevo Registro
+            
+
+    // Filtros y controles
+    .row.mb-4
+      .col-md-6
+        .input-group
+          input.form-control#input-busqueda(
+            type="text", 
+            placeholder="Buscar en registros...",
+            value=paginacion ? paginacion.busqueda : ''
+          )
+          button.btn.btn-primary#btn-buscar
+            i.fas.fa-search.me-2
+            | Buscar
+      .col-md-6.text-end
+        if paginacion
+          .btn-group.me-2
+            a.btn.btn-outline-secondary(href=`?pagina=1&limite=10`) 10
+            a.btn.btn-outline-secondary(href=`?pagina=1&limite=25`) 25
+            a.btn.btn-outline-secondary(href=`?pagina=1&limite=50`) 50
+            a.btn.btn-outline-secondary(href=`?pagina=1&limite=100`) 100
+          .d-inline-block
+            small.text-muted Total: #{paginacion.total} registros
+
+    // Filtro por fechas
+    .row.mb-4
+      .col-md-4
+        label.form-label Desde
+        input.form-control#fecha-desde(
+          type="date",
+          value=paginacion ? paginacion.desde : ''
+        )
+      .col-md-4
+        label.form-label Hasta
+        input.form-control#fecha-hasta(
+          type="date",
+          value=paginacion ? paginacion.hasta : ''
+        )
+      .col-md-4.d-flex.align-items-end
+        button.btn.btn-primary.me-2#btn-filtrar-fecha
+          i.fas.fa-filter.me-2
+          | Filtrar
+        button.btn.btn-secondary#btn-limpiar-filtro
+          i.fas.fa-times.me-2
+          | Limpiar
+
+    // Información del paciente
+    .row.mb-4
+      .col-lg-8
+        .card.border-0.shadow-sm
+          .card-body
+            .row
+              .col-md-6
+                table.table.table-borderless
+                  tr
+                    th(style="width: 40%") Nombre:
+                    td #{paciente.usuario.nombre} #{paciente.usuario.apellido}
+                  tr
+                    th DNI:
+                    td #{paciente.usuario.dni}
+                  tr
+                    th Sexo:
+                    td #{paciente.usuario.sexo}
+                  if paciente.usuario.fecha_nacimiento
+                    tr
+                      th Fecha Nac:
+                      td #{new Date(paciente.usuario.fecha_nacimiento).toLocaleDateString('es-AR')}
+              .col-md-6
+                table.table.table-borderless
+                  tr
+                    th Total Registros:
+                    td #{paginacion ? paginacion.total : historial.length}
+                  if historial.length > 0
+                    tr
+                      th Último Registro:
+                      td #{new Date(historial[0].fecha).toLocaleString('es-AR')}
+                    tr
+                      th Enfermero:
+                      td #{historial[0].enfermero.usuario.nombre} #{historial[0].enfermero.usuario.apellido}
+      
+      .col-lg-4
+        .card.border-0.shadow-sm.h-100
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-chart-line.me-2
+              | Gráfica de Evolución
+          .card-body
+            if historial.length > 0
+              .mb-3
+                label.form-label Parámetro a Graficar
+                select.form-select#parametro-grafica
+                  option(value="frecuencia_cardiaca") Frecuencia Cardíaca
+                  option(value="presion_arterial") Presión Arterial
+                  option(value="temperatura") Temperatura
+                  option(value="saturacion_oxigeno") Saturación Oxígeno
+                  option(value="frecuencia_respiratoria") Frecuencia Respiratoria
+              .mb-3
+                label.form-label Período (días)
+                select.form-select#periodo-grafica
+                  option(value="7") Últimos 7 días
+                  option(value="15") Últimos 15 días
+                  option(value="30") Últimos 30 días
+              button.btn.btn-primary.w-100#btn-generar-grafica
+                i.fas.fa-chart-bar.me-2
+                | Generar Gráfica
+              .mt-3#grafica-container
+            else
+              .text-center.text-muted.py-4
+                i.fas.fa-chart-bar.fa-3x.mb-3
+                p.mb-0 Se requiere al menos un registro para generar gráficas
+
+    // Tabla de historial
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-clipboard-list.me-2
+              | Registros de Signos Vitales (#{historial.length} de #{paginacion ? paginacion.total : historial.length})
+            .btn-group
+              button.btn.btn-sm.btn-outline-primary#btn-filtro-todos Todos
+              button.btn.btn-sm.btn-outline-warning#btn-filtro-alertas Solo Alertas
+          
+          .card-body.p-0
+            if historial.length > 0
+              .table-responsive
+                table.table.table-hover.mb-0
+                  thead.table-light
+                    tr
+                      th Fecha/Hora
+                      th Enfermero
+                      th Signos Vitales
+                      th Observaciones
+                      th Acciones
+                  tbody
+                    each registro, index in historial
+                      - const signos = registro.signos_vitales || '';
+                      - const tieneAlerta = signos.includes('anormal') || signos.includes('fuera de rango') || signos.includes('baja') || signos.includes('alta');
+                      tr(class=tieneAlerta ? 'table-warning' : '')
+                        td
+                          small.text-muted #{new Date(registro.fecha).toLocaleDateString('es-AR')}
+                          br
+                          small.text-muted #{new Date(registro.fecha).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
+                        td
+                          small #{registro.enfermero.usuario.nombre} #{registro.enfermero.usuario.apellido}
+                        td
+                          if signos
+                            each item in signos.split(', ')
+                              .d-flex.align-items-center.mb-1
+                                span.badge.bg-light.text-dark.me-2(style="min-width: 60px; font-size: 0.75rem")
+                                  if item.includes('PA:')
+                                    i.fas.fa-heartbeat.me-1
+                                    | PA
+                                  else if item.includes('FC:')
+                                    i.fas.fa-heart.me-1
+                                    | FC
+                                  else if item.includes('FR:')
+                                    i.fas.fa-lungs.me-1
+                                    | FR
+                                  else if item.includes('T:')
+                                    i.fas.fa-thermometer-half.me-1
+                                    | Temp
+                                  else if item.includes('SpO2:')
+                                    i.fas.fa-wind.me-1
+                                    | SpO2
+                                  else if item.includes('Dolor:')
+                                    i.fas.fa-exclamation-triangle.me-1
+                                    | Dolor
+                                - const partes = item.split(':');
+                                - const valor = partes.length > 1 ? partes[1].trim() : item;
+                                span #{valor}
+                          else
+                            span.text-muted No registrado
+                        td
+                          if registro.observaciones
+                            small.text-muted #{registro.observaciones.substring(0, 100)}
+                            if registro.observaciones.length > 100
+                              | ...
+                          else
+                            small.text-muted Sin observaciones
+                        td
+                          button.btn.btn-sm.btn-outline-info(
+                            onclick=`verDetalleRegistro(${registro.id})`
+                            title="Ver detalles"
+                          )
+                            i.fas.fa-eye
+              // Paginación
+              if paginacion && paginacion.totalPaginas > 1
+                .card-footer.bg-white
+                  .d-flex.justify-content-between.align-items-center
+                    div
+                      small.text-muted
+                        | Mostrando #{historial.length} de #{paginacion.total} registros
+                        | (Página #{paginacion.pagina} de #{paginacion.totalPaginas})
+                    
+                    nav
+                      ul.pagination.mb-0
+                        // Botón Anterior
+                        li.page-item(class=!paginacion.tieneAnterior ? 'disabled' : '')
+                          a.page-link(
+                            href=paginacion.tieneAnterior ? `?pagina=${paginacion.pagina - 1}&limite=${paginacion.limite}&busqueda=${paginacion.busqueda || ''}&desde=${paginacion.desde || ''}&hasta=${paginacion.hasta || ''}` : '#',
+                            aria-label="Anterior"
+                          )
+                            span(aria-hidden="true") &laquo;
+                        
+                        // Números de página
+                        - let inicio = Math.max(1, paginacion.pagina - 2);
+                        - let fin = Math.min(paginacion.totalPaginas, inicio + 4);
+                        - if (fin - inicio < 4) inicio = Math.max(1, fin - 4);
+                        
+                        each numero in Array.from({length: fin - inicio + 1}, (_, i) => inicio + i)
+                          li.page-item(class=numero === paginacion.pagina ? 'active' : '')
+                            a.page-link(href=`?pagina=${numero}&limite=${paginacion.limite}&busqueda=${paginacion.busqueda || ''}&desde=${paginacion.desde || ''}&hasta=${paginacion.hasta || ''}`) #{numero}
+                        
+                        // Botón Siguiente
+                        li.page-item(class=!paginacion.tieneSiguiente ? 'disabled' : '')
+                          a.page-link(
+                            href=paginacion.tieneSiguiente ? `?pagina=${paginacion.pagina + 1}&limite=${paginacion.limite}&busqueda=${paginacion.busqueda || ''}&desde=${paginacion.desde || ''}&hasta=${paginacion.hasta || ''}` : '#',
+                            aria-label="Siguiente"
+                          )
+                            span(aria-hidden="true") &raquo;
+                    
+                    .dropdown
+                      button.btn.btn-sm.btn-outline-secondary.dropdown-toggle(
+                        type="button",
+                        data-bs-toggle="dropdown"
+                      )
+                        | #{paginacion.limite} por página
+                      ul.dropdown-menu
+                        each limite in [10, 25, 50, 100]
+                          li
+                            a.dropdown-item(href=`?pagina=1&limite=${limite}&busqueda=${paginacion.busqueda || ''}&desde=${paginacion.desde || ''}&hasta=${paginacion.hasta || ''}`) #{limite} registros
+            else
+              .p-5.text-center.text-muted
+                i.fas.fa-clipboard.fa-4x.mb-3
+                h5 No hay registros de signos vitales
+                p.mb-0 Este paciente no tiene registros de signos vitales.
+
+    // Modal para ver detalles
+    #modalDetalle.modal.fade(tabindex="-1")
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-clipboard-check.me-2
+              | Detalles del Registro
+            button.btn-close(type="button" data-bs-dismiss="modal")
+          .modal-body
+            #contenido-detalle
+              .text-center
+                .spinner-border.text-primary(role="status")
+                  span.visually-hidden Cargando...
+
+block scripts
+  script.
+    // Filtros de la tabla
+    document.getElementById('btn-filtro-todos')?.addEventListener('click', () => {
+      document.querySelectorAll('tbody tr').forEach(tr => {
+        tr.style.display = '';
+      });
+      document.getElementById('btn-filtro-todos').classList.add('btn-primary');
+      document.getElementById('btn-filtro-todos').classList.remove('btn-outline-primary');
+      document.getElementById('btn-filtro-alertas').classList.add('btn-outline-warning');
+      document.getElementById('btn-filtro-alertas').classList.remove('btn-warning');
+    });
+
+    document.getElementById('btn-filtro-alertas')?.addEventListener('click', () => {
+      document.querySelectorAll('tbody tr').forEach(tr => {
+        if (tr.classList.contains('table-warning')) {
+          tr.style.display = '';
+        } else {
+          tr.style.display = 'none';
+        }
+      });
+      document.getElementById('btn-filtro-alertas').classList.add('btn-warning');
+      document.getElementById('btn-filtro-alertas').classList.remove('btn-outline-warning');
+      document.getElementById('btn-filtro-todos').classList.add('btn-outline-primary');
+      document.getElementById('btn-filtro-todos').classList.remove('btn-primary');
+    });
+
+    // Búsqueda en tiempo real
+    document.getElementById('input-busqueda')?.addEventListener('input', function(e) {
+      const busqueda = e.target.value.toLowerCase();
+      
+      document.querySelectorAll('tbody tr').forEach(fila => {
+        const textoFila = fila.textContent.toLowerCase();
+        fila.style.display = textoFila.includes(busqueda) ? '' : 'none';
+      });
+    });
+
+    // Botón de búsqueda
+    document.getElementById('btn-buscar')?.addEventListener('click', function() {
+      const busqueda = document.getElementById('input-busqueda').value;
+      const desde = document.getElementById('fecha-desde').value;
+      const hasta = document.getElementById('fecha-hasta').value;
+      
+      let url = `?pagina=1&limite=${#{paginacion ? paginacion.limite : 10}}`;
+      if (busqueda) url += `&busqueda=${encodeURIComponent(busqueda)}`;
+      if (desde) url += `&desde=${desde}`;
+      if (hasta) url += `&hasta=${hasta}`;
+      
+      window.location.href = url;
+    });
+
+    // Filtro por fecha
+    document.getElementById('btn-filtrar-fecha')?.addEventListener('click', function() {
+      const desde = document.getElementById('fecha-desde').value;
+      const hasta = document.getElementById('fecha-hasta').value;
+      const busqueda = document.getElementById('input-busqueda').value;
+      
+      let url = `?pagina=1&limite=${#{paginacion ? paginacion.limite : 10}}`;
+      if (busqueda) url += `&busqueda=${encodeURIComponent(busqueda)}`;
+      if (desde) url += `&desde=${desde}`;
+      if (hasta) url += `&hasta=${hasta}`;
+      
+      window.location.href = url;
+    });
+
+    // Limpiar filtros
+    document.getElementById('btn-limpiar-filtro')?.addEventListener('click', function() {
+      window.location.href = `?pagina=1&limite=${#{paginacion ? paginacion.limite : 10}}`;
+    });
+
+    // Permitir Enter en búsqueda
+    document.getElementById('input-busqueda')?.addEventListener('keypress', function(e) {
+      if (e.key === 'Enter') {
+        document.getElementById('btn-buscar').click();
+      }
+    });
+
+    // Ver detalle de un registro
+    async function verDetalleRegistro(registroId) {
+      const modal = new bootstrap.Modal(document.getElementById('modalDetalle'));
+      modal.show();
+      
+      try {
+        const contenido = `
+          <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            Vista detallada del registro ID: ${registroId}
+          </div>
+          <p>Para implementar la vista completa, se necesita crear una API específica que retorne todos los detalles del registro.</p>
+        `;
+        
+        document.getElementById('contenido-detalle').innerHTML = contenido;
+      } catch (error) {
+        console.error('Error:', error);
+        document.getElementById('contenido-detalle').innerHTML = 
+          '<div class="alert alert-danger">Error al cargar los detalles del registro</div>';
+      }
+    }
+
+    // Solo cargar Chart.js y funcionalidad de gráfica si hay registros
+    if (#{historial.length} > 0) {
+      // Cargar Chart.js dinámicamente
+      const script = document.createElement('script');
+      script.src = 'https://cdn.jsdelivr.net/npm/chart.js';
+      script.onload = function() {
+        // Configurar botón de gráfica
+        document.getElementById('btn-generar-grafica').addEventListener('click', function() {
+          const pacienteId = #{paciente.id};
+          const parametro = document.getElementById('parametro-grafica').value;
+          const periodo = document.getElementById('periodo-grafica').value;
+          
+          // Verificar si la ruta de gráfica existe
+          fetch(`/enfermero/signos-vitales/grafica?paciente_id=${pacienteId}&parametro=${parametro}&dias=${periodo}`)
+            .then(response => {
+              if (response.ok) {
+                return response.json();
+              } else {
+                throw new Error('API de gráfica no disponible');
+              }
+            })
+            .then(data => {
+              if (data.success) {
+                mostrarGrafica(data.datos, parametro);
+              } else {
+                alert('No hay datos para graficar');
+              }
+            })
+            .catch(error => {
+              console.error('Error:', error);
+              alert('La funcionalidad de gráficas no está disponible todavía');
+            });
+        });
+      };
+      document.head.appendChild(script);
+    }
+
+    // Función para mostrar gráfica (solo si se carga Chart.js)
+    function mostrarGrafica(datos, parametro) {
+      const container = document.getElementById('grafica-container');
+      if (!datos || datos.length === 0) {
+        container.innerHTML = '<div class="alert alert-warning">No hay datos para mostrar</div>';
+        return;
+      }
+      
+      container.innerHTML = '<canvas id="graficaEvolucion"></canvas>';
+      const ctx = document.getElementById('graficaEvolucion').getContext('2d');
+      
+      const config = {
+        labels: datos.map(item => new Date(item.fecha).toLocaleDateString('es-AR')),
+        datasets: [{
+          label: getParametroLabel(parametro),
+          data: datos.map(item => {
+            if (parametro === 'presion_arterial' && item.valor && item.valor.includes('/')) {
+              return parseInt(item.valor.split('/')[0]);
+            }
+            return item.valor;
+          }),
+          borderColor: '#0d6efd',
+          backgroundColor: 'rgba(13, 110, 253, 0.1)',
+          tension: 0.4,
+          fill: true
+        }]
+      };
+      
+      new Chart(ctx, {
+        type: 'line',
+        data: config,
+        options: {
+          responsive: true,
+          plugins: {
+            legend: { position: 'top' },
+            title: {
+              display: true,
+              text: `Evolución de ${getParametroLabel(parametro)}`
+            }
+          }
+        }
+      });
+    }
+    
+    function getParametroLabel(parametro) {
+      const labels = {
+        'frecuencia_cardiaca': 'Frecuencia Cardíaca',
+        'presion_arterial': 'Presión Arterial',
+        'temperatura': 'Temperatura',
+        'saturacion_oxigeno': 'Saturación Oxígeno',
+        'frecuencia_respiratoria': 'Frecuencia Respiratoria'
+      };
+      return labels[parametro] || parametro;
+    }

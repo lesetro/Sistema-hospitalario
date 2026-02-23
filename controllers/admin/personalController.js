@@ -16,7 +16,7 @@ const {
 /**
  * Vista principal de gestión de personal
  */
-const getVistaPersonal = async (req, res) => {
+const getVistaPersonal = async (req, res, next) => {
   try {
     const [roles, sectores, especialidades] = await Promise.all([
       Rol.findAll({ attributes: ['id', 'nombre'], order: [['nombre', 'ASC']] }),
@@ -31,15 +31,14 @@ const getVistaPersonal = async (req, res) => {
       especialidades
     });
   } catch (error) {
-    console.error('Error al cargar vista de personal:', error);
-    res.status(500).render('error', { message: 'Error al cargar gestión de personal' });
+    next(error);
   }
 };
 
 /**
  * Obtener estadísticas del dashboard
  */
-const getEstadisticas = async (req, res) => {
+const getEstadisticas = async (req, res, next) => {
   try {
     const [medicos, enfermeros, administrativos, medicosActivos, enfermerosActivos, 
            medicosSinSector, enfermerosSinSector, personalSinTurno] = await Promise.all([
@@ -102,15 +101,14 @@ const getEstadisticas = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener estadísticas', error: error.message });
+   next(error);
   }
 };
 
 /**
  * Buscar personal con filtros avanzados
  */
-const buscarPersonal = async (req, res) => {
+const buscarPersonal = async (req, res, next) => {
   try {
     const {
       page = 1,
@@ -276,15 +274,14 @@ const buscarPersonal = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al buscar personal:', error);
-    res.status(500).json({ success: false, message: 'Error al buscar personal', error: error.message });
+    next(error);
   }
 };
 
 /**
  * Obtener detalles completos de un empleado
  */
-const getDetallesEmpleado = async (req, res) => {
+const getDetallesEmpleado = async (req, res, next) => {
   try {
     const { tipo, id } = req.params;
     let empleado = null;
@@ -339,15 +336,14 @@ const getDetallesEmpleado = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener detalles:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener detalles', error: error.message });
+    next(error);
   }
 };
 
 /**
  * Asignar sector a un empleado
  */
-const asignarSector = async (req, res) => {
+const asignarSector = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
 
   try {
@@ -380,15 +376,14 @@ const asignarSector = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al asignar sector:', error);
-    res.status(500).json({ success: false, message: 'Error al asignar sector', error: error.message });
+    next(error);
   }
 };
 
 /**
  * Crear/actualizar turno de trabajo
  */
-const gestionarTurno = async (req, res) => {
+const gestionarTurno = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
 
   try {
@@ -432,15 +427,192 @@ const gestionarTurno = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al gestionar turno:', error);
-    res.status(500).json({ success: false, message: 'Error al gestionar turno', error: error.message });
+    next(error);
+  }
+};
+/**
+ * Crear nuevo personal hospitalario
+ */
+/**
+ * Crear nuevo personal hospitalario
+ */
+const crearPersonal = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
+  try {
+    const { 
+      tipo, // 'medico', 'enfermero', 'administrativo'
+      nombre,
+      apellido,
+      dni,
+      email,
+      telefono,
+      estado,
+      sector_id,
+      matricula,
+      especialidad_id,
+      nivel,
+      responsabilidad,
+      fecha_ingreso,
+      password, // Contraseña por defecto
+      fecha_nacimiento, // Nuevo campo
+      genero // Nuevo campo (en lugar de sexo)
+    } = req.body;
+
+    // Validaciones básicas
+    if (!nombre || !apellido || !dni || !email) {
+      await transaction.rollback();
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Nombre, apellido, DNI y email son obligatorios' 
+      });
+    }
+
+    // Verificar si el DNI ya existe
+    const usuarioExistente = await Usuario.findOne({ 
+      where: { dni },
+      transaction 
+    });
+
+    if (usuarioExistente) {
+      await transaction.rollback();
+      return res.status(400).json({ 
+        success: false, 
+        message: 'Ya existe un usuario con este DNI' 
+      });
+    }
+
+    // Establecer valores por defecto para campos obligatorios
+    const fechaNacimientoDefault = fecha_nacimiento || '1990-01-01';
+    const generoDefault = genero || 'Otro';
+
+    // Crear el usuario base CON TODOS LOS CAMPOS OBLIGATORIOS
+    const usuario = await Usuario.create({
+      nombre,
+      apellido,
+      dni,
+      email,
+      telefono: telefono || '',
+      fecha_nacimiento: fechaNacimientoDefault,
+      sexo: generoDefault, // O 'genero' dependiendo de cómo se llame en tu modelo
+      estado: estado || 'Activo',
+      password: password || 'Hospital123',
+      rol_principal_id: tipo === 'medico' ? 2 : tipo === 'enfermero' ? 3 : 4 // IDs según tus roles
+    }, { transaction });
+
+    // Crear el registro específico según el tipo
+    let personalCreado = null;
+    
+    switch(tipo) {
+      case 'medico':
+        if (!matricula) {
+          await transaction.rollback();
+          return res.status(400).json({ 
+            success: false, 
+            message: 'La matrícula es obligatoria para médicos' 
+          });
+        }
+        
+        personalCreado = await Medico.create({
+          usuario_id: usuario.id,
+          matricula,
+          especialidad_id: especialidad_id || null,
+          sector_id: sector_id || null,
+          fecha_ingreso: fecha_ingreso || new Date()
+        }, { transaction });
+        break;
+
+      case 'enfermero':
+        if (!matricula) {
+          await transaction.rollback();
+          return res.status(400).json({ 
+            success: false, 
+            message: 'La matrícula es obligatoria para enfermeros' 
+          });
+        }
+        
+        personalCreado = await Enfermero.create({
+          usuario_id: usuario.id,
+          matricula,
+          nivel: nivel || 'Auxiliar',
+          sector_id: sector_id || null,
+          estado: 'Activo',
+          fecha_ingreso: fecha_ingreso || new Date()
+        }, { transaction });
+        break;
+
+      case 'administrativo':
+        personalCreado = await Administrativo.create({
+          usuario_id: usuario.id,
+          responsabilidad: responsabilidad || 'Administrativo',
+          sector_id: sector_id || null,
+          estado: 'Activo',
+          fecha_ingreso: fecha_ingreso || new Date()
+        }, { transaction });
+        break;
+
+      default:
+        await transaction.rollback();
+        return res.status(400).json({ 
+          success: false, 
+          message: 'Tipo de personal no válido' 
+        });
+    }
+
+    await transaction.commit();
+
+    res.json({ 
+      success: true, 
+      message: 'Personal creado correctamente',
+      data: {
+        id: personalCreado.id,
+        tipo,
+        usuario_id: usuario.id,
+        nombre_completo: `${nombre} ${apellido}`
+      }
+    });
+
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Error al crear personal:', error);
+    
+    // Mensaje de error más específico
+    let mensajeError = 'Error al crear personal';
+    if (error.name === 'SequelizeValidationError') {
+      mensajeError = 'Faltan campos obligatorios: ' + 
+        error.errors.map(e => e.path).join(', ');
+    }
+    
+   next(error);
+  }
+};
+
+/**
+ * Obtener datos para formulario de creación
+ */
+const getDatosCreacion = async (req, res, next) => {
+  try {
+    const [sectores, especialidades] = await Promise.all([
+      Sector.findAll({ attributes: ['id', 'nombre'], order: [['nombre', 'ASC']] }),
+      Especialidad.findAll({ attributes: ['id', 'nombre'], order: [['nombre', 'ASC']] })
+    ]);
+
+    res.json({
+      success: true,
+      datosFormulario: {
+        sectores,
+        especialidades
+      }
+    });
+  } catch (error) {
+    next(error);
   }
 };
 
 /**
  * Solicitar cambio de turno
  */
-const solicitarCambioTurno = async (req, res) => {
+const solicitarCambioTurno = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
 
   try {
@@ -473,15 +645,14 @@ const solicitarCambioTurno = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al cambiar turno:', error);
-    res.status(500).json({ success: false, message: 'Error al realizar cambio de turno', error: error.message });
+    next(error);
   }
 };
 
 /**
  * Asignar tarea de limpieza
  */
-const asignarLimpieza = async (req, res) => {
+const asignarLimpieza = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
 
   try {
@@ -523,15 +694,14 @@ const asignarLimpieza = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al asignar limpieza:', error);
-    res.status(500).json({ success: false, message: 'Error al asignar limpieza', error: error.message });
+    next(error);
   }
 };
 
 /**
  * Dar de baja a un empleado
  */
-const bajaEmpleado = async (req, res) => {
+const bajaEmpleado = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
 
   try {
@@ -568,13 +738,209 @@ const bajaEmpleado = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al dar de baja:', error);
-    res.status(500).json({ success: false, message: 'Error al dar de baja', error: error.message });
+    next(error);
+  }
+};
+/**
+ * Editar/actualizar datos de un empleado
+ */
+const editarEmpleado = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
+  try {
+    const { tipo, id } = req.params;
+    const datos = req.body;
+
+    let empleado = null;
+    let usuario = null;
+
+    // Obtener el empleado según el tipo
+    switch(tipo) {
+      case 'medico':
+        empleado = await Medico.findByPk(id, {
+          include: [{ model: Usuario, as: 'usuario' }],
+          transaction
+        });
+        break;
+        
+      case 'enfermero':
+        empleado = await Enfermero.findByPk(id, {
+          include: [{ model: Usuario, as: 'usuario' }],
+          transaction
+        });
+        break;
+        
+      case 'administrativo':
+        empleado = await Administrativo.findByPk(id, {
+          include: [{ model: Usuario, as: 'usuario' }],
+          transaction
+        });
+        break;
+    }
+
+    if (!empleado) {
+      await transaction.rollback();
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Empleado no encontrado' 
+      });
+    }
+
+    // Actualizar datos del Usuario
+    const datosUsuario = {
+      nombre: datos.nombre,
+      apellido: datos.apellido,
+      dni: datos.dni,
+      email: datos.email,
+      telefono: datos.telefono,
+      direccion: datos.direccion,
+      fecha_nacimiento: datos.fecha_nacimiento,
+      genero: datos.genero,
+      estado: datos.estado
+    };
+
+    await empleado.usuario.update(datosUsuario, { transaction });
+
+    // Actualizar datos específicos según el tipo
+    switch(tipo) {
+      case 'medico':
+        const datosMedico = {
+          matricula: datos.matricula,
+          especialidad_id: datos.especialidad_id,
+          sector_id: datos.sector_id,
+          fecha_ingreso: datos.fecha_ingreso,
+          fecha_egreso: datos.fecha_egreso
+        };
+        await empleado.update(datosMedico, { transaction });
+        break;
+
+      case 'enfermero':
+        const datosEnfermero = {
+          matricula: datos.matricula,
+          nivel: datos.nivel,
+          sector_id: datos.sector_id,
+          estado: datos.estado,
+          fecha_ingreso: datos.fecha_ingreso,
+          fecha_egreso: datos.fecha_egreso
+        };
+        await empleado.update(datosEnfermero, { transaction });
+        break;
+
+      case 'administrativo':
+        const datosAdministrativo = {
+          responsabilidad: datos.responsabilidad,
+          sector_id: datos.sector_id,
+          estado: datos.estado,
+          fecha_ingreso: datos.fecha_ingreso,
+          fecha_egreso: datos.fecha_egreso
+        };
+        await empleado.update(datosAdministrativo, { transaction });
+        break;
+    }
+
+    await transaction.commit();
+
+    res.json({ 
+      success: true, 
+      message: 'Empleado actualizado correctamente',
+      empleado: {
+        id: empleado.id,
+        tipo,
+        ...datosUsuario,
+        ...(empleado.toJSON())
+      }
+    });
+
+  } catch (error) {
+    await transaction.rollback();
+    next(error);
   }
 };
 
+// Y también un método para obtener los datos del formulario de edición
+const getDatosEdicion = async (req, res, next) => {
+  try {
+    const { tipo, id } = req.params;
+
+    let empleado = null;
+
+    switch(tipo) {
+      case 'medico':
+        empleado = await Medico.findByPk(id, {
+          include: [
+            { 
+              model: Usuario, 
+              as: 'usuario',
+              // SOLO LOS CAMPOS QUE EXISTEN EN TU BD
+              attributes: ['id', 'nombre', 'apellido', 'dni', 'email', 'telefono', 'estado']
+            },
+            { model: Sector, as: 'sector', attributes: ['id', 'nombre'] },
+            { model: Especialidad, as: 'especialidad', attributes: ['id', 'nombre'] }
+          ]
+        });
+        break;
+
+      case 'enfermero':
+        empleado = await Enfermero.findByPk(id, {
+          include: [
+            { 
+              model: Usuario, 
+              as: 'usuario',
+              // SOLO LOS CAMPOS QUE EXISTEN EN TU BD
+              attributes: ['id', 'nombre', 'apellido', 'dni', 'email', 'telefono', 'estado']
+            },
+            { model: Sector, as: 'sector', attributes: ['id', 'nombre'] }
+          ]
+        });
+        break;
+
+      case 'administrativo':
+        empleado = await Administrativo.findByPk(id, {
+          include: [
+            { 
+              model: Usuario, 
+              as: 'usuario',
+              // SOLO LOS CAMPOS QUE EXISTEN EN TU BD
+              attributes: ['id', 'nombre', 'apellido', 'dni', 'email', 'telefono', 'estado']
+            },
+            { model: Sector, as: 'sector', attributes: ['id', 'nombre'] }
+          ]
+        });
+        break;
+    }
+
+    if (!empleado) {
+      return res.status(404).json({ 
+        success: false, 
+        message: 'Empleado no encontrado' 
+      });
+    }
+
+    // Obtener datos adicionales para el formulario
+    const [sectores, especialidades] = await Promise.all([
+      Sector.findAll({ attributes: ['id', 'nombre'], order: [['nombre', 'ASC']] }),
+      tipo === 'medico' ? Especialidad.findAll({ attributes: ['id', 'nombre'], order: [['nombre', 'ASC']] }) : null
+    ]);
+
+    res.json({
+      success: true,
+      empleado,
+      datosFormulario: {
+        sectores,
+        especialidades: tipo === 'medico' ? especialidades : null
+      }
+    });
+
+  } catch (error) {
+    next(error);
+  }
+};
+
+
 module.exports = {
   getVistaPersonal,
+  getDatosEdicion,
+  editarEmpleado,
   getEstadisticas,
   buscarPersonal,
   getDetallesEmpleado,
@@ -582,5 +948,7 @@ module.exports = {
   gestionarTurno,
   solicitarCambioTurno,
   asignarLimpieza,
+  crearPersonal,       
+  getDatosCreacion,
   bajaEmpleado
 };

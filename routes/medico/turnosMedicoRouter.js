@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const turnosMedicoController = require('../../controllers/medico/turnosMedicoController');
-const authMiddleware = require('../../middleware/authMiddleware'); // ✅ CRÍTICO
+const authMiddleware = require('../../middleware/authMiddleware'); 
 
 // ========================================
 // MIDDLEWARE DE AUTENTICACIÓN
 // ========================================
-// ✅ SIN ESTO, req.user ES UNDEFINED Y TODO FALLA
+//  SIN ESTO, req.user ES UNDEFINED Y TODO FALLA
 router.use(authMiddleware);
 
 // ========================================

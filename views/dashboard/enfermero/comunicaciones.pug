@@ -82,7 +82,7 @@ block content
                         p.mb-1= notif.mensaje
                         small.text-muted
                           i.fas.fa-clock.me-1
-                          = new Date(notif.created_at).toLocaleString('es-AR')
+                          = new Date(notif.createdAt).toLocaleString('es-AR')
                       .btn-group.btn-group-sm(role='group')
                         if !notif.leida
                           button.btn.btn-outline-success(onclick=`marcarLeida(${notif.id})` title='Marcar como leída')

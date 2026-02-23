@@ -26,6 +26,11 @@ module.exports = {
           onUpdate: 'CASCADE',
           onDelete: 'RESTRICT'
         },
+        medico_id: {
+          type: Sequelize.INTEGER,
+          allowNull: true,
+          references: { model: 'medicos', key: 'id' }
+        },
         tipo_estudio_id: {
           type: Sequelize.INTEGER,
           allowNull: true,
@@ -62,6 +67,11 @@ module.exports = {
           allowNull: false,
           defaultValue: 'ADMINISTRATIVO'
         },
+        tipo_servicio_id: {
+          type: Sequelize.INTEGER,
+          allowNull: true, 
+          references: { model: 'tiposdeservicio', key: 'id' }
+        },
         creador_id: {
           type: Sequelize.INTEGER,
           allowNull: false,
@@ -88,6 +98,7 @@ module.exports = {
       await queryInterface.addIndex('listasesperas', ['habitacion_id'], { transaction });
       await queryInterface.addIndex('listasesperas', ['creador_id'], { transaction });
       await queryInterface.addIndex('listasesperas', ['turno_id'], { transaction });
+      await queryInterface.addIndex('listasesperas', ['tipo_servicio_id'], { transaction });
 
       // ===================================
       // TURNOS (sin algunas FK que se agregan en migración 07)
@@ -122,6 +133,11 @@ module.exports = {
           onUpdate: 'CASCADE',
           onDelete: 'SET NULL'
         },
+        tipo_servicio_id: {
+          type: Sequelize.INTEGER,
+          allowNull: true, 
+          references: { model: 'tiposdeservicio', key: 'id' }
+        },
         sector_id: {
           type: Sequelize.INTEGER,
           allowNull: true,
@@ -139,6 +155,7 @@ module.exports = {
       await queryInterface.addIndex('turnos', ['medico_id'], { transaction });
       await queryInterface.addIndex('turnos', ['usuario_id'], { transaction });
       await queryInterface.addIndex('turnos', ['sector_id'], { transaction });
+      await queryInterface.addIndex('turnos', ['tipo_servicio_id'], { transaction });
 
       // ===================================
       // ADMISIONES

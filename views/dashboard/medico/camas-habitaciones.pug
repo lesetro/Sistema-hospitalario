@@ -1,0 +1,199 @@
+extends layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/medico/camas") Dashboard Camas
+            li.breadcrumb-item
+              a(href="/medico/camas/sectores") Sectores
+            li.breadcrumb-item.active= sector.nombre
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-door-open.me-2
+              | Habitaciones - #{sector.nombre}
+            p.text-muted.mb-0 Habitaciones disponibles en este sector
+          div
+            a.btn.btn-outline-secondary.me-2(href="/medico/camas/sectores")
+              i.fas.fa-arrow-left.me-2
+              | Volver a Sectores
+            button.btn.btn-outline-primary(type='button' data-bs-toggle='modal' data-bs-target='#modalFiltros')
+              i.fas.fa-filter.me-2
+              | Filtrar
+
+    // Filtros (modal)
+    #modalFiltros.modal.fade(tabindex='-1')
+      .modal-dialog
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-filter.me-2
+              | Filtrar Habitaciones
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            form#formFiltros(method='GET')
+              .mb-3
+                label.form-label Tipo de Habitación
+                select.form-select(name='tipo')
+                  option(value='' selected=!filtros.tipo) Todos
+                  option(value='Individual' selected=filtros.tipo === 'Individual') Individual
+                  option(value='Doble' selected=filtros.tipo === 'Doble') Doble
+                  option(value='Colectiva' selected=filtros.tipo === 'Colectiva') Colectiva
+              
+              .mb-3
+                label.form-label Sexo Permitido
+                select.form-select(name='sexo')
+                  option(value='' selected=!filtros.sexo) Todos
+                  option(value='Masculino' selected=filtros.sexo === 'Masculino') Masculino
+                  option(value='Femenino' selected=filtros.sexo === 'Femenino') Femenino
+                  option(value='Mixto' selected=filtros.sexo === 'Mixto') Mixto
+          
+          .modal-footer
+            button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+            button.btn.btn-primary(type='submit' form='formFiltros') Aplicar Filtros
+
+    // Lista de habitaciones
+    .row
+      each habitacion in habitaciones
+        .col-xl-4.col-lg-6.mb-4
+          .card.border-0.shadow-sm.h-100
+            .card-header.bg-white.d-flex.justify-content-between.align-items-center
+              h5.mb-0
+                i.fas.fa-door-closed.me-2
+                | Hab. #{habitacion.numero}
+              span.badge(
+                class=habitacion.estadisticas.porcentajeOcupacion > 80 ? 'bg-danger' : 
+                       habitacion.estadisticas.porcentajeOcupacion > 50 ? 'bg-warning' : 'bg-success'
+              )
+                = habitacion.estadisticas.porcentajeOcupacion + '%'
+            
+            .card-body
+              // Información básica
+              .row.g-2.mb-3
+                .col-6
+                  small.text-muted.d-block Tipo
+                  .fw-bold
+                    case habitacion.tipo
+                      when 'Individual'
+                        i.fas.fa-user.me-1
+                        | Individual
+                      when 'Doble'
+                        i.fas.fa-user-friends.me-1
+                        | Doble
+                      when 'Colectiva'
+                        i.fas.fa-users.me-1
+                        | Colectiva
+                
+                .col-6
+                  small.text-muted.d-block Sexo
+                  .fw-bold
+                    case habitacion.sexo_permitido
+                      when 'Masculino'
+                        i.fas.fa-mars.me-1
+                        | Masculino
+                      when 'Femenino'
+                        i.fas.fa-venus.me-1
+                        | Femenino
+                      when 'Mixto'
+                        i.fas.fa-venus-mars.me-1
+                        | Mixto
+                
+                .col-6
+                  small.text-muted.d-block Servicio
+                  .fw-bold= habitacion.tipoServicio.nombre
+                
+                .col-6
+                  small.text-muted.d-block Capacidad
+                  .fw-bold
+                    case habitacion.tipo
+                      when 'Individual'
+                        | 1 cama
+                      when 'Doble'
+                        | 2 camas
+                      when 'Colectiva'
+                        | Múltiples
+              
+              // Estadísticas de camas
+              .row.g-2.mb-3
+                .col-4.text-center
+                  .p-2.rounded-circle.bg-success.bg-opacity-10.d-inline-flex.mb-1
+                    i.fas.fa-bed.text-success
+                  div
+                    small.text-muted.d-block Libres
+                    .fw-bold= habitacion.estadisticas.camasLibres
+                
+                .col-4.text-center
+                  .p-2.rounded-circle.bg-danger.bg-opacity-10.d-inline-flex.mb-1
+                    i.fas.fa-user-injured.text-danger
+                  div
+                    small.text-muted.d-block Ocupadas
+                    .fw-bold= habitacion.estadisticas.camasOcupadas
+                
+                .col-4.text-center
+                  .p-2.rounded-circle.bg-warning.bg-opacity-10.d-inline-flex.mb-1
+                    i.fas.fa-broom.text-warning
+                  div
+                    small.text-muted.d-block Limpieza
+                    .fw-bold= habitacion.estadisticas.camasLimpieza
+              
+              // Pacientes actuales
+              if habitacion.pacientesActuales.length > 0
+                .mt-3
+                  small.text-muted.d-block.mb-2 Pacientes actuales:
+                  each paciente in habitacion.pacientesActuales
+                    .d-flex.align-items-center.mb-1
+                      .avatar-placeholder.rounded-circle.bg-primary.bg-opacity-10.text-primary.d-flex.align-items-center.justify-content-center.me-2(
+                        style="width: 32px; height: 32px; font-size: 12px"
+                      )
+                        i.fas.fa-user
+                      div
+                        small.fw-bold= paciente.nombre
+                        br
+                        small.text-muted Cama #{paciente.camaNumero}
+              else
+                .text-center.text-muted.py-3
+                  i.fas.fa-user-slash.fa-2x.mb-2
+                  p.mb-0 No hay pacientes en esta habitación
+            
+            .card-footer.bg-white.border-0.pt-0
+              .d-grid
+                a.btn.btn-outline-primary(
+                  href=`/medico/camas/habitaciones/${habitacion.id}/camas`
+                )
+                  i.fas.fa-bed.me-2
+                  | Ver Camas (#{habitacion.estadisticas.totalCamas})
+                button.btn.btn-outline-secondary.mt-2(
+                  type='button'
+                  onclick=`verDetallesHabitacion(${habitacion.id})`
+                )
+                  i.fas.fa-info-circle.me-2
+                  | Detalles
+
+      else
+        .col-12
+          .card.border-0.shadow-sm
+            .card-body.text-center.py-5
+              i.fas.fa-door-closed.fa-4x.text-muted.mb-3
+              h4 No hay habitaciones
+              p.text-muted.mb-0 No se encontraron habitaciones en este sector.
+
+block scripts
+ script.
+    function verDetallesHabitacion(habitacionId) {
+      // Redirigir a la vista de detalle de habitación
+      window.location.href = `/medico/camas/habitaciones/${habitacionId}/detalle`;
+    }
+    
+    document.addEventListener('DOMContentLoaded', function() {
+      // Añadir tooltips si es necesario
+      const tooltips = document.querySelectorAll('[data-bs-toggle="tooltip"]');
+      tooltips.forEach(tooltip => {
+        new bootstrap.Tooltip(tooltip);
+      });
+    });

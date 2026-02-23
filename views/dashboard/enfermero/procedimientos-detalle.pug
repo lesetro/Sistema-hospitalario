@@ -1,0 +1,339 @@
+extends ../../layouts/enfermero-layout.pug
+
+block content
+  .container-fluid.py-4
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          h1.h3.mb-0.text-gray-800
+            i.fas.fa-procedures.me-2
+            | Detalle de Procedimiento
+          a.btn.btn-secondary(href='/enfermero/procedimientos')
+            i.fas.fa-arrow-left.me-2
+            | Volver a Procedimientos
+
+    .row.mb-4
+      .col-12
+        .card.shadow.mb-4
+          .card-body
+            .row.mb-4
+              .col-md-6
+                h4.card-title.mb-3 
+                  i.fas.fa-stethoscope.me-2
+                  | #{procedimiento.nombre}
+                if procedimiento.descripcion
+                  p.text-muted.mb-4 #{procedimiento.descripcion}
+              .col-md-6.text-md-end
+                if procedimiento.evaluaciones_enfermeria && procedimiento.evaluaciones_enfermeria.length > 0
+                  - const ultima = procedimiento.evaluaciones_enfermeria[procedimiento.evaluaciones_enfermeria.length - 1]
+                  - const estado = ultima.tipo_egreso
+                  if estado === 'PROCEDIMIENTO_COMPLETADO'
+                    span.badge.bg-success.fs-6.p-2
+                      i.fas.fa-check-circle.me-1
+                      | Completado
+                  else if estado === 'DERIVACION_MEDICO'
+                    span.badge.bg-primary.fs-6.p-2
+                      i.fas.fa-user-md.me-1
+                      | Derivado al Médico
+                  else if estado === 'CANCELADO'
+                    span.badge.bg-danger.fs-6.p-2
+                      i.fas.fa-times-circle.me-1
+                      | Cancelado
+                else
+                  span.badge.bg-warning.fs-6.p-2
+                    i.fas.fa-clock.me-1
+                    | Pendiente
+
+            .row
+              .col-md-6.mb-3
+                .card.border-start.border-primary.border-3
+                  .card-body
+                    h5.h6.card-title.text-primary 
+                      i.fas.fa-user-injured.me-2
+                      | Paciente
+                    if procedimiento.evaluacion_medica && procedimiento.evaluacion_medica.paciente
+                      - const p = procedimiento.evaluacion_medica.paciente.usuario
+                      p.mb-1
+                        strong Nombre: 
+                        | #{p.nombre} #{p.apellido}
+                      p.mb-1
+                        strong DNI: 
+                        | #{p.dni}
+                      p.mb-1
+                        strong Edad: 
+                        | #{new Date().getFullYear() - new Date(p.fecha_nacimiento).getFullYear()} años
+                      p.mb-0
+                        strong Sexo: 
+                        | #{p.sexo === 'M' ? 'Masculino' : 'Femenino'}
+              .col-md-6.mb-3
+                .card.border-start.border-primary.border-3
+                  .card-body
+                    h5.h6.card-title.text-primary
+                      i.fas.fa-user-md.me-2
+                      | Médico Solicitante
+                    if procedimiento.evaluacion_medica && procedimiento.evaluacion_medica.medico
+                      - const m = procedimiento.evaluacion_medica.medico.usuario
+                      p.mb-0
+                        strong Médico: 
+                        | Dr. #{m.nombre} #{m.apellido}
+
+            .row.mt-4
+              .col-md-4.mb-3
+                .card.border-start.border-info.border-3
+                  .card-body
+                    h5.h6.card-title.text-info
+                      i.fas.fa-clock.me-2
+                      | Duración Estimada
+                    p.mb-0
+                      | #{procedimiento.duracion_estimada ? procedimiento.duracion_estimada + ' minutos' : 'No especificada'}
+              .col-md-4.mb-3
+                .card.border-start.border-info.border-3
+                  .card-body
+                    h5.h6.card-title.text-info
+                      i.fas.fa-syringe.me-2
+                      | Requiere Preparación
+                    p.mb-0
+                      if procedimiento.requiere_preparacion
+                        span.text-success
+                          i.fas.fa-check.me-1
+                          | Sí
+                      else
+                        span.text-secondary
+                          i.fas.fa-times.me-1
+                          | No
+              .col-md-4.mb-3
+                .card.border-start.border-info.border-3
+                  .card-body
+                    h5.h6.card-title.text-info
+                      i.fas.fa-calendar-alt.me-2
+                      | Fecha Solicitud
+                    p.mb-0
+                      | #{new Date(procedimiento.createdAt).toLocaleDateString('es-AR')}
+
+    if procedimiento.evaluaciones_enfermeria && procedimiento.evaluaciones_enfermeria.length > 0
+      .row.mb-4
+        .col-12
+          .card.shadow.mb-4
+            .card-header.bg-white
+              h4.card-title.mb-0
+                i.fas.fa-clipboard-check.me-2
+                | Historial de Ejecuciones
+            .card-body
+              .position-relative.ps-4.mt-3
+                .position-absolute.top-0.start-0.h-100(style='width: 2px; background-color: #dee2e6;')
+                each evaluacion, index in procedimiento.evaluaciones_enfermeria
+                  .position-relative.mb-4
+                    .position-absolute.top-0.start-0.translate-middle.rounded-circle.bg-primary(style='width: 15px; height: 15px;')
+                    .ms-4
+                      .d-flex.justify-content-between.align-items-start.mb-2
+                        h5.h6.mb-0
+                          if evaluacion.tipo_egreso === 'PROCEDIMIENTO_COMPLETADO'
+                            i.fas.fa-check-circle.text-success.me-2
+                            | Procedimiento Ejecutado
+                          else if evaluacion.tipo_egreso === 'DERIVACION_MEDICO'
+                            i.fas.fa-user-md.text-warning.me-2
+                            | Derivado al Médico
+                          else if evaluacion.tipo_egreso === 'CANCELADO'
+                            i.fas.fa-times-circle.text-danger.me-2
+                            | Cancelado
+                          else
+                            i.fas.fa-question-circle.text-info.me-2
+                            | #{evaluacion.tipo_egreso}
+                        small.text-muted
+                          | #{new Date(evaluacion.fecha).toLocaleDateString('es-AR')} - 
+                          | #{new Date(evaluacion.fecha).toLocaleTimeString('es-AR', {hour: '2-digit', minute:'2-digit'})}
+                      
+                      if evaluacion.enfermero && evaluacion.enfermero.usuario
+                        p.mb-3
+                          strong Enfermero/a: 
+                          | #{evaluacion.enfermero.usuario.nombre} #{evaluacion.enfermero.usuario.apellido}
+                      
+                      if evaluacion.signos_vitales
+                        .row.g-3.mb-3
+                          .col-md-6
+                            .card.bg-light
+                              .card-body.text-center
+                                .h4.mb-1 #{evaluacion.signos_vitales}
+                                small.text-muted Signos vitales
+                      
+                      if evaluacion.observaciones
+                        .mb-3
+                          strong.text-primary Observaciones:
+                          .border.rounded.p-3.mt-2.bg-light
+                            | !{evaluacion.observaciones.replace(/\n/g, '<br>')}
+
+    if procedimiento.tratamiento
+      .row.mb-4
+        .col-12
+          .card.shadow.mb-4
+            .card-header.bg-white
+              h4.card-title.mb-0
+                i.fas.fa-pills.me-2
+                | Tratamiento Asociado
+            .card-body
+              .row
+                .col-md-6.mb-3
+                  .card.bg-light
+                    .card-body
+                      strong Medicación: 
+                      | #{procedimiento.tratamiento.medicacion || 'No especificada'}
+                .col-md-6.mb-3
+                  .card.bg-light
+                    .card-body
+                      strong Dosis: 
+                      | #{procedimiento.tratamiento.dosis || 'No especificada'}
+                if procedimiento.tratamiento.indicaciones
+                  .col-12.mt-3
+                    .card.bg-light
+                      .card-body
+                        strong.text-primary Indicaciones:
+                        .mt-2
+                          | !{procedimiento.tratamiento.indicaciones.replace(/\n/g, '<br>')}
+
+    .row
+      .col-12
+        .card.shadow.mb-4
+          .card-body
+            - const hayEvaluaciones = procedimiento.evaluaciones_enfermeria && procedimiento.evaluaciones_enfermeria.length > 0
+            - let ultimaCompletada = false
+            - let ultimoEstado = ''
+            if hayEvaluaciones
+              - const ultimaEval = procedimiento.evaluaciones_enfermeria[procedimiento.evaluaciones_enfermeria.length - 1]
+              - ultimaCompletada = ultimaEval.tipo_egreso === 'PROCEDIMIENTO_COMPLETADO'
+              - ultimoEstado = ultimaEval.tipo_egreso
+
+            .d-flex.gap-2.flex-wrap
+              if !hayEvaluaciones
+                a.btn.btn-primary.btn-lg(href=`/enfermero/procedimientos/${procedimiento.id}/ejecutar`)
+                  i.fas.fa-play-circle.me-2
+                  | Ejecutar Procedimiento
+              
+              if hayEvaluaciones && ultimaCompletada
+                button.btn.btn-warning.btn-lg(type='button', data-bs-toggle='modal', data-bs-target='#modalComplicacion')
+                  i.fas.fa-exclamation-triangle.me-2
+                  | Registrar Complicación
+              
+              if !hayEvaluaciones || !ultimaCompletada
+                button.btn.btn-danger.btn-lg(type='button', data-bs-toggle='modal', data-bs-target='#modalCancelar')
+                  i.fas.fa-ban.me-2
+                  | Cancelar Procedimiento
+
+    if hayEvaluaciones && ultimaCompletada
+      .modal.fade#modalComplicacion(tabindex='-1', aria-labelledby='modalComplicacionLabel', aria-hidden='true')
+        .modal-dialog.modal-lg
+          .modal-content
+            .modal-header.bg-warning.text-white
+              h5.modal-title
+                i.fas.fa-exclamation-triangle.me-2
+                | Registrar Complicación
+              button.btn-close(type='button', data-bs-dismiss='modal', aria-label='Close')
+            form(action=`/enfermero/procedimientos/${procedimiento.id}/complicacion`, method='POST')
+              .modal-body
+                .mb-3
+                  label.form-label(for='tipo_complicacion') Tipo de Complicación
+                  select#tipo_complicacion.form-select(name='tipo_complicacion', required)
+                    option(value='') Seleccione
+                    option(value='REACCION_ADVERSA') Reacción Adversa
+                    option(value='ERROR_TECNICO') Error Técnico
+                    option(value='COMPLICACION_PACIENTE') Complicación del Paciente
+                    option(value='FALTA_MATERIALES') Falta de Materiales
+                    option(value='OTRO') Otro
+                .mb-3
+                  label.form-label(for='descripcion') Descripción
+                  textarea#descripcion.form-control(name='descripcion', rows='4', required)
+                .mb-3
+                  label.form-label(for='accion_tomada') Acción Tomada
+                  textarea#accion_tomada.form-control(name='accion_tomada', rows='3', required)
+              .modal-footer
+                button.btn.btn-secondary(type='button', data-bs-dismiss='modal') Cancelar
+                button.btn.btn-warning(type='submit')
+                  i.fas.fa-exclamation-triangle.me-2
+                  | Registrar
+
+    if !hayEvaluaciones || !ultimaCompletada
+      .modal.fade#modalCancelar(tabindex='-1', aria-labelledby='modalCancelarLabel', aria-hidden='true')
+        .modal-dialog
+          .modal-content
+            .modal-header.bg-danger.text-white
+              h5.modal-title
+                i.fas.fa-ban.me-2
+                | Cancelar Procedimiento
+              button.btn-close(type='button', data-bs-dismiss='modal', aria-label='Close')
+            form(action=`/enfermero/procedimientos/${procedimiento.id}/cancelar`, method='POST')
+              .modal-body
+                .alert.alert-warning
+                  i.fas.fa-exclamation-triangle.me-2
+                  | Esta acción cancelará el procedimiento.
+                .mb-3
+                  label.form-label(for='motivo_cancelacion') Motivo
+                  textarea#motivo_cancelacion.form-control(name='motivo_cancelacion', rows='4', required)
+              .modal-footer
+                button.btn.btn-secondary(type='button', data-bs-dismiss='modal') Volver
+                button.btn.btn-danger(type='submit')
+                  i.fas.fa-ban.me-2
+                  | Confirmar
+
+block scripts
+  script.
+    document.addEventListener('DOMContentLoaded', () => {
+      const formComplicacion = document.querySelector('form[action*="/complicacion"]');
+      if (formComplicacion) {
+        formComplicacion.addEventListener('submit', async e => {
+          e.preventDefault();
+          const tipo = document.getElementById('tipo_complicacion').value;
+          const desc = document.getElementById('descripcion').value;
+          const accion = document.getElementById('accion_tomada').value;
+          if (!tipo || desc.trim().length < 10 || accion.trim().length < 10) {
+            alert('Complete todos los campos correctamente.');
+            return;
+          }
+          const id = formComplicacion.action.split('/')[4];
+          try {
+            const res = await fetch(formComplicacion.action, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({tipo_complicacion: tipo, descripcion: desc, accion_tomada: accion})
+            });
+            const data = await res.json();
+            if (data.success) {
+              alert(data.message);
+              location.href = '/enfermero/procedimientos';
+            } else {
+              alert('Error: ' + data.message);
+            }
+          } catch (err) {
+            alert('Error al registrar complicación');
+          }
+        });
+      }
+
+      const formCancelar = document.querySelector('form[action*="/cancelar"]');
+      if (formCancelar) {
+        formCancelar.addEventListener('submit', async e => {
+          e.preventDefault();
+          const motivo = document.getElementById('motivo_cancelacion');
+          if (motivo.value.trim().length < 10) {
+            alert('Motivo muy corto.');
+            motivo.focus();
+            return;
+          }
+          const id = formCancelar.action.split('/')[4];
+          try {
+            const res = await fetch(formCancelar.action, {
+              method: 'POST',
+              headers: {'Content-Type': 'application/json'},
+              body: JSON.stringify({motivo_cancelacion: motivo.value})
+            });
+            const data = await res.json();
+            if (data.success) {
+              alert(data.message);
+              location.href = '/enfermero/procedimientos';
+            } else {
+              alert('Error: ' + data.message);
+            }
+          } catch (err) {
+            alert('Error al cancelar');
+          }
+        });
+      }
+    });

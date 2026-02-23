@@ -7,6 +7,10 @@ module.exports = (sequelize, DataTypes) => {
     fecha: { type: DataTypes.DATE, allowNull: false },
     medico_id: { type: DataTypes.INTEGER, allowNull: false,   references: { model: 'medicos', key: 'id' } },
     evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'evaluacionesmedicas', key: 'id' } },
+    estado: { type: DataTypes.ENUM('PENDIENTE', 'ADMINISTRADA', 'CANCELADA'), defaultValue: 'PENDIENTE' },
+    prioridad: { type: DataTypes.ENUM('BAJA', 'MEDIA', 'ALTA'), defaultValue: 'MEDIA' },
+    created_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW },
+    updated_at: { type: DataTypes.DATE, allowNull: false, defaultValue: DataTypes.NOW }
   }, {
     tableName: 'recetascertificados',
     timestamps: true,

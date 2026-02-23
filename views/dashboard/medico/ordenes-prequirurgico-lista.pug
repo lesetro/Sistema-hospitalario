@@ -1,0 +1,208 @@
+extends layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-notes-medical.me-2
+              | Órdenes Pre-quirúrgicas
+            p.text-muted.mb-0 Gestión de preparación pre-quirúrgica
+          div
+            a.btn.btn-primary(href="/medico/ordenes-prequirurgico/crear")
+              i.fas.fa-plus.me-2
+              | Nueva Orden
+
+    // Estadísticas
+    .row.mb-4
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Total
+                h3.mb-0= estadisticas.total
+              .bg-primary.bg-opacity-10.p-3.rounded
+                i.fas.fa-clipboard-list.fa-2x.text-primary
+      
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Pendientes
+                h3.mb-0= estadisticas.pendientes
+              .bg-warning.bg-opacity-10.p-3.rounded
+                i.fas.fa-clock.fa-2x.text-warning
+      
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Completados
+                h3.mb-0= estadisticas.completados
+              .bg-success.bg-opacity-10.p-3.rounded
+                i.fas.fa-check-circle.fa-2x.text-success
+      
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Urgentes
+                h3.mb-0= estadisticas.urgentes
+              .bg-danger.bg-opacity-10.p-3.rounded
+                i.fas.fa-exclamation-triangle.fa-2x.text-danger
+
+    // Filtros
+    .row.mb-4
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form(method="GET" action="/medico/ordenes-prequirurgico")
+              .row.g-3
+                .col-md-3
+                  label.form-label Estado
+                  select.form-select(name="estado")
+                    option(value="" selected=!filtros.estado) Todos
+                    option(value="Pendiente" selected=filtros.estado === 'Pendiente') Pendientes
+                    option(value="Completado" selected=filtros.estado === 'Completado') Completados
+                    option(value="Cancelada" selected=filtros.estado === 'Cancelada') Cancelados
+                
+                .col-md-3
+                  label.form-label Prioridad
+                  select.form-select(name="prioridad")
+                    option(value="" selected=!filtros.prioridad) Todas
+                    option(value="URGENTE" selected=filtros.prioridad === 'URGENTE') Urgente
+                    option(value="ALTA" selected=filtros.prioridad === 'ALTA') Alta
+                    option(value="NORMAL" selected=filtros.prioridad === 'NORMAL') Normal
+                
+                .col-md-3
+                  label.form-label Paciente
+                  input.form-control(
+                    type="text"
+                    name="paciente"
+                    placeholder="Nombre o DNI"
+                    value=filtros.paciente || ''
+                  )
+                
+                .col-md-3.d-flex.align-items-end
+                  .btn-group.w-100
+                    button.btn.btn-primary(type="submit")
+                      i.fas.fa-search.me-2
+                      | Buscar
+                    a.btn.btn-outline-secondary(href="/medico/ordenes-prequirurgico")
+                      i.fas.fa-times
+
+    // Lista de órdenes
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Lista de Órdenes Pre-quirúrgicas
+          
+          .card-body
+            if procedimientos && procedimientos.length > 0
+              .table-responsive
+                table.table.table-hover
+                  thead.table-light
+                    tr
+                      th Fecha
+                      th Paciente
+                      th Cirugía
+                      th Prioridad
+                      th Estado
+                      th Acciones
+                  tbody
+                    each proc in procedimientos
+                      tr
+                        td= new Date(proc.fecha_orden || proc.createdAt).toLocaleDateString('es-AR')
+                        td
+                          strong #{proc.evaluacion_medica.paciente.usuario.nombre} #{proc.evaluacion_medica.paciente.usuario.apellido}
+                          br
+                          small.text-muted DNI: #{proc.evaluacion_medica.paciente.usuario.dni}
+                        td
+                          = proc.nombre
+                          br
+                          small.text-muted= proc.descripcion ? proc.descripcion.substring(0, 50) + '...' : ''
+                        td
+                          if proc.prioridad === 'URGENTE'
+                            span.badge.bg-danger URGENTE
+                          else if proc.prioridad === 'ALTA'
+                            span.badge.bg-warning.text-dark ALTA
+                          else
+                            span.badge.bg-secondary NORMAL
+                        td
+                          if proc.estado === 'Pendiente'
+                            span.badge.bg-warning.text-dark
+                              i.fas.fa-clock.me-1
+                              | Pendiente
+                          else if proc.estado === 'Completado'
+                            span.badge.bg-success
+                              i.fas.fa-check.me-1
+                              | Completado
+                          else if proc.estado === 'Cancelada'
+                            span.badge.bg-danger
+                              i.fas.fa-times.me-1
+                              | Cancelado
+                        td
+                          .btn-group.btn-group-sm
+                            a.btn.btn-outline-primary(
+                              href=`/medico/ordenes-prequirurgico/${proc.id}`
+                              title="Ver detalle"
+                            )
+                              i.fas.fa-eye
+                            if proc.estado === 'Pendiente'
+                              a.btn.btn-outline-warning(
+                                href=`/medico/ordenes-prequirurgico/${proc.id}/editar`
+                                title="Editar"
+                              )
+                                i.fas.fa-edit
+                              button.btn.btn-outline-danger(
+                                type="button"
+                                onclick=`cancelarOrden(${proc.id})`
+                                title="Cancelar"
+                              )
+                                i.fas.fa-ban
+            else
+              .text-center.py-5.text-muted
+                i.fas.fa-inbox.fa-4x.mb-3
+                h5 No hay órdenes pre-quirúrgicas registradas
+                p Cree una nueva orden para comenzar
+
+block scripts
+  script.
+    function cancelarOrden(id) {
+      if (confirm('¿Está seguro de cancelar esta orden pre-quirúrgica?\n\nEsta acción no se puede deshacer.')) {
+        const motivo = prompt('Ingrese el motivo de cancelación:');
+        
+        if (motivo) {
+          fetch(`/medico/ordenes-prequirurgico/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ motivo_cancelacion: motivo })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert(data.message);
+              window.location.reload();
+            } else {
+              alert('Error: ' + data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cancelar la orden');
+          });
+        }
+      }
+    }

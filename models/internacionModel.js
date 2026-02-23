@@ -6,19 +6,23 @@ module.exports = (sequelize, DataTypes) => {
     medico_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'medicos', key: 'id' } },
     cama_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'camas', key: 'id' } }, 
     tipo_internacion_id: { type: DataTypes.INTEGER, allowNull: false , references: { model: 'tiposinternacion', key: 'id' } },
-    administrativo_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'administrativos', key: 'id' } },
+    administrativo_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'administrativos', key: 'id' } },
     evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: true , references: { model: 'evaluacionesmedicas', key: 'id' } },
     intervencion_quirurgica_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'intervencionesquirurgicas', key: 'id' } },
     es_prequirurgica: { type: DataTypes.BOOLEAN, allowNull: true, defaultValue: true }, 
     estado_operacion: { type: DataTypes.ENUM('Prequirurgico', 'Postquirurgico', 'No aplica'), defaultValue: 'No aplica' },
     estado_estudios: { type: DataTypes.ENUM('Completos', 'Pendientes'), defaultValue: 'Pendientes' },
     estado_paciente: { type: DataTypes.ENUM('Estable', 'Grave', 'Critico', 'Fallecido', 'Sin_Evaluar'), allowNull: false,defaultValue: 'Sin_Evaluar'},
+    estado_ordenes: { type: DataTypes.ENUM('SIN_ORDENES', 'CON_PENDIENTES', 'TODAS_COMPLETADAS'),defaultValue: 'SIN_ORDENES'},
+    total_ordenes: { type: DataTypes.INTEGER, defaultValue: 0 },
+    ordenes_completadas: { type: DataTypes.INTEGER, defaultValue: 0 },
     fecha_inicio: { type: DataTypes.DATE, allowNull: true },
     fecha_cirugia: { type: DataTypes.DATE, allowNull: true },
     obra_social_id: { type: DataTypes.INTEGER, allowNull: true ,references: { model: 'obrassociales', key: 'id' } },
     fecha_alta: { type: DataTypes.DATE, allowNull: true },
     lista_espera_id: {type: DataTypes.INTEGER,allowNull: false, references: { model: 'listasesperas', key: 'id' }},
     admision_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'admisiones', key: 'id' } },
+    observaciones: { type: DataTypes.TEXT, allowNull: true,defaultValue: null },
     habitacion_id: { type: DataTypes.INTEGER, allowNull: false,references: { model: 'habitaciones', key: 'id' }}
     }, {
     tableName: 'internaciones',
@@ -48,11 +52,11 @@ module.exports = (sequelize, DataTypes) => {
     const transaction = options.transaction || await sequelize.transaction();
     
     try {
-      // ✅ CORRECCIÓN: Convertir IDs a números
+      //  Convertir IDs a números
       const camaId = Number(internacion.cama_id);
       const habitacionId = Number(internacion.habitacion_id);
       
-      // ✅ CORRECCIÓN: Cargar Paciente CON Usuario para obtener el sexo
+      //  Cargar Paciente CON Usuario para obtener el sexo
       const [cama, habitacion, paciente] = await Promise.all([
         sequelize.models.Cama.findByPk(camaId, { transaction }),
         sequelize.models.Habitacion.findByPk(habitacionId, { transaction }),
@@ -79,7 +83,7 @@ module.exports = (sequelize, DataTypes) => {
         throw new Error('Paciente no encontrado');
       }
 
-      // ✅ CORRECCIÓN: Obtener sexo del Usuario
+      //  Obtener sexo del Usuario
       if (!paciente.usuario) {
         throw new Error('No se pudo obtener la información del usuario del paciente');
       }
@@ -95,7 +99,7 @@ module.exports = (sequelize, DataTypes) => {
         throw new Error(`La cama ${cama.numero} no está disponible. Estado: ${cama.estado}`);
       }
       
-      // ✅ CORRECCIÓN: VALIDACIÓN 2 con lógica para sexo "Otro"
+      //  VALIDACIÓN 2 con lógica para sexo "Otro"
       if (sexoPaciente === 'Otro') {
         // Pacientes "Otro" solo pueden ir a Mixtas o Individuales vacías
         if (habitacion.sexo_permitido !== 'Mixto' && habitacion.tipo !== 'Individual') {
@@ -146,7 +150,7 @@ module.exports = (sequelize, DataTypes) => {
         }
       }
       
-      // ✅ CORRECCIÓN: VALIDACIÓN 3 con comparación numérica
+      //  VALIDACIÓN 3 con comparación numérica
       const camaHabitacionId = Number(cama.habitacion_id);
       if (camaHabitacionId !== habitacionId) {
         throw new Error(
@@ -187,7 +191,7 @@ module.exports = (sequelize, DataTypes) => {
     const transaction = options.transaction || await sequelize.transaction();
     
     try {
-      // ✅ CORRECCIÓN: Obtener sexo del Usuario
+      //  Obtener sexo del Usuario
       const paciente = await sequelize.models.Paciente.findByPk(
         internacion.paciente_id,
         { 
@@ -237,6 +241,8 @@ module.exports = (sequelize, DataTypes) => {
     Internacion.hasMany(models.AltaMedica, { foreignKey: 'internacion_id', as: 'altasMedicas' });
     Internacion.belongsTo(models.ListaEspera, { foreignKey: 'lista_espera_id', as: 'lista_espera' });
     Internacion.belongsTo(models.Habitacion, { foreignKey: 'habitacion_id', as: 'habitacion' });
+    Internacion.hasMany(models.EvaluacionEnfermeria, { foreignKey: 'internacion_id', as: 'ordenes_medicas' });
+
   };
 
   return Internacion;

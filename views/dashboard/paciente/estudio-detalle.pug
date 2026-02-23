@@ -1,0 +1,107 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .container-fluid
+    nav(aria-label='breadcrumb')
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href='/paciente') Inicio
+        li.breadcrumb-item
+          a(href='/paciente/estudios') Mis Estudios
+        li.breadcrumb-item.active Detalle del Estudio ##{estudio.id}
+
+    .d-flex.justify-content-between.align-items-center.mb-4
+      h2.mb-0
+        i.fas.fa-x-ray.me-2.text-primary
+        | Detalle del Estudio
+      a.btn.btn-outline-secondary(href='/paciente/estudios')
+        i.fas.fa-arrow-left.me-2
+        | Volver
+
+    .alert(class=estudio.estado === 'Realizado' ? 'alert-success' : estudio.estado === 'Pendiente' ? 'alert-warning' : 'alert-danger')
+      h5.alert-heading Estado: #{estudio.estado}
+      p.mb-0
+        if estudio.estado === 'Pendiente'
+          | Estudio pendiente de realización.
+        else if estudio.estado === 'Realizado'
+          | Estudio completado.
+        else if estudio.estado === 'Cancelado'
+          | Estudio cancelado.
+        else
+          | Estado: #{estudio.estado}
+
+    .row.g-4
+      .col-lg-6
+        .card.shadow-sm.border-0
+          .card-header.bg-primary.text-white
+            h5.mb-0 Información del Estudio
+          .card-body
+            dl.row
+              dt.col-sm-4 Tipo de Estudio
+              dd.col-sm-8
+                strong #{estudio.tipo_estudio ? estudio.tipo_estudio.nombre : '-'}
+                small.d-block.text-muted #{estudio.tipo_estudio ? estudio.tipo_estudio.categoria : ''}
+              dt.col-sm-4 Fecha de solicitud
+              dd.col-sm-8 #{new Date(estudio.created_at).toLocaleString('es-AR')}
+              dt.col-sm-4 Urgencia
+              dd.col-sm-8
+                span.badge(class=estudio.urgencia === 'Alta' ? 'bg-danger' : 'bg-warning')
+                  | #{estudio.urgencia || 'Normal'}
+              dt.col-sm-4 Ayuno requerido
+              dd.col-sm-8
+                if estudio.tipo_estudio && estudio.tipo_estudio.requiere_ayuno
+                  span.badge.bg-warning Sí (8 horas)
+                else
+                  span.badge.bg-success No requerido
+              dt.col-sm-4 Estado actual
+              dd.col-sm-8
+                span.badge.fs-6(class=estudio.estado === 'Realizado' ? 'bg-success' : estudio.estado === 'Pendiente' ? 'bg-warning' : 'bg-danger')
+                  | #{estudio.estado}
+
+      .col-lg-6
+        .card.shadow-sm.border-0
+          .card-header.bg-info.text-white
+            h5.mb-0 Médico Solicitante
+          .card-body
+            if estudio.evaluacion_medica && estudio.evaluacion_medica.medico
+              dl.row
+                dt.col-sm-4 Médico
+                dd.col-sm-8
+                  strong Dr/a. #{estudio.evaluacion_medica.medico.usuario.nombre} #{estudio.evaluacion_medica.medico.usuario.apellido}
+                dt.col-sm-4 Especialidad
+                dd.col-sm-8 #{estudio.evaluacion_medica.medico.especialidad ? estudio.evaluacion_medica.medico.especialidad.nombre : '-'}
+                dt.col-sm-4 Teléfono
+                dd.col-sm-8 #{estudio.evaluacion_medica.medico.usuario.telefono || '-'}
+                dt.col-sm-4 Diagnóstico
+                dd.col-sm-8
+                  if estudio.evaluacion_medica.diagnostico
+                    | #{estudio.evaluacion_medica.diagnostico.nombre}
+                    small.d-block.text-muted Código: #{estudio.evaluacion_medica.diagnostico.codigo}
+                  else
+                    | No especificado
+
+      if estudio.turno_estudio
+        .col-12
+          .card.shadow-sm.border-0
+            .card-header.bg-secondary.text-white
+              h5.mb-0 Turno Programado
+            .card-body
+              .row
+                .col-md-4
+                  strong Fecha
+                  p.mb-0 #{new Date(estudio.turno_estudio.fecha).toLocaleDateString('es-AR')}
+                .col-md-4
+                  strong Hora
+                  p.mb-0 #{estudio.turno_estudio.hora}
+                .col-md-4
+                  strong Estado turno
+                  p.mb-0
+                    span.badge(class=estudio.turno_estudio.estado === 'Realizado' ? 'bg-success' : 'bg-info')
+                      | #{estudio.turno_estudio.estado}
+                .col-md-12.mt-3
+                  if estudio.turno_estudio.resultado
+                    .alert.alert-info.mb-0
+                      strong Resultado:
+                      p.mt-2 #{estudio.turno_estudio.resultado}
+                  else
+                    p.text-muted Resultado pendiente

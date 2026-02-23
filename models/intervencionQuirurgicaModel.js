@@ -5,15 +5,37 @@ module.exports = (sequelize, DataTypes) => {
     paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' } },
     medico_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'medicos', key: 'id' } },
     habitacion_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'habitaciones', key: 'id' } },
-    evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'evaluacionesmedicas', key: 'id' } },
+    evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'evaluacionesmedicas', key: 'id' } },
     tipo_procedimiento: { type: DataTypes.STRING(100), allowNull: false }, // Ejemplo: "Apendicectomía"
     fecha_inicio: { type: DataTypes.DATE, allowNull: false },
     fecha_fin: { type: DataTypes.DATE, allowNull: true },
-    lista_espera_id: { type: DataTypes.INTEGER, allowNull: false,references: { model: 'listasesperas', key: 'id' } },
+    lista_espera_id: { type: DataTypes.INTEGER, allowNull: true,references: { model: 'listasesperas', key: 'id' } },
+    estado_cirugia: {
+      type: DataTypes.ENUM(
+        'PROGRAMADA',       // Tiene fecha futura
+        'PRE_OPERATORIO',   // Preparándose para cirugía
+        'EN_CIRUGIA',       // En quirófano operando
+        'POST_OPERATORIO',  // Recuperándose
+        'FINALIZADA',       // Proceso completo
+        'CANCELADA'         // Se canceló
+      ),
+      defaultValue: 'PROGRAMADA'
+    },
     resultado_cirugia: { 
-      type: DataTypes.ENUM('Fallecio', 'NecesitaInternacionHabitacion', 'NecesitaInternacionUCI', 'AltaDirecta', 'Complicaciones'), 
+      type: DataTypes.ENUM(
+        'EXITOSA',
+        'EXITOSA_CON_COMPLICACIONES',
+        'REQUIERE_INTERNACION',
+        'REQUIERE_UCI',
+        'FALLECIDO',
+        'CANCELADA'
+      ), 
       allowNull: true 
-    }, 
+    },
+    notas_preoperatorio: { type: DataTypes.TEXT, allowNull: true },
+    notas_postoperatorio: { type: DataTypes.TEXT, allowNull: true },
+    
+    es_urgencia: { type: DataTypes.BOOLEAN, defaultValue: false },
     observaciones: { type: DataTypes.TEXT, allowNull: true }
   }, {
     tableName: 'intervencionesquirurgicas',
@@ -26,7 +48,9 @@ module.exports = (sequelize, DataTypes) => {
       { fields: ['evaluacion_medica_id'] },
       { fields: ['fecha_inicio'] },
       { fields: ['fecha_fin'] },
-      { fields: ['lista_espera_id'] }
+      { fields: ['lista_espera_id'] },
+      { fields: ['estado_cirugia'] },  
+      { fields: ['es_urgencia'] }    
     ]
   });
   IntervencionQuirurgica.beforeCreate(async (intervencion, options) => {

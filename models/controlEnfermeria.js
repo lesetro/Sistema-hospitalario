@@ -1,7 +1,12 @@
 module.exports = (sequelize, DataTypes) => {
   const ControlEnfermeria = sequelize.define('ControlEnfermeria', {
     id: { type: DataTypes.INTEGER, primaryKey: true, autoIncrement: true },
-    evaluacion_enfermeria_id: { type: DataTypes.INTEGER, allowNull: false,references: { model: 'evaluacionesenfermeria', key: 'id' }},
+    estado: { 
+      type: DataTypes.ENUM('SOLICITADO', 'PENDIENTE', 'COMPLETADO', 'CANCELADO'), 
+      defaultValue: 'SOLICITADO'
+    },
+    paciente_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'pacientes', key: 'id' }},
+    evaluacion_enfermeria_id: { type: DataTypes.INTEGER, allowNull: true,references: { model: 'evaluacionesenfermeria', key: 'id' }}, // true para que se pueda pedir un control desde paciente de medico
     alergias: { type: DataTypes.TEXT, allowNull: true },
     evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'evaluacionesmedicas', key: 'id' }},
     antecedentes_familiares: { type: DataTypes.TEXT, allowNull: true },
@@ -37,14 +42,15 @@ module.exports = (sequelize, DataTypes) => {
     underscored: true,
     indexes: [
        { fields: ['evaluacion_enfermeria_id'] },
-       { fields: ['evaluacion_medica_id'] }
+       { fields: ['evaluacion_medica_id'] },
+       { fields: ['paciente_id'] }
     ]
   });
 
   ControlEnfermeria.associate = function(models) {
     ControlEnfermeria.belongsTo(models.EvaluacionEnfermeria, { foreignKey: 'evaluacion_enfermeria_id', as: 'evaluacion' });
     ControlEnfermeria.belongsTo(models.EvaluacionMedica, { foreignKey: 'evaluacion_medica_id', as: 'evaluacion_medica' });
-    
+    ControlEnfermeria.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });    
     
   };
 

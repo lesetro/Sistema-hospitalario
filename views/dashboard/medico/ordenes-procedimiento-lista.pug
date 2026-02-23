@@ -1,0 +1,219 @@
+extends layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-syringe.me-2
+              | Órdenes de Procedimientos
+            p.text-muted.mb-0 Gestión de procedimientos de enfermería
+          div
+            a.btn.btn-primary(href="/medico/ordenes-procedimiento/crear")
+              i.fas.fa-plus.me-2
+              | Nueva Orden
+
+    // Estadísticas
+    .row.mb-4
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Total
+                h3.mb-0= estadisticas.total
+              .bg-primary.bg-opacity-10.p-3.rounded
+                i.fas.fa-clipboard-list.fa-2x.text-primary
+      
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Pendientes
+                h3.mb-0= estadisticas.pendientes
+              .bg-warning.bg-opacity-10.p-3.rounded
+                i.fas.fa-clock.fa-2x.text-warning
+      
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Completados
+                h3.mb-0= estadisticas.completados
+              .bg-success.bg-opacity-10.p-3.rounded
+                i.fas.fa-check-circle.fa-2x.text-success
+      
+      .col-xl-3.col-md-6.mb-3
+        .card.border-0.shadow-sm.h-100
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h6.text-muted.mb-1 Urgentes
+                h3.mb-0= estadisticas.urgentes
+              .bg-danger.bg-opacity-10.p-3.rounded
+                i.fas.fa-exclamation-triangle.fa-2x.text-danger
+
+    // Filtros
+    .row.mb-4
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form(method="GET" action="/medico/ordenes-procedimiento")
+              .row.g-3
+                .col-md-3
+                  label.form-label Estado
+                  select.form-select(name="estado")
+                    option(value="" selected=!filtros.estado) Todos
+                    option(value="PENDIENTE" selected=filtros.estado === 'PENDIENTE') Pendientes
+                    option(value="COMPLETADO" selected=filtros.estado === 'COMPLETADO') Completados
+                    option(value="CANCELADO" selected=filtros.estado === 'CANCELADO') Cancelados
+                
+                .col-md-3
+                  label.form-label Prioridad
+                  select.form-select(name="prioridad")
+                    option(value="" selected=!filtros.prioridad) Todas
+                    option(value="MEDIA" selected=filtros.prioridad === 'MEDIA') Media
+                    option(value="ALTA" selected=filtros.prioridad === 'ALTA') Alta
+                    option(value="BAJA" selected=filtros.prioridad === 'BAJA') Baja
+                
+                .col-md-3
+                  label.form-label Paciente
+                  input.form-control(
+                    type="text"
+                    name="paciente"
+                    placeholder="Nombre o DNI"
+                    value=filtros.paciente || ''
+                  )
+                
+                .col-md-3.d-flex.align-items-end
+                  .btn-group.w-100
+                    button.btn.btn-primary(type="submit")
+                      i.fas.fa-search.me-2
+                      | Buscar
+                    a.btn.btn-outline-secondary(href="/medico/ordenes-procedimiento")
+                      i.fas.fa-times
+
+    // Lista de órdenes
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | Lista de Órdenes
+          
+          .card-body
+            if procedimientos && procedimientos.length > 0
+              .table-responsive
+                table.table.table-hover
+                  thead.table-light
+                    tr
+                      th Fecha
+                      th Paciente
+                      th Procedimiento
+                      th Prioridad
+                      th Estado
+                      th Acciones
+                  tbody
+                    each proc in procedimientos
+                      tr
+                        td= new Date(proc.fecha_orden).toLocaleDateString('es-AR')
+                        td
+                          strong #{proc.evaluacion_medica.paciente.usuario.nombre} #{proc.evaluacion_medica.paciente.usuario.apellido}
+                          br
+                          small.text-muted DNI: #{proc.evaluacion_medica.paciente.usuario.dni}
+                        td
+                          = proc.nombre
+                          if proc.requiere_preparacion
+                            br
+                            span.badge.bg-info.mt-1
+                              i.fas.fa-list-check.me-1
+                              | Requiere preparación
+                        td
+                          if proc.prioridad === 'MEDIA'
+                            span.badge.bg-warning.text-dark MEDIA
+                             
+                          else if proc.prioridad === 'ALTA'
+                            span.badge.bg-danger ALTA
+                          else
+                            span.badge.bg-secondary BAJA
+                        td
+                          if proc.estado === 'PENDIENTE'
+                            span.badge.bg-warning.text-dark
+                              i.fas.fa-clock.me-1
+                              | Pendiente
+                          else if proc.estado === 'COMPLETADO'
+                            span.badge.bg-success
+                              i.fas.fa-check.me-1
+                              | Completado
+                          else if proc.estado === 'CANCELADO'
+                            span.badge.bg-danger
+                              i.fas.fa-times.me-1
+                              | Cancelado
+                          else if proc.estado === 'EN_PROGRESO'
+                            span.badge.bg-info
+                              i.fas.fa-spinner.me-1
+                              | En Progreso
+                          else
+                            span.badge.bg-secondary
+                              | #{proc.estado || 'Desconocido'}
+                        td
+                          .btn-group.btn-group-sm
+                            a.btn.btn-outline-primary(
+                              href=`/medico/ordenes-procedimiento/${proc.id}`
+                              title="Ver detalle"
+                            )
+                              i.fas.fa-eye
+                            if proc.estado === 'PENDIENTE'
+                              a.btn.btn-outline-warning(
+                                href=`/medico/ordenes-procedimiento/${proc.id}/editar`
+                                title="Editar"
+                              )
+                                i.fas.fa-edit
+                              button.btn.btn-outline-danger(
+                                type="button"
+                                onclick=`cancelarOrden(${proc.id})`
+                                title="Cancelar"
+                              )
+                                i.fas.fa-ban
+            else
+              .text-center.py-5.text-muted
+                i.fas.fa-inbox.fa-4x.mb-3
+                h5 No hay órdenes registradas
+                p Cree una nueva orden para comenzar
+
+block scripts
+  script.
+    function cancelarOrden(id) {
+      if (confirm('¿Está seguro de cancelar esta orden?\n\nEsta acción no se puede deshacer.')) {
+        const motivo = prompt('Ingrese el motivo de cancelación:');
+        
+        if (motivo) {
+          fetch(`/medico/ordenes-procedimiento/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ motivo_cancelacion: motivo })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert(data.message);
+              window.location.reload();
+            } else {
+              alert('Error: ' + data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cancelar la orden');
+          });
+        }
+      }
+    }

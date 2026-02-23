@@ -1,0 +1,153 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .container.mt-4
+    //- Breadcrumb
+    nav(aria-label="breadcrumb")
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href="/paciente") Dashboard
+        li.breadcrumb-item
+          a(href="/paciente/recetas") Recetas y Certificados
+        li.breadcrumb-item.active(aria-current="page")= title
+
+    //- Título
+    .row.mb-4
+      .col-12
+        h2.mb-0
+          i.fas.fa-file-prescription.me-2
+          = title
+        p.text-muted Documento ##{documento.id}
+
+    .row
+      //- Información del Documento
+      .col-md-8
+        .card.mb-4
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-info-circle.me-2
+              | Información del Documento
+          .card-body
+            .row.mb-3
+              .col-md-6
+                strong Tipo:
+                p.mb-0= documento.tipo
+              .col-md-6
+                strong Fecha de Emisión:
+                p.mb-0= new Date(documento.fecha).toLocaleDateString('es-AR')
+
+            hr
+
+            if documento.tipo === 'Receta Medica'
+              .mb-3
+                strong Medicación:
+                p.text-pre-wrap= documento.descripcion || 'No especificada'
+              
+              if documento.indicaciones
+                .mb-3
+                  strong Indicaciones:
+                  p.text-pre-wrap= documento.indicaciones
+            else
+              .mb-3
+                strong Contenido:
+                p.text-pre-wrap= documento.descripcion || documento.contenido || 'No especificado'
+
+            if documento.observaciones
+              .mb-3
+                strong Observaciones:
+                p.text-pre-wrap= documento.observaciones
+
+        //- Médico que emitió
+        if documento.medico
+          .card.mb-4
+            .card-header.bg-info.text-white
+              h5.mb-0
+                i.fas.fa-user-md.me-2
+                | Médico que Emitió
+            .card-body
+              .row
+                .col-md-6
+                  strong Nombre:
+                  p.mb-2= `Dr/a. ${documento.medico.usuario.nombre} ${documento.medico.usuario.apellido}`
+                  
+                  if documento.medico.especialidad
+                    strong Especialidad:
+                    p.mb-2= documento.medico.especialidad.nombre
+                
+                .col-md-6
+                  if documento.medico.usuario.telefono
+                    strong Teléfono:
+                    p.mb-2= documento.medico.usuario.telefono
+                  
+                  if documento.medico.usuario.email
+                    strong Email:
+                    p.mb-2= documento.medico.usuario.email
+
+        //- Evaluación Médica Asociada
+        if documento.evaluacionMedica
+          .card.mb-4
+            .card-header.bg-success.text-white
+              h5.mb-0
+                i.fas.fa-stethoscope.me-2
+                | Evaluación Médica
+            .card-body
+              .mb-3
+                strong Fecha de Evaluación:
+                p.mb-0= new Date(documento.evaluacionMedica.fecha).toLocaleDateString('es-AR')
+
+              if documento.evaluacionMedica.diagnostico
+                hr
+                .mb-3
+                  strong Diagnóstico:
+                  p.mb-1
+                    span.badge.bg-info.me-2= documento.evaluacionMedica.diagnostico.codigo
+                    = documento.evaluacionMedica.diagnostico.nombre
+                  if documento.evaluacionMedica.diagnostico.descripcion
+                    p.text-muted.small= documento.evaluacionMedica.diagnostico.descripcion
+
+              if documento.evaluacionMedica.tratamiento
+                hr
+                .mb-3
+                  strong Tratamiento:
+                  p.mb-1= documento.evaluacionMedica.tratamiento.nombre
+                  if documento.evaluacionMedica.tratamiento.descripcion
+                    p.text-muted.small= documento.evaluacionMedica.tratamiento.descripcion
+
+      //- Sidebar - Información del Paciente
+      .col-md-4
+        .card.mb-4
+          .card-header.bg-secondary.text-white
+            h5.mb-0
+              i.fas.fa-user.me-2
+              | Datos del Paciente
+          .card-body
+            .mb-3
+              strong Nombre:
+              p.mb-0= `${paciente.usuario.nombre} ${paciente.usuario.apellido}`
+            
+            .mb-3
+              strong DNI:
+              p.mb-0= paciente.usuario.dni
+            
+            .mb-3
+              strong Edad:
+              p.mb-0= `${paciente.edad} años`
+            
+            if paciente.usuario.fecha_nacimiento
+              .mb-3
+                strong Fecha de Nacimiento:
+                p.mb-0= new Date(paciente.usuario.fecha_nacimiento).toLocaleDateString('es-AR')
+
+        //- Acciones
+        .card
+          .card-header.bg-dark.text-white
+            h5.mb-0
+              i.fas.fa-cog.me-2
+              | Acciones
+          .card-body
+            a.btn.btn-primary.w-100.mb-2(href="/paciente/recetas")
+              i.fas.fa-arrow-left.me-2
+              | Volver a Recetas
+            
+
+

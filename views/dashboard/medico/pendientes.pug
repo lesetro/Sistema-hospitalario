@@ -1,0 +1,106 @@
+extends layout
+
+block content
+  .container-fluid
+    //- BREADCRUMB
+    nav(aria-label='breadcrumb')
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href='/medico') Dashboard
+        li.breadcrumb-item
+          a(href='/medico/sectores') Mi Sector
+        li.breadcrumb-item.active Pendientes de Asignar
+    
+    //- ENCABEZADO
+    .d-flex.justify-content-between.align-items-center.mb-4
+      div
+        h2
+          i.fas.fa-users.me-2
+          | Pacientes Pendientes de Asignar
+        p.text-muted.mb-0 Derivaciones recientes a su sector que requieren asignación de cama
+      
+      a.btn.btn-secondary(href='/medico/sectores')
+        i.fas.fa-arrow-left.me-2
+        | Volver a Mi Sector
+    
+    //- LISTA DE PENDIENTES
+    .card
+      .card-header.bg-warning
+        h5.mb-0
+          i.fas.fa-exclamation-triangle.me-2
+          | Derivaciones Pendientes
+          span.badge.bg-dark.ms-2= pendientes.length
+      
+      .card-body
+        if pendientes && pendientes.length > 0
+          .table-responsive
+            table.table.table-hover
+              thead.table-light
+                tr
+                  th Paciente
+                  th DNI
+                  th Sector Origen
+                  th Fecha Derivación
+                  th Motivo
+                  th Acciones
+              
+              tbody
+                each pendiente in pendientes
+                  - const paciente = pendiente.paciente
+                  - const sectorOrigen = pendiente.cama.habitacion.sector
+                  
+                  //- Extraer motivo de derivación de observaciones
+                  - const obs = pendiente.observaciones || ''
+                  - const matchMotivo = obs.match(/Motivo: ([^\n]+)/)
+                  - const motivo = matchMotivo ? matchMotivo[1] : 'No especificado'
+                  
+                  tr
+                    td
+                      strong= paciente.usuario.nombre + ' ' + paciente.usuario.apellido
+                      if paciente.obraSocial
+                        br
+                        small.text-muted= paciente.obraSocial.nombre
+                    
+                    td= paciente.usuario.dni
+                    
+                    td
+                      span.badge.bg-secondary= sectorOrigen.nombre
+                    
+                    td= new Date(pendiente.fecha_alta).toLocaleString('es-AR')
+                    
+                    td
+                      small= motivo
+                    
+                    td
+                      a.btn.btn-sm.btn-success(
+                        href=`/medico/pacientes/${paciente.id}`
+                        title='Ver paciente e internar'
+                      )
+                        i.fas.fa-bed.me-1
+                        | Asignar Cama
+        
+        else
+          .alert.alert-info.mb-0
+            i.fas.fa-check-circle.me-2
+            strong ¡Todo al día! 
+            | No hay pacientes pendientes de asignar en este momento.
+    
+    //- INFORMACIÓN ADICIONAL
+    .card.mt-3
+      .card-body
+        h6.card-title
+          i.fas.fa-info-circle.me-2
+          | ¿Cómo funciona?
+        
+        ol.mb-0
+          li.mb-2
+            strong Derivación: 
+            | Otro médico deriva un paciente a su sector
+          
+          li.mb-2
+            strong Pendiente: 
+            | El paciente aparece aquí hasta que se le asigne una cama
+          
+          li.mb-0
+            strong Asignación: 
+            | Usted revisa al paciente y lo interna en una cama de su sector

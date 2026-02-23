@@ -14,7 +14,7 @@ const { Paciente,
 const { Op } = require('sequelize');
 
 // Vista principal de búsqueda
-exports.vistaBusqueda = async (req, res) => {
+exports.vistaBusqueda = async (req, res, next) => {
   try {
     res.render('dashboard/enfermero/buscar-paciente', {
       title: 'Buscar Paciente',
@@ -22,15 +22,12 @@ exports.vistaBusqueda = async (req, res) => {
     });
   } catch (error) {
     console.error('Error al cargar vista de búsqueda:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar búsqueda',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Búsqueda general de pacientes
-exports.buscarPacientes = async (req, res) => {
+exports.buscarPacientes = async (req, res, next) => {
   try {
     const { q } = req.query;
 
@@ -148,16 +145,12 @@ exports.buscarPacientes = async (req, res) => {
 
   } catch (error) {
     console.error('Error al buscar pacientes:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error en la búsqueda',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Obtener ficha rápida de paciente
-exports.fichaRapida = async (req, res) => {
+exports.fichaRapida = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -296,16 +289,12 @@ exports.fichaRapida = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener ficha rápida:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener ficha del paciente',
-      error: error.message
-    });
+   next(error);
   }
 };
 
 // Búsqueda avanzada con filtros
-exports.busquedaAvanzada = async (req, res) => {
+exports.busquedaAvanzada = async (req, res, next) => {
   try {
     const { nombre, apellido, dni, edad_min, edad_max, sexo, estado, internado } = req.query;
 
@@ -396,16 +385,12 @@ exports.busquedaAvanzada = async (req, res) => {
 
   } catch (error) {
     console.error('Error en búsqueda avanzada:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error en búsqueda avanzada',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Accesos rápidos para paciente
-exports.accesoRapido = async (req, res) => {
+exports.accesoRapido = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { accion } = req.query;
@@ -448,11 +433,7 @@ exports.accesoRapido = async (req, res) => {
 
   } catch (error) {
     console.error('Error en acceso rápido:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error en acceso rápido',
-      error: error.message
-    });
+    next(error);
   }
 };
 

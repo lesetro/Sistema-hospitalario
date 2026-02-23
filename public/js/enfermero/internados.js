@@ -57,7 +57,7 @@ async function guardarEstado() {
     
     if (result.success) {
       alert('Estado actualizado correctamente');
-      window.location.href = result.redirect;
+       window.location.reload();
     } else {
       alert(result.message || 'Error al actualizar');
     }
@@ -91,7 +91,7 @@ async function guardarEvolucion() {
   }
   
   try {
-    const response = await fetch(`/enfermero/internados/${internacionId}/evolucion`, {
+    const response = await fetch(`/enfermero/internados/${internacionId}/registrar-evolucion`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
@@ -103,7 +103,7 @@ async function guardarEvolucion() {
     
     if (result.success) {
       alert('Evolución registrada correctamente');
-      window.location.href = result.redirect;
+      window.location.reload();
     } else {
       alert(result.message || 'Error al registrar');
     }

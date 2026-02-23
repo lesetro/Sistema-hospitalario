@@ -1,0 +1,213 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/enfermero/camas") Dashboard Camas
+            li.breadcrumb-item.active Camas en Limpieza
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-broom.me-2
+              | Camas en Limpieza
+            p.text-muted.mb-0 Control de camas en proceso de limpieza
+          div
+            a.btn.btn-outline-primary.me-2(href="/enfermero/camas/disponibles")
+              i.fas.fa-bed.me-2
+              | Ver Disponibles
+            button.btn.btn-outline-success(type='button' onclick='liberarTodas()')
+              i.fas.fa-check-double.me-2
+              | Liberar Todas
+
+    // Filtros
+    .row.mb-4
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            form#formFiltros.row.g-3(method='GET')
+              .col-md-4
+                label.form-label Sector
+                select.form-select(name='sector_id')
+                  option(value='' selected=!filtros.sector_id) Todos los sectores
+                  each sector in sectores
+                    option(value=sector.id selected=(filtros.sector_id == sector.id))= sector.nombre
+              
+              .col-md-4
+                label.form-label Ordenar por
+                select.form-select(name='orden')
+                  option(value='tiempo' selected=!filtros.orden || filtros.orden === 'tiempo') Tiempo restante
+                  option(value='habitacion' selected=filtros.orden === 'habitacion') Número de habitación
+                  option(value='cama' selected=filtros.orden === 'cama') Número de cama
+              
+              .col-md-4
+                label.form-label Mostrar
+                select.form-select(name='mostrar')
+                  option(value='todas' selected=!filtros.mostrar || filtros.mostrar === 'todas') Todas
+                  option(value='proximas' selected=filtros.mostrar === 'proximas') Próximas a terminar
+                  option(value='atrasadas' selected=filtros.mostrar === 'atrasadas') Atrasadas
+              
+              .col-12.d-flex.justify-content-end
+                button.btn.btn-primary.me-2(type='submit')
+                  i.fas.fa-filter.me-2
+                  | Aplicar
+                button.btn.btn-secondary(type='button' onclick='limpiarFiltros()')
+                  i.fas.fa-times.me-2
+                  | Limpiar
+
+    // Lista de camas en limpieza
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-list.me-2
+              | #{total} camas en limpieza
+            small.text-muted Tiempo promedio: #{promedioTiempo || 'N/A'} minutos
+    
+          .card-body
+            if total > 0
+              .table-responsive
+                table.table.table-hover
+                  thead.table-light
+                    tr
+                      th Cama
+                      th Habitación
+                      th Sector
+                      th Inicio Limpieza
+                      th Fin Estimado
+                      th Tiempo Restante
+                      th Estado
+                      th Acciones
+                  tbody
+                    each cama in camas
+                      tr(class=cama.tiempoRestante <= 0 ? 'table-warning' : '')
+                        td
+                          strong Cama #{cama.numero}
+                        td Hab. #{cama.habitacion.numero}
+                        td= cama.habitacion.sector.nombre
+                        td= cama.fecha_inicio_limpieza ? new Date(cama.fecha_inicio_limpieza).toLocaleTimeString('es-AR') : 'N/A'
+                        td= cama.fecha_fin_estimada ? new Date(cama.fecha_fin_estimada).toLocaleTimeString('es-AR') : 'N/A'
+                        td
+                          if cama.tiempoRestante !== null
+                            if cama.tiempoRestante <= 0
+                              span.badge.bg-danger ¡Atrasada!
+                            else if cama.tiempoRestante <= 15
+                              span.badge.bg-warning.text-dark #{cama.tiempoRestante} min
+                            else
+                              span.text-success #{cama.tiempoRestante} min
+                          else
+                            span.text-muted N/A
+                        td
+                          if cama.tiempoRestante <= 0
+                            span.badge.bg-danger.text-white Atrasada
+                          else if cama.tiempoRestante <= 15
+                            span.badge.bg-warning.text-dark Por terminar
+                          else
+                            span.badge.bg-info En proceso
+                        td
+                          .btn-group.btn-group-sm
+                            button.btn.btn-outline-success(
+                              onclick=`liberarCama(${cama.id})`
+                              title='Marcar como limpia'
+                            )
+                              i.fas.fa-check
+                            a.btn.btn-outline-info(
+                              href=`/enfermero/camas/detalle/${cama.id}`
+                              title='Ver detalles'
+                            )
+                              i.fas.fa-eye
+                            button.btn.btn-outline-warning(
+                              onclick=`aumentarTiempo(${cama.id})`
+                              title='Aumentar tiempo'
+                            )
+                              i.fas.fa-plus
+            else
+              .text-center.py-5
+                i.fas.fa-check-circle.fa-4x.text-success.mb-3
+                h4 ¡Todas las camas están limpias!
+                p.text-muted.mb-0 No hay camas en proceso de limpieza
+
+    // Estadísticas
+    .row.mt-4
+      .col-md-4
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            h2.text-warning.mb-1= total
+            p.text-muted.mb-0 Total en limpieza
+    
+      .col-md-4
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            h2.text-danger.mb-1= atrasadas || 0
+            p.text-muted.mb-0 Atrasadas
+    
+      .col-md-4
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            h2.text-success.mb-1= porTerminar || 0
+            p.text-muted.mb-0 Por terminar (<15 min)
+
+block scripts
+  script.
+    function liberarCama(camaId) {
+      if (confirm('¿Está seguro de marcar esta cama como limpia?')) {
+        fetch(`/enfermero/camas/${camaId}/liberar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Cama liberada correctamente');
+            window.location.reload();
+          } else {
+            alert('Error: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error al liberar la cama');
+        });
+      }
+    }
+    
+    function liberarTodas() {
+      if (confirm('¿Está seguro de liberar TODAS las camas en limpieza?')) {
+        // Aquí iría la lógica para liberar todas las camas
+        alert('Función en desarrollo');
+      }
+    }
+    
+    function aumentarTiempo(camaId) {
+      const minutos = prompt('¿Cuántos minutos adicionales necesita la limpieza?', '30');
+      if (minutos && !isNaN(minutos)) {
+        // Aquí iría la lógica para aumentar el tiempo via AJAX
+        alert(`Aumentando ${minutos} minutos a la cama ${camaId}`);
+      }
+    }
+    
+    function limpiarFiltros() {
+      window.location.href = '/enfermero/camas/limpieza';
+    }
+    
+    // Actualizar tiempo restante cada minuto
+    setInterval(() => {
+      const tiempoCeldas = document.querySelectorAll('td:nth-child(6)');
+      tiempoCeldas.forEach(td => {
+        const texto = td.textContent.trim();
+        if (texto.includes('min') && !texto.includes('Atrasada')) {
+          const minutos = parseInt(texto);
+          if (minutos > 0) {
+            td.textContent = (minutos - 1) + ' min';
+          }
+        }
+      });
+    }, 60000); 

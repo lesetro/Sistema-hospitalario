@@ -22,7 +22,7 @@ const {
 /**
  * Vista principal de facturación
  */
-const getVistaFacturas = async (req, res) => {
+const getVistaFacturas = async (req, res, next) => {
   try {
     const obrasSociales = await ObraSocial.findAll({
       attributes: ['id', 'nombre'],
@@ -47,17 +47,14 @@ const getVistaFacturas = async (req, res) => {
       pacientes
     });
   } catch (error) {
-    console.error('Error al cargar vista de facturas:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar la página de facturación'
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener lista de facturas con paginación y filtros
  */
-const getListaFacturas = async (req, res) => {
+const getListaFacturas = async (req, res, next) => {
   try {
     const {
       page = 1,
@@ -182,19 +179,14 @@ const getListaFacturas = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener lista de facturas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener lista de facturas',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Calcular monto de factura según servicios
  */
-const calcularMontoFactura = async (req, res) => {
+const calcularMontoFactura = async (req, res, next) => {
   try {
     const {
       admision_id,
@@ -334,19 +326,14 @@ const calcularMontoFactura = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al calcular monto:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al calcular monto de factura',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Crear nueva factura
  */
-const crearFactura = async (req, res) => {
+const crearFactura = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
 
   try {
@@ -443,19 +430,14 @@ const crearFactura = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('❌ Error al crear factura:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear factura',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener detalles de una factura
  */
-const getDetallesFactura = async (req, res) => {
+const getDetallesFactura = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -536,19 +518,14 @@ const getDetallesFactura = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener detalles de factura:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener detalles',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Registrar pago de factura
  */
-const registrarPago = async (req, res) => {
+const registrarPago = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
 
   try {
@@ -620,19 +597,14 @@ const registrarPago = async (req, res) => {
 
   } catch (error) {
     await transaction.rollback();
-    console.error('Error al registrar pago:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al registrar pago',
-      error: error.message
-    });
+   next(error);
   }
 };
 
 /**
  * Anular factura (baja lógica)
  */
-const anularFactura = async (req, res) => {
+const anularFactura = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { motivo } = req.body;
@@ -668,19 +640,14 @@ const anularFactura = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al anular factura:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al anular factura',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener admisiones de un paciente para facturar
  */
-const getAdmisionesPaciente = async (req, res) => {
+const getAdmisionesPaciente = async (req, res, next) => {
   try {
     const { paciente_id } = req.params;
 
@@ -720,12 +687,7 @@ const getAdmisionesPaciente = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener admisiones:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener admisiones del paciente',
-      error: error.message
-    });
+   next(error);
   }
 };
 

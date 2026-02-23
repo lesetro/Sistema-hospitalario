@@ -1,0 +1,315 @@
+extends layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/medico") Dashboard
+            li.breadcrumb-item
+              a(href="/medico/ordenes-procedimiento") Órdenes de Procedimientos
+            li.breadcrumb-item.active Detalle
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-syringe.me-2
+              | Detalle de Procedimiento
+            p.text-muted.mb-0 Orden ##{procedimiento.id}
+          div
+            a.btn.btn-outline-secondary(href="/medico/ordenes-procedimiento")
+              i.fas.fa-arrow-left.me-2
+              | Volver a la lista
+
+    .row
+      // Información principal
+      .col-lg-8
+        // Estado de la orden
+        .card.border-0.shadow-sm.mb-4
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h5.mb-1
+                  i.fas.fa-info-circle.me-2
+                  | Estado de la Orden
+                if procedimiento.estado === 'PENDIENTE'
+                  h3
+                    span.badge.bg-warning.text-dark.p-3
+                      i.fas.fa-clock.me-2
+                      | PENDIENTE
+                  p.text-muted.mb-0 Esta orden aún no ha sido ejecutada por enfermería
+                else if procedimiento.estado === 'EN_PROGRESO'
+                  h3
+                    span.badge.bg-info.p-3
+                      i.fas.fa-spinner.me-2
+                      | EN PROGRESO
+                  p.text-muted.mb-0 Esta orden está siendo ejecutada por enfermería
+                else if procedimiento.estado === 'COMPLETADO' || procedimiento.estado === 'COMPLETADA'
+                  h3
+                    span.badge.bg-success.p-3
+                      i.fas.fa-check-circle.me-2
+                      | COMPLETADA
+                  p.text-muted.mb-0 Este procedimiento fue ejecutado exitosamente
+                else if procedimiento.estado === 'CANCELADO' || procedimiento.estado === 'CANCELADA'
+                  h3
+                    span.badge.bg-danger.p-3
+                      i.fas.fa-times-circle.me-2
+                      | CANCELADA
+                  p.text-muted.mb-0 Esta orden fue cancelada
+                else
+                  //- Fallback por si el estado es null o no reconocido
+                  h3
+                    span.badge.bg-secondary.p-3
+                      i.fas.fa-question-circle.me-2
+                      | #{procedimiento.estado || 'SIN ESTADO'}
+                  p.text-muted.mb-0 Estado no determinado
+              div
+                if procedimiento.prioridad === 'ALTA'
+                  span.badge.bg-danger.p-3.fs-5 ALTA
+                else if procedimiento.prioridad === 'MEDIA'
+                  span.badge.bg-warning.text-dark.p-3.fs-5 MEDIA
+                else
+                  span.badge.bg-secondary.p-3.fs-5 BAJA
+
+        // Datos del procedimiento
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-clipboard-list.me-2
+              | Datos del Procedimiento
+          .card-body
+            .row
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-tag.me-2
+                  | Nombre:
+                p.mb-0= procedimiento.nombre
+              
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-calendar.me-2
+                  | Fecha de Orden:
+                p.mb-0= new Date(procedimiento.fecha_orden || procedimiento.createdAt).toLocaleString('es-AR')
+              
+              if procedimiento.duracion_estimada
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-clock.me-2
+                    | Duración Estimada:
+                  p.mb-0= procedimiento.duracion_estimada + ' minutos'
+              
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-list-check.me-2
+                  | Requiere Preparación:
+                if procedimiento.requiere_preparacion
+                  span.badge.bg-info SÍ
+                else
+                  span.badge.bg-secondary NO
+              
+              .col-12.mb-3
+                strong
+                  i.fas.fa-align-left.me-2
+                  | Descripción:
+                p.mb-0(style="white-space: pre-wrap;")= procedimiento.descripcion || 'Sin descripción'
+
+        // Datos del paciente
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-user.me-2
+              | Datos del Paciente
+          .card-body
+            if procedimiento.evaluacion_medica && procedimiento.evaluacion_medica.paciente && procedimiento.evaluacion_medica.paciente.usuario
+              .row
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-id-card.me-2
+                    | Nombre Completo:
+                  p.mb-0= procedimiento.evaluacion_medica.paciente.usuario.nombre + ' ' + procedimiento.evaluacion_medica.paciente.usuario.apellido
+                
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-hashtag.me-2
+                    | DNI:
+                  p.mb-0= procedimiento.evaluacion_medica.paciente.usuario.dni
+                
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-calendar.me-2
+                    | Fecha de Nacimiento:
+                  p.mb-0= new Date(procedimiento.evaluacion_medica.paciente.usuario.fecha_nacimiento).toLocaleDateString('es-AR')
+                
+                .col-md-6.mb-3
+                  strong
+                    i.fas.fa-venus-mars.me-2
+                    | Sexo:
+                  p.mb-0= procedimiento.evaluacion_medica.paciente.usuario.sexo
+            else
+              .alert.alert-warning.mb-0
+                i.fas.fa-exclamation-triangle.me-2
+                | Datos del paciente no disponibles
+
+        // Ejecución (si existe)
+        if procedimiento.evaluaciones_enfermeria && procedimiento.evaluaciones_enfermeria.length > 0
+          .card.border-0.shadow-sm.mb-4
+            .card-header.bg-success.text-white
+              h5.mb-0
+                i.fas.fa-check-circle.me-2
+                | Registro de Ejecución
+            .card-body
+              each eval, index in procedimiento.evaluaciones_enfermeria
+                .mb-3.pb-3(class=index < procedimiento.evaluaciones_enfermeria.length - 1 ? 'border-bottom' : '')
+                  .row
+                    .col-md-6.mb-2
+                      strong
+                        i.fas.fa-user-nurse.me-2
+                        | Enfermero:
+                      p.mb-0= eval.enfermero && eval.enfermero.usuario ? `${eval.enfermero.usuario.nombre} ${eval.enfermero.usuario.apellido}` : 'No registrado'
+                    
+                    .col-md-6.mb-2
+                      strong
+                        i.fas.fa-calendar-check.me-2
+                        | Fecha de Ejecución:
+                      p.mb-0= new Date(eval.fecha).toLocaleString('es-AR')
+                    
+                    if eval.observaciones
+                      .col-12.mt-2
+                        strong
+                          i.fas.fa-notes-medical.me-2
+                          | Observaciones:
+                        p.mb-0(style="white-space: pre-wrap;")= eval.observaciones
+
+      // Columna derecha - Información médica relacionada y timeline
+      .col-lg-4
+        // Información médica relacionada
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-notes-medical.me-2
+              | Información Relacionada
+          .card-body
+            if procedimiento.evaluacion_medica && procedimiento.evaluacion_medica.medico && procedimiento.evaluacion_medica.medico.usuario
+              .mb-3
+                strong
+                  i.fas.fa-user-md.me-2
+                  | Médico Ordenante:
+                p.mb-0= `Dr. ${procedimiento.evaluacion_medica.medico.usuario.nombre} ${procedimiento.evaluacion_medica.medico.usuario.apellido}`
+                
+              hr
+              a.btn.btn-outline-primary.w-100(
+                href=`/medico/evaluaciones/${procedimiento.evaluacion_medica.id}`
+              )
+                i.fas.fa-stethoscope.me-2
+                | Ver Evaluación Médica
+            else
+              p.text-muted.mb-0 Información del médico no disponible
+
+        // Timeline
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-clock-rotate-left.me-2
+              | Historial
+          .card-body
+            .timeline
+              .timeline-item
+                .timeline-icon.bg-primary
+                  i.fas.fa-plus
+                .timeline-content
+                  strong Orden Creada
+                  br
+                  small.text-muted= new Date(procedimiento.createdAt).toLocaleString('es-AR')
+              
+              if procedimiento.updatedAt && procedimiento.updatedAt.toString() !== procedimiento.createdAt.toString()
+                .timeline-item
+                  .timeline-icon.bg-warning
+                    i.fas.fa-edit
+                  .timeline-content
+                    strong Última Modificación
+                    br
+                    small.text-muted= new Date(procedimiento.updatedAt).toLocaleString('es-AR')
+              
+              if procedimiento.evaluaciones_enfermeria && procedimiento.evaluaciones_enfermeria.length > 0
+                each eval in procedimiento.evaluaciones_enfermeria
+                  .timeline-item
+                    .timeline-icon.bg-success
+                      i.fas.fa-check
+                    .timeline-content
+                      strong Ejecutada
+                      br
+                      small.text-muted= new Date(eval.fecha).toLocaleString('es-AR')
+
+block scripts
+  style.
+    .timeline {
+      position: relative;
+      padding-left: 30px;
+    }
+    .timeline-item {
+      position: relative;
+      padding-bottom: 20px;
+    }
+    .timeline-item:before {
+      content: '';
+      position: absolute;
+      left: -23px;
+      top: 25px;
+      width: 2px;
+      height: 100%;
+      background: #dee2e6;
+    }
+    .timeline-item:last-child:before {
+      display: none;
+    }
+    .timeline-icon {
+      position: absolute;
+      left: -30px;
+      top: 0;
+      width: 30px;
+      height: 30px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      font-size: 12px;
+    }
+    .timeline-content {
+      padding-left: 15px;
+    }
+  
+  script.
+    function cancelarOrden(id) {
+      if (confirm('¿Está seguro de cancelar esta orden?\n\nEsta acción no se puede deshacer.')) {
+        const motivo = prompt('Ingrese el motivo de cancelación:');
+        
+        if (motivo && motivo.trim() !== '') {
+          fetch(`/medico/ordenes-procedimiento/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ motivo_cancelacion: motivo })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert(data.message);
+              window.location.href = '/medico/ordenes-procedimiento';
+            } else {
+              alert('Error: ' + data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cancelar la orden');
+          });
+        } else if (motivo !== null) {
+          alert('Debe ingresar un motivo de cancelación');
+        }
+      }
+    }

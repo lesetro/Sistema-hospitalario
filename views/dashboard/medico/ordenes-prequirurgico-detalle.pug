@@ -1,0 +1,271 @@
+extends layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/medico") Dashboard
+            li.breadcrumb-item
+              a(href="/medico/ordenes-prequirurgico") Órdenes Pre-quirúrgicas
+            li.breadcrumb-item.active Detalle
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-notes-medical.me-2
+              | Detalle Pre-quirúrgico
+            p.text-muted.mb-0 Orden ##{procedimiento.id}
+          div
+            a.btn.btn-outline-secondary(href="/medico/ordenes-prequirurgico")
+              i.fas.fa-arrow-left.me-2
+              | Volver a la lista
+
+    .row
+      .col-lg-8
+        // Estado
+        .card.border-0.shadow-sm.mb-4
+          .card-body
+            .d-flex.justify-content-between.align-items-center
+              div
+                h5.mb-1
+                  i.fas.fa-info-circle.me-2
+                  | Estado de la Preparación
+                if procedimiento.estado === 'Pendiente'
+                  h3
+                    span.badge.bg-warning.text-dark.p-3
+                      i.fas.fa-clock.me-2
+                      | PENDIENTE
+                  p.text-muted.mb-0 El checklist pre-quirúrgico aún no ha sido completado
+                else if procedimiento.estado === 'Completado'
+                  h3
+                    span.badge.bg-success.p-3
+                      i.fas.fa-check-circle.me-2
+                      | COMPLETADO
+                  p.text-muted.mb-0 El paciente está listo para la intervención quirúrgica
+                else if procedimiento.estado === 'Cancelada'
+                  h3
+                    span.badge.bg-danger.p-3
+                      i.fas.fa-times-circle.me-2
+                      | CANCELADA
+                  p.text-muted.mb-0 Esta preparación fue cancelada
+              div
+                if procedimiento.prioridad === 'URGENTE'
+                  span.badge.bg-danger.p-3.fs-5 URGENTE
+                else if procedimiento.prioridad === 'ALTA'
+                  span.badge.bg-warning.text-dark.p-3.fs-5 ALTA
+                else
+                  span.badge.bg-secondary.p-3.fs-5 NORMAL
+
+        // Datos de la preparación
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-clipboard-list.me-2
+              | Datos de la Preparación
+          .card-body
+            .row
+              .col-12.mb-3
+                strong
+                  i.fas.fa-tag.me-2
+                  | Nombre:
+                p.mb-0= procedimiento.nombre
+              
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-calendar.me-2
+                  | Fecha de Orden:
+                p.mb-0= new Date(procedimiento.fecha_orden || procedimiento.createdAt).toLocaleString('es-AR')
+              
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-flag.me-2
+                  | Prioridad:
+                if procedimiento.prioridad === 'URGENTE'
+                  span.badge.bg-danger URGENTE
+                else if procedimiento.prioridad === 'ALTA'
+                  span.badge.bg-warning.text-dark ALTA
+                else
+                  span.badge.bg-secondary NORMAL
+              
+              .col-12.mb-3
+                strong
+                  i.fas.fa-procedures.me-2
+                  | Descripción de la Cirugía:
+                p.mb-0(style="white-space: pre-wrap;")= procedimiento.descripcion
+
+        // Intervención quirúrgica asociada
+        if intervencion
+          .card.border-0.shadow-sm.mb-4
+            .card-header.bg-info.text-white
+              h5.mb-0
+                i.fas.fa-procedures.me-2
+                | Intervención Quirúrgica
+            .card-body
+              .row
+                .col-md-6.mb-2
+                  strong Tipo:
+                  p.mb-0= intervencion.tipo_intervencion
+                
+                if intervencion.fecha_programada
+                  .col-md-6.mb-2
+                    strong Fecha Programada:
+                    p.mb-0= new Date(intervencion.fecha_programada).toLocaleString('es-AR')
+                
+                if intervencion.descripcion
+                  .col-12
+                    strong Descripción:
+                    p.mb-0= intervencion.descripcion
+
+        // Paciente
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-user.me-2
+              | Datos del Paciente
+          .card-body
+            .row
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-id-card.me-2
+                  | Nombre:
+                p.mb-0= procedimiento.evaluacion_medica.paciente.usuario.nombre + ' ' + procedimiento.evaluacion_medica.paciente.usuario.apellido
+              
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-hashtag.me-2
+                  | DNI:
+                p.mb-0= procedimiento.evaluacion_medica.paciente.usuario.dni
+              
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-calendar.me-2
+                  | Edad:
+                - var edad = new Date().getFullYear() - new Date(procedimiento.evaluacion_medica.paciente.usuario.fecha_nacimiento).getFullYear()
+                p.mb-0= edad + ' años'
+              
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-venus-mars.me-2
+                  | Sexo:
+                p.mb-0= procedimiento.evaluacion_medica.paciente.usuario.sexo
+
+        // Ejecución del checklist
+        if procedimiento.evaluacion_enfermeria
+          .card.border-0.shadow-sm.mb-4
+            .card-header.bg-success.text-white
+              h5.mb-0
+                i.fas.fa-check-circle.me-2
+                | Checklist Completado
+            .card-body
+              .row
+                .col-md-6.mb-2
+                  strong
+                    i.fas.fa-user-nurse.me-2
+                    | Enfermero:
+                  p.mb-0= procedimiento.evaluacion_enfermeria.enfermero ? `${procedimiento.evaluacion_enfermeria.enfermero.usuario.nombre} ${procedimiento.evaluacion_enfermeria.enfermero.usuario.apellido}` : 'No registrado'
+                
+                .col-md-6.mb-2
+                  strong
+                    i.fas.fa-calendar-check.me-2
+                    | Fecha:
+                  p.mb-0= new Date(procedimiento.evaluacion_enfermeria.fecha).toLocaleString('es-AR')
+                
+                .col-12
+                  strong
+                    i.fas.fa-notes-medical.me-2
+                    | Observaciones:
+                  p.mb-0(style="white-space: pre-wrap;")= procedimiento.evaluacion_enfermeria.observaciones
+
+      // Sidebar
+      .col-lg-4
+
+        // Checklist estándar
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-list-check.me-2
+              | Checklist Estándar
+          .card-body
+            ul.list-unstyled.mb-0
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Ayuno de 8-12 horas
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Higiene corporal completa
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Retiro de joyas y accesorios
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Retiro de prótesis dentales
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Retiro de esmalte de uñas
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Consentimiento informado firmado
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Estudios pre-operatorios disponibles
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Vía venosa permeable
+              li.mb-2
+                i.fas.fa-check-circle.text-success.me-2
+                | Alergias verificadas
+
+        // Info médico
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-user-md.me-2
+              | Médico
+          .card-body
+            p.mb-2
+              strong Ordenante:
+              br
+              = `Dr. ${procedimiento.evaluacion_medica.medico.usuario.nombre} ${procedimiento.evaluacion_medica.medico.usuario.apellido}`
+            
+            if procedimiento.evaluacion_medica
+              hr
+              a.btn.btn-outline-primary.w-100(
+                href=`/medico/evaluaciones/${procedimiento.evaluacion_medica.id}`
+              )
+                i.fas.fa-stethoscope.me-2
+                | Ver Evaluación
+
+block scripts
+  script.
+    function cancelarOrden(id) {
+      if (confirm('¿Está seguro de cancelar esta orden pre-quirúrgica?\n\nEsta acción no se puede deshacer.')) {
+        const motivo = prompt('Ingrese el motivo de cancelación:');
+        
+        if (motivo && motivo.trim() !== '') {
+          fetch(`/medico/ordenes-prequirurgico/${id}`, {
+            method: 'DELETE',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({ motivo_cancelacion: motivo })
+          })
+          .then(response => response.json())
+          .then(data => {
+            if (data.success) {
+              alert(data.message);
+              window.location.href = '/medico/ordenes-prequirurgico';
+            } else {
+              alert('Error: ' + data.message);
+            }
+          })
+          .catch(error => {
+            console.error('Error:', error);
+            alert('Error al cancelar la orden');
+          });
+        }
+      }
+    }

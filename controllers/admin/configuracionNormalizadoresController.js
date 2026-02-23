@@ -11,22 +11,21 @@ const { Op } = require('sequelize');
 /**
  * Vista principal de configuración
  */
-const getVistaNormalizadores = async (req, res) => {
+const getVistaNormalizadores = async (req, res, next) => {
   try {
     res.render('dashboard/admin/configuracion/normalizadores', {
       title: 'Configuración de Datos Base',
       user: req.user || req.session.user || req.session.usuario
     });
   } catch (error) {
-    console.error('Error al cargar vista:', error);
-    res.status(500).render('error', { message: 'Error al cargar la página' });
+   next(error);
   }
 };
 
 /**
  * Obtener estadísticas de todos los modelos
  */
-const getEstadisticas = async (req, res) => {
+const getEstadisticas = async (req, res, next) => {
   try {
     const [
       sectores, especialidades, obrasSociales, tratamientos,
@@ -68,15 +67,14 @@ const getEstadisticas = async (req, res) => {
       }
     });
   } catch (error) {
-    console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener estadísticas' });
+    next(error);
   }
 };
 
 /**
  * CRUD GENÉRICO - Obtener lista
  */
-const getLista = async (req, res) => {
+const getLista = async (req, res, next) => {
   try {
     const { modelo } = req.params;
     const { page = 1, limit = 20, search = '' } = req.query;
@@ -127,15 +125,14 @@ const getLista = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener lista:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener datos' });
+    next(error);
   }
 };
 
 /**
  * CRUD GENÉRICO - Crear
  */
-const crear = async (req, res) => {
+const crear = async (req, res, next) => {
   try {
     const { modelo } = req.params;
     const datos = req.body;
@@ -180,18 +177,14 @@ const crear = async (req, res) => {
       });
     }
 
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al crear',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * CRUD GENÉRICO - Actualizar
  */
-const actualizar = async (req, res) => {
+const actualizar = async (req, res, next) => {
   try {
     const { modelo, id } = req.params;
     const datos = req.body;
@@ -228,18 +221,14 @@ const actualizar = async (req, res) => {
       });
     }
 
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al actualizar',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * CRUD GENÉRICO - Eliminar
  */
-const eliminar = async (req, res) => {
+const eliminar = async (req, res, next) => {
   try {
     const { modelo, id } = req.params;
 
@@ -275,18 +264,14 @@ const eliminar = async (req, res) => {
       });
     }
 
-    res.status(500).json({ 
-      success: false, 
-      message: 'Error al eliminar',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener detalles de un registro
  */
-const getDetalle = async (req, res) => {
+const getDetalle = async (req, res, next) => {
   try {
     const { modelo, id } = req.params;
 
@@ -318,15 +303,14 @@ const getDetalle = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener detalle:', error);
-    res.status(500).json({ success: false, message: 'Error al obtener detalle' });
+   next(error);
   }
 };
 
 /**
  * Obtener lista de Tipos de Diagnóstico (para el select)
  */
-const getTiposDiagnosticoLista = async (req, res) => {
+const getTiposDiagnosticoLista = async (req, res, next) => {
   try {
     const tipos = await TipoDiagnostico.findAll({
       attributes: ['id', 'nombre'],
@@ -338,7 +322,7 @@ const getTiposDiagnosticoLista = async (req, res) => {
       tipos
     });
   } catch (error) {
-    res.status(500).json({ success: false, message: 'Error al obtener tipos' });
+    next(error);
   }
 };
 

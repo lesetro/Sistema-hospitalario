@@ -1,0 +1,411 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+
+    // Header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/medico/pacientes") Mis Pacientes
+            li.breadcrumb-item.active= `${paciente.usuario.nombre} ${paciente.usuario.apellido}`
+
+        .d-flex.justify-content-between.align-items-center.flex-wrap.gap-2
+          div
+            h2.mb-1
+              i.fas.fa-user-circle.me-2
+              = `${paciente.usuario.nombre} ${paciente.usuario.apellido}`
+            p.text-muted.mb-0= `DNI: ${paciente.usuario.dni}`
+          div
+            a.btn.btn-outline-secondary(href="/medico/pacientes")
+              i.fas.fa-arrow-left.me-2
+              | Volver
+
+    .row
+      // Columna izquierda
+      .col-lg-8
+
+        // Datos Personales
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-user.me-2
+              | Datos del Paciente
+          .card-body
+            .row
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-id-card.me-2
+                  | Nombre:
+                p.mb-0= `${paciente.usuario.nombre} ${paciente.usuario.apellido}`
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-hashtag.me-2
+                  | DNI:
+                p.mb-0= paciente.usuario.dni
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-birthday-cake.me-2
+                  | Fecha Nacimiento:
+                p.mb-0= paciente.usuario.fecha_nacimiento ? new Date(paciente.usuario.fecha_nacimiento).toLocaleDateString('es-AR') : 'N/A'
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-venus-mars.me-2
+                  | Sexo:
+                p.mb-0= paciente.usuario.sexo || 'N/A'
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-phone.me-2
+                  | Teléfono:
+                p.mb-0= paciente.usuario.telefono || 'No registrado'
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-envelope.me-2
+                  | Email:
+                p.mb-0= paciente.usuario.email || 'No registrado'
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-hospital.me-2
+                  | Obra Social:
+                p.mb-0= paciente.obraSocial ? paciente.obraSocial.nombre : 'Sin obra social'
+              .col-md-6.mb-3
+                strong
+                  i.fas.fa-calendar.me-2
+                  | Fecha Ingreso:
+                p.mb-0= paciente.fecha_ingreso ? new Date(paciente.fecha_ingreso).toLocaleDateString('es-AR') : 'N/A'
+              if paciente.observaciones
+                .col-12
+                  strong
+                    i.fas.fa-notes-medical.me-2
+                    | Observaciones:
+                  p.mb-0= paciente.observaciones
+
+        // Controles de Enfermería
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-success.text-white
+            h5.mb-0
+              i.fas.fa-heartbeat.me-2
+              | Controles de Enfermería
+          .card-body
+            if controles && controles.length > 0
+              each control in controles
+                - const controlBadge = control.estado === 'COMPLETADO' ? 'success' : control.estado === 'SOLICITADO' ? 'warning' : 'secondary'
+                .mb-4.pb-4.border-bottom
+                  .d-flex.justify-content-between.align-items-center.mb-3
+                    div
+                      strong= new Date(control.createdAt).toLocaleDateString('es-AR')
+                      if control.evaluacion && control.evaluacion.enfermero
+                        - const enfNombre = `${control.evaluacion.enfermero.usuario.nombre} ${control.evaluacion.enfermero.usuario.apellido}`
+                        small.text-muted.ms-2= ` — ${enfNombre}`
+                    span.badge(class=`bg-${controlBadge}`)= control.estado
+
+                  if control.estado === 'SOLICITADO'
+                    p.text-muted.mb-0
+                      i.fas.fa-clock.me-2
+                      | Pendiente de completar por enfermería
+                  else
+                    // Signos vitales
+                    .row.mb-3
+                      .col-12.mb-2
+                        strong.text-danger
+                          i.fas.fa-heartbeat.me-2
+                          | Signos Vitales
+                      .col-md-3.col-6.mb-2
+                        strong.small P. Arterial:
+                        br
+                        small= control.presion_arterial || 'N/A'
+                      .col-md-3.col-6.mb-2
+                        strong.small F. Cardíaca:
+                        br
+                        small= control.frecuencia_cardiaca ? `${control.frecuencia_cardiaca} lpm` : 'N/A'
+                      .col-md-3.col-6.mb-2
+                        strong.small Temperatura:
+                        br
+                        small= control.temperatura ? `${control.temperatura}°C` : 'N/A'
+                      .col-md-3.col-6.mb-2
+                        strong.small Sat. O₂:
+                        br
+                        small= control.nivel_oxigeno ? `${control.nivel_oxigeno}%` : 'N/A'
+
+                    // Antropometría
+                    if control.peso || control.altura
+                      .row.mb-3
+                        .col-12.mb-2
+                          strong.text-info
+                            i.fas.fa-weight.me-2
+                            | Antropometría
+                        .col-md-3.col-6.mb-2
+                          strong.small Peso:
+                          br
+                          small= control.peso ? `${control.peso} kg` : 'N/A'
+                        .col-md-3.col-6.mb-2
+                          strong.small Altura:
+                          br
+                          small= control.altura ? `${control.altura} cm` : 'N/A'
+                        if control.peso && control.altura
+                          - const imc = (control.peso / Math.pow(control.altura / 100, 2)).toFixed(1)
+                          .col-md-3.col-6.mb-2
+                            strong.small IMC:
+                            br
+                            small= imc
+
+                    // Grupo sanguíneo y antecedentes
+                    if control.grupo_sanguineo || control.alergias
+                      .row.mb-2
+                        if control.grupo_sanguineo
+                          .col-md-3.col-6.mb-2
+                            strong.small Grupo / RH:
+                            br
+                            small= `${control.grupo_sanguineo} ${control.factor_rh || ''}`
+                        if control.alergias
+                          .col-md-9.mb-2
+                            strong.small.text-danger Alergias:
+                            br
+                            small.text-danger= control.alergias
+
+                    if control.antecedentes_personales
+                      .mb-2
+                        strong.small Antecedentes Personales:
+                        br
+                        small= control.antecedentes_personales
+
+                    if control.antecedentes_familiares
+                      .mb-2
+                        strong.small Antecedentes Familiares:
+                        br
+                        small= control.antecedentes_familiares
+
+                    // Laboratorio
+                    - const tieneLab = control.nivel_glucosa || control.nivel_colesterol || control.nivel_hb || control.nivel_leucocitos || control.nivel_creatinina || control.nivel_urea
+                    if tieneLab
+                      .row.mt-2
+                        .col-12.mb-2
+                          strong.text-primary
+                            i.fas.fa-flask.me-2
+                            | Laboratorio
+                        if control.nivel_glucosa
+                          .col-md-3.col-6.mb-2
+                            strong.small Glucosa:
+                            br
+                            small= `${control.nivel_glucosa} mg/dL`
+                        if control.nivel_colesterol
+                          .col-md-3.col-6.mb-2
+                            strong.small Colesterol:
+                            br
+                            small= `${control.nivel_colesterol} mg/dL`
+                        if control.nivel_hb
+                          .col-md-3.col-6.mb-2
+                            strong.small Hemoglobina:
+                            br
+                            small= `${control.nivel_hb} g/dL`
+                        if control.nivel_leucocitos
+                          .col-md-3.col-6.mb-2
+                            strong.small Leucocitos:
+                            br
+                            small= `${control.nivel_leucocitos} /mm³`
+                        if control.nivel_creatinina
+                          .col-md-3.col-6.mb-2
+                            strong.small Creatinina:
+                            br
+                            small= `${control.nivel_creatinina} mg/dL`
+                        if control.nivel_urea
+                          .col-md-3.col-6.mb-2
+                            strong.small Urea:
+                            br
+                            small= `${control.nivel_urea} mg/dL`
+            else
+              .alert.alert-info.mb-0
+                i.fas.fa-info-circle.me-2
+                | No hay controles de enfermería registrados
+
+        // Evaluaciones Médicas
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-stethoscope.me-2
+              | Evaluaciones Médicas
+          .card-body
+            if evaluaciones && evaluaciones.length > 0
+              each ev in evaluaciones
+                .mb-3.pb-3.border-bottom
+                  .d-flex.justify-content-between.align-items-start
+                    div
+                      strong= new Date(ev.fecha).toLocaleDateString('es-AR')
+                      if ev.medico && ev.medico.usuario
+                        small.text-muted.ms-2= ` — Dr/a. ${ev.medico.usuario.nombre} ${ev.medico.usuario.apellido}`
+                    a.btn.btn-sm.btn-outline-primary(href=`/medico/evaluaciones/${ev.id}`)
+                      i.fas.fa-eye.me-1
+                      | Ver detalle
+                  if ev.diagnostico
+                    p.mb-0.mt-2
+                      strong Diagnóstico:
+                      span.ms-1= `[${ev.diagnostico.codigo}] ${ev.diagnostico.nombre}`
+                  else
+                    p.text-muted.mb-0.mt-2 Sin diagnóstico registrado
+                  if ev.observaciones_diagnostico
+                    p.mb-0.text-muted.mt-1= ev.observaciones_diagnostico
+            else
+              .alert.alert-info.mb-0
+                i.fas.fa-info-circle.me-2
+                | No hay evaluaciones médicas registradas
+
+        // Internaciones
+        if internaciones && internaciones.length > 0
+          .card.border-0.shadow-sm.mb-4
+            .card-header.bg-white
+              h5.mb-0
+                i.fas.fa-bed.me-2
+                | Internaciones
+            .card-body
+              .table-responsive
+                table.table.table-sm.align-middle
+                  thead
+                    tr
+                      th Fecha Inicio
+                      th Habitación / Cama
+                      th Médico
+                      th Estado
+                      th Alta
+                  tbody
+                    each int in internaciones
+                      - const habNum = int.cama && int.cama.habitacion ? int.cama.habitacion.numero : 'N/A'
+                      - const camaNum = int.cama ? int.cama.numero : 'N/A'
+                      - const medNombre = int.medico && int.medico.usuario ? `Dr/a. ${int.medico.usuario.nombre} ${int.medico.usuario.apellido}` : 'N/A'
+                      - const altaBadge = int.fecha_alta ? 'success' : 'warning'
+                      tr
+                        td= new Date(int.fecha_inicio).toLocaleDateString('es-AR')
+                        td= `Hab. ${habNum} — Cama ${camaNum}`
+                        td= medNombre
+                        td
+                          span.badge(class=`bg-${altaBadge}`)= int.fecha_alta ? 'Alta' : 'Activa'
+                        td= int.fecha_alta ? new Date(int.fecha_alta).toLocaleDateString('es-AR') : '—'
+
+        // Historial
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-history.me-2
+              | Historial Médico
+          .card-body
+            if historial && historial.length > 0
+              each item in historial
+                - const iconosMap = { 'Consulta': 'stethoscope', 'Internacion': 'bed', 'Cirugia': 'procedures', 'Estudio': 'x-ray', 'Alta': 'sign-out-alt', 'Otro': 'notes-medical' }
+                - const icono = iconosMap[item.tipo_evento] || 'circle'
+                .mb-3.pb-3.border-bottom
+                  .d-flex.justify-content-between
+                    h6.mb-1
+                      i(class=`fas fa-${icono} me-2`)
+                      = item.tipo_evento || 'N/A'
+                    small.text-muted= new Date(item.fecha).toLocaleDateString('es-AR')
+                  p.mb-0= item.descripcion || 'N/A'
+                  if item.motivo_consulta
+                    small.text-muted= `Motivo: ${item.motivo_consulta.nombre}`
+            else
+              .alert.alert-info.mb-0
+                i.fas.fa-info-circle.me-2
+                | No hay historial médico registrado
+
+      // Sidebar
+      .col-lg-4
+
+        // Resumen
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-chart-bar.me-2
+              | Resumen
+          .card-body
+            .row.text-center
+              .col-6.mb-3
+                h3.mb-0.text-primary= estadisticas.totalEvaluaciones
+                small.text-muted Evaluaciones
+              .col-6.mb-3
+                h3.mb-0.text-danger= estadisticas.totalInternaciones
+                small.text-muted Internaciones
+              .col-6.mb-3
+                h3.mb-0.text-success= estadisticas.totalControles
+                small.text-muted Controles
+              .col-6.mb-3
+                - const estadoBadge = paciente.estado === 'Activo' ? 'success' : paciente.estado === 'Inactivo' ? 'warning' : 'danger'
+                h3.mb-0
+                  span.badge(class=`bg-${estadoBadge}`)= paciente.estado
+                small.text-muted Estado
+
+        // Acciones rápidas
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-bolt.me-2
+              | Acciones
+          .card-body.d-grid.gap-2
+            a.btn.btn-success(href=`/medico/evaluaciones?paciente_dni=${pacienteDni}`)
+              i.fas.fa-stethoscope.me-2
+              | Nueva Evaluación
+            a.btn.btn-info.text-white(href=`/medico/estudios-solicitados?paciente_dni=${pacienteDni}`)
+              i.fas.fa-x-ray.me-2
+              | Solicitar Estudio
+            button.btn.btn-warning.w-100(onclick=`abrirModalControles(${paciente.id}, '${paciente.usuario.nombre} ${paciente.usuario.apellido}')`)
+              i.fas.fa-heartbeat.me-2
+              | Solicitar Control
+
+  // Modal Solicitar Controles
+  #modalSolicitarControles.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-warning
+          h5.modal-title
+            i.fas.fa-heartbeat.me-2
+            | Solicitar Controles de Enfermería
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body
+          input(type='hidden' id='controlPacienteId')
+          .alert.alert-warning.mb-3
+            i.fas.fa-info-circle.me-2
+            | Se notificará a los enfermeros del sector para realizar controles al paciente.
+          p.mb-2
+            strong Paciente:
+            br
+            span#controlPacienteNombre.text-muted -
+          p.mb-0
+            strong Se solicitará:
+          ul.mt-2
+            li Signos vitales
+            li Análisis de sangre básico
+            li Alergias conocidas
+            li Medicación actual
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-warning(onclick='confirmarSolicitarControles()')
+            i.fas.fa-check.me-2
+            | Confirmar
+
+block scripts
+  script.
+    function abrirModalControles(pacienteId, nombrePaciente) {
+      document.getElementById('controlPacienteId').value = pacienteId;
+      document.getElementById('controlPacienteNombre').textContent = nombrePaciente;
+      new bootstrap.Modal(document.getElementById('modalSolicitarControles')).show();
+    }
+
+    async function confirmarSolicitarControles() {
+      const pacienteId = document.getElementById('controlPacienteId').value;
+      if (!pacienteId) return;
+      try {
+        const response = await fetch(`/medico/pacientes/${pacienteId}/solicitar-controles`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        });
+        const data = await response.json();
+        bootstrap.Modal.getInstance(document.getElementById('modalSolicitarControles')).hide();
+        const alertEl = document.createElement('div');
+        alertEl.className = `alert alert-${data.success ? 'success' : 'danger'} alert-dismissible fade show position-fixed top-0 start-50 translate-middle-x mt-3`;
+        alertEl.style.zIndex = '9999';
+        alertEl.innerHTML = `${data.message} <button type="button" class="btn-close" data-bs-dismiss="alert"></button>`;
+        document.body.appendChild(alertEl);
+        setTimeout(() => alertEl.remove(), 4000);
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }

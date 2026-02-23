@@ -1,0 +1,381 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header con botón de volver
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            .d-flex.align-items-center
+              a.btn.btn-outline-secondary.btn-sm.me-3(href='/enfermero/medicacion')
+                i.fas.fa-arrow-left.me-1
+                | Volver
+              div
+                h2.mb-1
+                  i.fas.fa-file-prescription.me-2
+                  | Receta Médica #{receta.id}
+                p.text-muted.mb-0 Detalle completo de la receta y administraciones registradas
+        
+          div
+            a.btn.btn-success.me-2(href=`/enfermero/medicacion/${receta.id}/administrar`)
+              i.fas.fa-syringe.me-2
+              | Administrar Medicación
+            if receta.evaluacionMedica
+              a.btn.btn-info(href=`/enfermero/evaluaciones/${receta.evaluacionMedica.id}`)
+                i.fas.fa-stethoscope.me-2
+                | Ver Evaluación
+
+    // Información principal en dos columnas
+    .row.g-4
+      // Columna izquierda - Información de la receta
+      .col-lg-8
+        // Tarjeta de información general
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.card-title.mb-0
+              i.fas.fa-info-circle.me-2
+              | Información de la Receta
+            span.badge(class=administraciones.length > 0 ? 'bg-success' : 'bg-warning text-dark')
+              if administraciones.length > 0
+                i.fas.fa-check.me-1
+                | Administrada
+              else
+                i.fas.fa-clock.me-1
+                | Pendiente
+        
+          .card-body
+            .row.mb-4
+              .col-md-6.mb-3
+                .d-flex.align-items-start
+                  i.fas.fa-user-injured.fa-lg.text-muted.me-3.mt-1
+                  div
+                    h6.text-muted.mb-1 Paciente
+                    h5.mb-0= `${receta.paciente.usuario.nombre} ${receta.paciente.usuario.apellido}`
+                    .text-muted.small
+                      | DNI: #{receta.paciente.usuario.dni} | 
+                      | Sexo: #{receta.paciente.usuario.sexo} | 
+                      | Edad: #{edadPaciente} años
+              
+              .col-md-6.mb-3
+                .d-flex.align-items-start
+                  i.fas.fa-user-md.fa-lg.text-muted.me-3.mt-1
+                  div
+                    h6.text-muted.mb-1 Médico Responsable
+                    h5.mb-0 Dr. #{receta.medico.usuario.nombre} #{receta.medico.usuario.apellido}
+                    .text-muted.small
+                      | Fecha: #{new Date(receta.fecha).toLocaleDateString('es-AR')} | 
+                      | Hora: #{new Date(receta.fecha).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}
+            
+            // Contenido de la receta
+            .mb-4
+              h6.text-muted.mb-3
+                i.fas.fa-prescription-bottle-alt.me-2
+                | Prescripción Médica
+              .card.border.bg-light
+                .card-body
+                  pre.text-dark.mb-0(style="white-space: pre-wrap; font-family: inherit;")= receta.contenido
+            
+            // Observaciones
+            if receta.observaciones
+              .mb-3
+                h6.text-muted.mb-3
+                  i.fas.fa-comment-medical.me-2
+                  | Observaciones del Médico
+                .alert.alert-info.mb-0= receta.observaciones
+        
+        // Historial de administraciones
+        .card.border-0.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.card-title.mb-0
+              i.fas.fa-history.me-2
+              | Historial de Administraciones
+            span.badge.bg-primary= administraciones.length + ' registros'
+        
+          .card-body
+            if administraciones.length > 0
+              each admin, index in administraciones
+                .card.mb-3.border
+                  .card-header.bg-light.d-flex.justify-content-between.align-items-center
+                    .d-flex.align-items-center
+                      span.badge.rounded-pill.me-2(class=admin.tipo_egreso === 'PROCEDIMIENTO_COMPLETADO' ? 'bg-success' : 'bg-danger')
+                        i.fas(class=admin.tipo_egreso === 'PROCEDIMIENTO_COMPLETADO' ? 'fa-check' : 'fa-exclamation-triangle')
+                      strong
+                        i.fas.fa-user-nurse.me-2
+                        | Enf. #{admin.enfermero.usuario.nombre} #{admin.enfermero.usuario.apellido}
+                    span.text-muted.small= new Date(admin.fecha).toLocaleString('es-AR')
+                  
+                  .card-body
+                    .accordion(id=`accordionAdmin${index}`)
+                      .accordion-item.border-0
+                        h2.accordion-header
+                          button.accordion-button.collapsed(
+                            type='button' 
+                            data-bs-toggle='collapse' 
+                            data-bs-target=`#collapseAdmin${index}`
+                            aria-expanded='false'
+                          )
+                            i.fas.fa-eye.me-2
+                            | Ver detalles de la administración
+                        
+                        .accordion-collapse.collapse(id=`collapseAdmin${index}` data-bs-parent=`#accordionAdmin${index}`)
+                          .accordion-body
+                            pre.text-dark.mb-0(style="white-space: pre-wrap; font-family: inherit;")= admin.observaciones
+                    
+                    if admin.signos_vitales
+                      .mt-3
+                        h6.text-muted.mb-2
+                          i.fas.fa-heartbeat.me-2
+                          | Signos Vitales Registrados
+                        .alert.alert-light.mb-0= admin.signos_vitales
+                    
+                    .d-flex.justify-content-between.align-items-center.mt-3
+                      span.badge(class=admin.tipo_egreso === 'PROCEDIMIENTO_COMPLETADO' ? 'bg-success' : 'bg-danger')
+                        = admin.tipo_egreso === 'PROCEDIMIENTO_COMPLETADO' ? 'Procedimiento Completado' : 'Derivación al Médico'
+                      
+                      if index === 0
+                        span.badge.bg-info
+                          i.fas.fa-star.me-1
+                          | Última administración
+            else
+              .text-center.py-5.text-muted
+                i.fas.fa-history.fa-4x.mb-3
+                h5 No hay administraciones registradas
+                p.mb-4 Esta receta aún no ha sido administrada.
+                a.btn.btn-success(href=`/enfermero/medicacion/${receta.id}/administrar`)
+                  i.fas.fa-syringe.me-2
+                  | Registrar primera administración
+
+      // Columna derecha - Información adicional
+      .col-lg-4
+        // Tarjeta de información del paciente
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h6.card-title.mb-0
+              i.fas.fa-user-injured.me-2
+              | Información del Paciente
+        
+          .card-body
+            .text-center.mb-4
+              .bg-light.rounded-circle.d-inline-flex.align-items-center.justify-content-center(style="width: 80px; height: 80px;")
+                i.fas.fa-user-circle.fa-3x.text-muted
+            
+            .list-group.list-group-flush
+              .list-group-item.border-0.px-0.py-2
+                .d-flex.align-items-center
+                  i.fas.fa-id-card.fa-fw.text-muted.me-3(style="width: 20px;")
+                  div
+                    small.text-muted DNI
+                    h6.mb-0= receta.paciente.usuario.dni
+              
+              .list-group-item.border-0.px-0.py-2
+                .d-flex.align-items-center
+                  i.fas.fa-birthday-cake.fa-fw.text-muted.me-3(style="width: 20px;")
+                  div
+                    small.text-muted Edad
+                    h6.mb-0= edadPaciente + ' años'
+              
+              .list-group-item.border-0.px-0.py-2
+                .d-flex.align-items-center
+                  i.fas.fa-venus-mars.fa-fw.text-muted.me-3(style="width: 20px;")
+                  div
+                    small.text-muted Sexo
+                    h6.mb-0= receta.paciente.usuario.sexo
+              
+              if receta.paciente.usuario.telefono
+                .list-group-item.border-0.px-0.py-2
+                  .d-flex.align-items-center
+                    i.fas.fa-phone.fa-fw.text-muted.me-3(style="width: 20px;")
+                    div
+                      small.text-muted Teléfono
+                      h6.mb-0= receta.paciente.usuario.telefono
+        
+        // Estadísticas rápidas
+        .card.border-0.shadow-sm.mb-4
+          .card-header.bg-white
+            h6.card-title.mb-0
+              i.fas.fa-chart-bar.me-2
+              | Estadísticas
+        
+          .card-body
+            .list-group.list-group-flush
+              .list-group-item.border-0.px-0.py-2
+                .d-flex.justify-content-between.align-items-center
+                  span Administraciones totales
+                  span.badge.bg-primary.rounded-pill= administraciones.length
+              
+              .list-group-item.border-0.px-0.py-2
+                .d-flex.justify-content-between.align-items-center
+                  span Última administración
+                  if administraciones.length > 0
+                    small.text-success= new Date(administraciones[0].fecha).toLocaleString('es-AR')
+                  else
+                    small.text-muted Nunca
+              
+              .list-group-item.border-0.px-0.py-2
+                .d-flex.justify-content-between.align-items-center
+                  span Primer administración
+                  if administraciones.length > 0
+                    small= new Date(administraciones[administraciones.length - 1].fecha).toLocaleString('es-AR')
+                  else
+                    small.text-muted Ninguna
+        
+        // Acciones rápidas
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h6.card-title.mb-0
+              i.fas.fa-bolt.me-2
+              | Acciones Rápidas
+        
+          .card-body
+            .d-grid.gap-2
+              a.btn.btn-success(href=`/enfermero/medicacion/${receta.id}/administrar`)
+                i.fas.fa-syringe.me-2
+                | Administrar Medicación
+              
+              a.btn.btn-outline-info(href=`/enfermero/medicacion?paciente=${receta.paciente.usuario.dni}`)
+                i.fas.fa-list.me-2
+                | Todas las recetas del paciente
+              
+              
+              button.btn.btn-outline-danger(type='button' onclick='archivarReceta()')
+                i.fas.fa-archive.me-2
+                | Archivar Receta
+
+    // Botones de acción en la parte inferior (para móviles)
+    .row.mt-4.d-lg-none
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body
+            .d-grid.gap-2
+              a.btn.btn-success(href=`/enfermero/medicacion/${receta.id}/administrar`)
+                i.fas.fa-syringe.me-2
+                | Administrar Medicación
+              
+              a.btn.btn-outline-info(href=`/enfermero/medicacion?paciente=${receta.paciente.usuario.dni}`)
+                i.fas.fa-list.me-2
+                | Ver más recetas
+              
+              .d-grid.gap-2.d-md-flex.justify-content-md-between
+                button.btn.btn-outline-secondary(type='button' onclick='imprimirReceta()')
+                  i.fas.fa-print.me-2
+                  | Imprimir
+                
+                button.btn.btn-outline-danger(type='button' onclick='archivarReceta()')
+                  i.fas.fa-archive.me-2
+                  | Archivar
+
+block scripts
+  script.
+    // Función para imprimir la receta
+    function imprimirReceta() {
+      const ventana = window.open('', '_blank');
+      
+      // Función para calcular edad que se usará en la impresión
+      const calcularEdadImpresion = (fechaNacimiento) => {
+        const hoy = new Date();
+        const nacimiento = new Date(fechaNacimiento);
+        let edad = hoy.getFullYear() - nacimiento.getFullYear();
+        const mes = hoy.getMonth() - nacimiento.getMonth();
+        
+        if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+          edad--;
+        }
+        
+        return edad;
+      };
+      
+      const contenido = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+          <title>Receta Médica #{receta.id}</title>
+          <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
+          <style>
+            @media print {
+              body { margin: 0; padding: 20px; font-size: 12pt; }
+              .no-print { display: none !important; }
+              .card { border: none !important; box-shadow: none !important; }
+              .border { border: 1px solid #dee2e6 !important; }
+            }
+            body { font-family: Arial, sans-serif; }
+            .header { border-bottom: 2px solid #000; padding-bottom: 20px; margin-bottom: 30px; }
+            .receta-contenido { white-space: pre-wrap; margin: 30px 0; padding: 20px; background-color: #f8f9fa; }
+            .firma-line { width: 300px; border-top: 1px solid #000; margin-top: 80px; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <div class="header text-center">
+              <h2 class="mb-0">Receta Médica</h2>
+              <h4 class="text-muted">N° #{receta.id}</h4>
+              <p class="mb-0">Fecha: #{new Date(receta.fecha).toLocaleDateString('es-AR')}</p>
+            </div>
+            
+            <div class="row mb-4">
+              <div class="col-md-6">
+                <h5>Paciente:</h5>
+                <p class="mb-1"><strong>#{receta.paciente.usuario.nombre} #{receta.paciente.usuario.apellido}</strong></p>
+                <p class="mb-1">DNI: #{receta.paciente.usuario.dni}</p>
+                <p class="mb-1">Edad: ${calcularEdadImpresion('#{receta.paciente.usuario.fecha_nacimiento}')} años</p>
+                <p class="mb-0">Sexo: #{receta.paciente.usuario.sexo}</p>
+              </div>
+              <div class="col-md-6 text-md-end">
+                <h5>Médico:</h5>
+                <p class="mb-1"><strong>Dr. #{receta.medico.usuario.nombre} #{receta.medico.usuario.apellido}</strong></p>
+                <p class="mb-0">Fecha prescripción: #{new Date(receta.fecha).toLocaleDateString('es-AR')}</p>
+              </div>
+            </div>
+            
+            <div class="receta-contenido border rounded">#{receta.contenido}</div>
+            
+            <div class="text-center mt-5">
+              <div class="firma-line mx-auto"></div>
+              <p class="mt-2 mb-0"><strong>Dr. #{receta.medico.usuario.nombre} #{receta.medico.usuario.apellido}</strong></p>
+              <p class="text-muted">Médico</p>
+            </div>
+            
+            <div class="text-center mt-4 no-print">
+              <button class="btn btn-primary me-2" onclick="window.print()">Imprimir</button>
+              <button class="btn btn-secondary" onclick="window.close()">Cerrar</button>
+            </div>
+          </div>
+        </body>
+        </html>
+      `;
+      
+      ventana.document.write(contenido);
+      ventana.document.close();
+    }
+    
+    // Función para archivar la receta
+    function archivarReceta() {
+      const confirmacion = confirm('¿Está seguro de archivar esta receta?\n\nEsta acción marcará la receta como archivada y no aparecerá en las búsquedas regulares.');
+      
+      if (confirmacion) {
+        fetch(`/enfermero/medicacion/#{receta.id}/archivar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Error en la respuesta del servidor');
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.success) {
+            alert('Receta archivada correctamente');
+            window.location.href = '/enfermero/medicacion';
+          } else {
+            alert(data.message || 'Error al archivar la receta');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error de conexión al archivar la receta');
+        });
+      }
+    }

@@ -15,7 +15,7 @@ function limpiarFiltros() {
 
 // Editar control
 function editarControl(id) {
-  window.location.href = `/enfermero/controles/${id}`;
+  window.location.href = `/enfermero/controles/${id}/editar`;
 }
 
 // Ver historial del paciente

@@ -1,0 +1,299 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/enfermero/camas") Dashboard Camas
+            li.breadcrumb-item
+              a(href="/enfermero/camas/sectores") Sectores
+            li.breadcrumb-item
+              a(href=`/enfermero/camas/sectores/${habitacion.sector.id}/habitaciones`) #{habitacion.sector.nombre}
+            li.breadcrumb-item.active Hab. #{habitacion.numero}
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-bed.me-2
+              | Camas - Habitación #{habitacion.numero}
+            p.text-muted.mb-0
+              | #{habitacion.sector.nombre} - #{capacidadTexto}
+          div
+            a.btn.btn-outline-secondary.me-2(href=`/enfermero/camas/sectores/${habitacion.sector.id}/habitaciones`)
+              i.fas.fa-arrow-left.me-2
+              | Volver
+            a.btn.btn-outline-primary(href=`/enfermero/camas/disponibles?sector_id=${habitacion.sector.id}&habitacion_id=${habitacion.id}`)
+              i.fas.fa-bed.me-2
+              | Ver Disponibles
+
+    // Información de la habitación
+    .row.mb-4
+      .col-md-8
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-info-circle.me-2
+              | Información de la Habitación
+          .card-body
+            .row
+              .col-md-6
+                table.table.table-sm
+                  tr
+                    td.fw-bold Número:
+                    td= habitacion.numero
+                  tr
+                    td.fw-bold Sector:
+                    td= habitacion.sector.nombre
+                  tr
+                    td.fw-bold Tipo:
+                    td
+                      case habitacion.tipo
+                        when 'Individual'
+                          i.fas.fa-user.me-1
+                          | Individual
+                        when 'Doble'
+                          i.fas.fa-user-friends.me-1
+                          | Doble
+                        when 'Colectiva'
+                          i.fas.fa-users.me-1
+                          | Colectiva
+                  tr
+                    td.fw-bold Sexo Permitido:
+                    td
+                      case habitacion.sexo_permitido
+                        when 'Masculino'
+                          i.fas.fa-mars.me-1
+                          | Masculino
+                        when 'Femenino'
+                          i.fas.fa-venus.me-1
+                          | Femenino
+                        when 'Mixto'
+                          i.fas.fa-venus-mars.me-1
+                          | Mixto
+              
+              .col-md-6
+                table.table.table-sm
+                  tr
+                    td.fw-bold Tipo de Servicio:
+                    td= habitacion.tipoServicio.nombre
+                  tr
+                    td.fw-bold Capacidad:
+                    td= capacidadTexto
+                  tr
+                    td.fw-bold Total Camas:
+                    td= totalCamas
+                  tr
+                    td.fw-bold Estado General:
+                    td
+                      - const porcentaje = Math.round((camas.filter(c => c.estado === 'Ocupada').length / totalCamas) * 100);
+                      span.badge(class=porcentaje > 80 ? 'bg-danger' : porcentaje > 50 ? 'bg-warning' : 'bg-success')
+                        = porcentaje + '% ocupación'
+    
+      .col-md-4
+        .card.border-0.shadow-sm.h-100
+          .card-body.text-center
+            h5.mb-3 Estado de Ocupación
+            .pie-chart-placeholder.mb-3(style="width: 150px; height: 150px; border-radius: 50%; background: conic-gradient(#28a745 0% 40%, #dc3545 40% 70%, #ffc107 70% 100%); margin: 0 auto;")
+            .mt-3
+              .d-flex.justify-content-between.mb-1
+                span
+                  i.fas.fa-square.text-success.me-1
+                  | Libres: #{camas.filter(c => c.estado === 'Libre').length}
+                span
+                  i.fas.fa-square.text-danger.me-1
+                  | Ocupadas: #{camas.filter(c => c.estado === 'Ocupada').length}
+              .d-flex.justify-content-between
+                span
+                  i.fas.fa-square.text-warning.me-1
+                  | Limpieza: #{camas.filter(c => c.estado === 'EnLimpieza').length}
+
+    // Filtros de estado
+    .row.mb-3
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body.p-3
+            .btn-group(role='group')
+              a.btn(class=(!filtros.estado || filtros.estado === 'Todos') ? 'btn-primary' : 'btn-outline-primary' href=`/enfermero/camas/habitaciones/${habitacion.id}/camas`)
+                | Todas (#{totalCamas})
+              a.btn(class=filtros.estado === 'Libre' ? 'btn-success' : 'btn-outline-success' href=`/enfermero/camas/habitaciones/${habitacion.id}/camas?estado=Libre`)
+                | Libres (#{camas.filter(c => c.estado === 'Libre').length})
+              a.btn(class=filtros.estado === 'Ocupada' ? 'btn-danger' : 'btn-outline-danger' href=`/enfermero/camas/habitaciones/${habitacion.id}/camas?estado=Ocupada`)
+                | Ocupadas (#{camas.filter(c => c.estado === 'Ocupada').length})
+              a.btn(class=filtros.estado === 'EnLimpieza' ? 'btn-warning' : 'btn-outline-warning' href=`/enfermero/camas/habitaciones/${habitacion.id}/camas?estado=EnLimpieza`)
+                | En Limpieza (#{camas.filter(c => c.estado === 'EnLimpieza').length})
+
+    // Lista de camas
+    .row
+      each cama in camas
+        .col-xl-3.col-lg-4.col-md-6.mb-4
+          .card.h-100(
+            class=cama.estado === 'Libre' ? 'border-success' : 
+                  cama.estado === 'Ocupada' ? 'border-danger' : 'border-warning'
+          )
+            .card-body
+              .text-center.mb-3
+                if cama.estado === 'Libre'
+                  i.fas.fa-bed.fa-3x.text-success
+                else if cama.estado === 'Ocupada'
+                  i.fas.fa-user-injured.fa-3x.text-danger
+                else
+                  i.fas.fa-broom.fa-3x.text-warning
+              
+              h5.card-title.text-center Cama #{cama.numero}
+              
+              .text-center.mb-3
+                if cama.estado === 'Libre'
+                  span.badge.bg-success Libre
+                else if cama.estado === 'Ocupada'
+                  span.badge.bg-danger Ocupada
+                else
+                  span.badge.bg-warning.text-dark En Limpieza
+              
+              if cama.estado === 'Ocupada' && cama.internaciones && cama.internaciones.length > 0
+                .mb-3
+                  - const internacion = cama.internaciones[0]
+                  - const paciente = internacion.paciente
+                  .text-center
+                    .avatar-placeholder.rounded-circle.bg-primary.bg-opacity-10.text-primary.d-flex.align-items-center.justify-content-center.mx-auto.mb-2(
+                      style="width: 60px; height: 60px; font-size: 20px"
+                    )
+                      i.fas.fa-user
+                    h6.mb-1= paciente.usuario.nombre + ' ' + paciente.usuario.apellido
+                    small.text-muted= paciente.usuario.dni
+                    br
+                    small.badge(class=internacion.estado_paciente === 'Critico' ? 'bg-danger' : 
+                                           internacion.estado_paciente === 'Grave' ? 'bg-warning text-dark' : 'bg-success')
+                      = internacion.estado_paciente
+              
+              else if cama.estado === 'EnLimpieza' && cama.fecha_fin_limpieza
+                .mb-3.text-center
+                  small.text-muted.d-block Tiempo restante:
+                  .fw-bold= Math.floor((new Date(cama.fecha_fin_limpieza) - new Date()) / (1000 * 60)) + ' min'
+              
+              .d-grid.gap-2
+                a.btn.btn-outline-info(
+                  href=`/enfermero/camas/detalle/${cama.id}`
+                )
+                  i.fas.fa-eye.me-2
+                  | Ver Detalle
+                
+                if cama.estado === 'EnLimpieza'
+                  button.btn.btn-outline-success(
+                    onclick=`liberarCama(${cama.id})`
+                  )
+                    i.fas.fa-check.me-2
+                    | Liberar
+                
+                else if cama.estado === 'Libre'
+                  button.btn.btn-outline-warning(
+                    onclick=`cambiarEstado(${cama.id})`
+                  )
+                    i.fas.fa-edit.me-2
+                    | Cambiar Estado
+
+      else
+        .col-12
+          .card.border-0.shadow-sm
+            .card-body.text-center.py-5
+              i.fas.fa-bed.fa-4x.text-muted.mb-3
+              h4 No hay camas
+              p.text-muted.mb-0 No se encontraron camas en esta habitación
+
+    // Modal cambiar estado
+    #modalCambiarEstado.modal.fade(tabindex='-1')
+      .modal-dialog
+        .modal-content
+          .modal-header
+            h5.modal-title
+              i.fas.fa-edit.me-2
+              | Cambiar Estado de Cama
+            button.btn-close(data-bs-dismiss='modal')
+          .modal-body
+            form#formCambiarEstado
+              input(type='hidden' id='cama-id-estado')
+              
+              .mb-3
+                label.form-label Nuevo Estado
+                select.form-select(id='nuevo-estado' required)
+                  option(value='') Seleccionar
+                  option(value='EnLimpieza') En Limpieza
+                  option(value='Libre') Libre
+              
+              .mb-3
+                label.form-label Motivo
+                textarea.form-control(id='estado-motivo' rows='3' placeholder='Motivo del cambio...')
+          
+          .modal-footer
+            button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+            button.btn.btn-primary(onclick='guardarEstado()') Guardar
+
+block scripts
+  script.
+    function cambiarEstado(camaId) {
+      document.getElementById('cama-id-estado').value = camaId;
+      const modal = new bootstrap.Modal(document.getElementById('modalCambiarEstado'));
+      modal.show();
+    }
+    
+    function guardarEstado() {
+      const camaId = document.getElementById('cama-id-estado').value;
+      const nuevoEstado = document.getElementById('nuevo-estado').value;
+      const motivo = document.getElementById('estado-motivo').value;
+      
+      if (!nuevoEstado) {
+        alert('Seleccione un estado');
+        return;
+      }
+      
+      fetch(`/enfermero/camas/${camaId}/cambiar-estado`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          nuevo_estado: nuevoEstado,
+          motivo: motivo
+        })
+      })
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          alert(data.message);
+          window.location.reload();
+        } else {
+          alert('Error: ' + data.message);
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Error al cambiar estado');
+      });
+    }
+    
+    function liberarCama(camaId) {
+      if (confirm('¿Está seguro de liberar esta cama?')) {
+        fetch(`/enfermero/camas/${camaId}/liberar`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          }
+        })
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            alert('Cama liberada correctamente');
+            window.location.reload();
+          } else {
+            alert('Error: ' + data.message);
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          alert('Error al liberar la cama');
+        });
+      }
+    }

@@ -108,97 +108,101 @@ module.exports = (sequelize, DataTypes) => {
   });
 
   // LIBERAR CAMA AUTOMÁTICAMENTE AL DAR ALTA
-  AltaMedica.afterCreate(async (alta, options) => {
-    const transaction = options.transaction || await sequelize.transaction();
+AltaMedica.afterCreate(async (alta, options) => {
+  const transaction = options.transaction || await sequelize.transaction();
+  
+  try {
     
-    try {
+    // Alta de internación
+    if (alta.internacion_id) {
+      const internacion = await sequelize.models.Internacion.findByPk(
+        alta.internacion_id,
+        { include: ['lista_espera'], transaction }
+      );
       
-      // Alta de internación
-    
-      if (alta.internacion_id) {
-        const internacion = await sequelize.models.Internacion.findByPk(
-          alta.internacion_id,
-          { include: ['lista_espera'], transaction }
+      if (internacion) {
+        await internacion.update(
+          { fecha_alta: alta.fecha_alta },
+          { transaction }
         );
         
-        if (internacion) {
-          // 1. Actualizar fecha_alta en internación
-          await internacion.update(
-            { fecha_alta: alta.fecha_alta },
-            { transaction }
-          );
-          
-          // 2.  LIBERAR CAMA AUTOMÁTICAMENTE
-          await sequelize.models.Cama.update({
-            estado: 'Libre',
-            sexo_ocupante: null
-          }, {
-            where: { id: internacion.cama_id },
-            transaction
-          });
-          
-          console.log(`Cama ${internacion.cama_id} liberada automáticamente`);
-          
-          // 3. Marcar lista de espera como completada
-          if (internacion.lista_espera) {
-            await internacion.lista_espera.update({
-              estado: 'COMPLETADO',
-              observaciones: `Alta médica registrada - ${alta.tipo_alta}. Fecha: ${alta.fecha_alta}`
-            }, { transaction });
-            
-            console.log(` Lista de espera ${internacion.lista_espera_id} marcada como COMPLETADO`);
-          }
-          
-          // 4. Actualizar admisión si existe
-          if (internacion.admision_id) {
-            await sequelize.models.Admision.update(
-              { estado: 'Completada' },
-              { where: { id: internacion.admision_id }, transaction }
-            );
-            
-            console.log(`Admisión ${internacion.admision_id} marcada como Completada`);
-          }
-          
-          // 5. Crear historial médico
-          await sequelize.models.HistorialMedico.create({
-            paciente_id: alta.paciente_id,
-            admision_id: internacion.admision_id,
-            descripcion: `Alta médica: ${alta.tipo_alta}. Estado: ${alta.estado_paciente}. ${alta.instrucciones_post_alta || ''}`,
-            tipo_evento: 'Alta',
-            fecha: alta.fecha_alta
+        await sequelize.models.Cama.update({
+          estado: 'Libre',
+          sexo_ocupante: null
+        }, {
+          where: { id: internacion.cama_id },
+          transaction
+        });
+        
+        console.log(`Cama ${internacion.cama_id} liberada automáticamente`);
+        
+        if (internacion.lista_espera) {
+          await internacion.lista_espera.update({
+            estado: 'COMPLETADO',
+            observaciones: `Alta médica registrada - ${alta.tipo_alta}. Fecha: ${alta.fecha_alta}`
           }, { transaction });
         }
-      }
-      
-  
-      // Alta de admisión (sin internación)
-      
-      if (alta.admision_id && !alta.internacion_id) {
-        // Solo cerrar admisión
-        await sequelize.models.Admision.update(
-          { estado: 'Completada' },
-          { where: { id: alta.admision_id }, transaction }
+        
+        if (internacion.admision_id) {
+          await sequelize.models.Admision.update(
+            { estado: 'Completada' },
+            { where: { id: internacion.admision_id }, transaction }
+          );
+        }
+        
+        // Marcar paciente como Inactivo
+        await sequelize.models.Paciente.update(
+          { 
+            estado: 'Inactivo',
+            fecha_egreso: alta.fecha_alta  // registrar cuándo salió
+          },
+          { where: { id: alta.paciente_id }, transaction }
         );
-        
-        console.log(` Admisión ${alta.admision_id} marcada como Completada (sin internación)`);
-        
-        // Crear historial médico
+        console.log(`🏥 Paciente ${alta.paciente_id} marcado como Inactivo tras alta`);
+
         await sequelize.models.HistorialMedico.create({
           paciente_id: alta.paciente_id,
-          admision_id: alta.admision_id,
-          descripcion: `Alta médica: ${alta.tipo_alta}. ${alta.instrucciones_post_alta || ''}`,
+          admision_id: internacion.admision_id,
+          descripcion: `Alta médica: ${alta.tipo_alta}. Estado: ${alta.estado_paciente}. ${alta.instrucciones_post_alta || ''}`,
           tipo_evento: 'Alta',
           fecha: alta.fecha_alta
         }, { transaction });
       }
-      
-      if (!options.transaction) await transaction.commit();
-    } catch (error) {
-      if (!options.transaction) await transaction.rollback();
-      console.error('Error al procesar alta médica:', error);
-      throw error;
     }
-  });
+    
+    // Alta de admisión (sin internación)
+    if (alta.admision_id && !alta.internacion_id) {
+      await sequelize.models.Admision.update(
+        { estado: 'Completada' },
+        { where: { id: alta.admision_id }, transaction }
+      );
+      
+      //Marcar paciente como Inactivo también aquí
+      await sequelize.models.Paciente.update(
+        { 
+          estado: 'Inactivo',
+          fecha_egreso: alta.fecha_alta
+        },
+        { where: { id: alta.paciente_id }, transaction }
+      );
+      console.log(`🏥 Paciente ${alta.paciente_id} marcado como Inactivo tras alta sin internación`);
+
+      await sequelize.models.HistorialMedico.create({
+        paciente_id: alta.paciente_id,
+        admision_id: alta.admision_id,
+        descripcion: `Alta médica: ${alta.tipo_alta}. ${alta.instrucciones_post_alta || ''}`,
+        tipo_evento: 'Alta',
+        fecha: alta.fecha_alta
+      }, { transaction });
+    }
+    
+    if (!options.transaction) await transaction.commit();
+  } catch (error) {
+    if (!options.transaction) await transaction.rollback();
+    console.error('Error al procesar alta médica:', error);
+    throw error;
+  }
+});
   AltaMedica.associate = function(models) {
     AltaMedica.belongsTo(models.Paciente, { foreignKey: 'paciente_id', as: 'paciente' });
     AltaMedica.belongsTo(models.Medico, { foreignKey: 'medico_id', as: 'medico' });

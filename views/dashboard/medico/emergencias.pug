@@ -1,0 +1,90 @@
+extends layout
+
+block content
+  .container-fluid.py-4
+    .row
+      .col-12
+        .page-header.mb-4
+          h2
+            i.fas.fa-ambulance.me-2.text-danger
+            | Atención de Emergencias
+          p.text-muted Pacientes derivados para atención urgente
+
+    // Tarjeta de alerta
+    .card.border-danger.mb-4
+      .card-body.bg-danger.bg-opacity-10
+        .d-flex.align-items-center
+          i.fas.fa-exclamation-triangle.fa-2x.text-danger.me-3
+          div
+            h5.text-danger.mb-1
+              | Área de Emergencias
+            p.mb-0
+              | Solo médicos del sector Emergencias pueden atender pacientes en esta sección.
+
+    // Lista de emergencias
+    .card.shadow-sm
+      .card-header.bg-white.d-flex.justify-content-between.align-items-center
+        h5.mb-0
+          i.fas.fa-list.me-2
+          | Pacientes en Emergencia
+        
+        .d-flex.align-items-center
+          button.btn.btn-sm.btn-outline-secondary.me-2(onclick='recargarEmergencias()')
+            i.fas.fa-sync-alt.me-1
+            | Actualizar
+          span.badge.bg-danger#contador-emergencias
+            .spinner-border.spinner-border-sm
+
+      .card-body
+        #loading-emergencias.text-center.py-4
+          .spinner-border.text-primary
+          p.mt-2.text-muted Cargando pacientes en emergencia...
+        
+        #tabla-emergencias.d-none
+          .table-responsive
+            table.table.table-hover.align-middle
+              thead
+                tr
+                  th Paciente
+                  th Triaje
+                  th Tiempo de Espera
+                  th Derivado por
+                  th Estado
+                  th Acciones
+              tbody#tbody-emergencias
+          
+          // Paginación
+          nav.mt-3
+            ul.pagination.justify-content-center#paginacion
+
+  // Input hidden con ID del médico actual
+  input(type='hidden' id='medico-actual-id' value=medico.id)
+
+  // Modal Detalle Emergencia
+  #modalDetalleEmergencia.modal.fade(tabindex='-1')
+    .modal-dialog.modal-lg
+      .modal-content
+        .modal-header
+          h5.modal-title
+            i.fas.fa-file-medical.me-2
+            | Detalle del Paciente
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body#modalDetalleEmergenciaBody
+          .text-center.py-4
+            .spinner-border.text-primary
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
+
+
+block scripts
+  script(src='/js/medico/emergencias.js')
+
+  // Estilos adicionales para animación
+  style.
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.7; }
+    }
+    .animate-pulse {
+      animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+    }

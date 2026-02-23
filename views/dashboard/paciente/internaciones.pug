@@ -1,0 +1,188 @@
+extends ../../layouts/paciente-layout
+
+block content
+  .internaciones-paciente
+    .page-header.mb-4
+      .row.align-items-center
+        .col-md-8
+          h2
+            i.fas.fa-bed.text-primary.me-2
+            | Mis Internaciones
+          p.text-muted Historial de hospitalizaciones
+          p.mb-0
+            strong Estado en sistema:
+            span.badge.ms-2(class=pacienteEstado === 'Activo' ? 'bg-success' : pacienteEstado === 'Inactivo' ? 'bg-secondary' : 'bg-danger')= pacienteEstado
+        .col-md-4.text-md-end
+          a.btn.btn-outline-secondary(href='/paciente')
+            i.fas.fa-arrow-left.me-2
+            | Volver
+
+    if internacionActiva && internacionActiva.dataValues.estaRealmenteActiva
+      .alert.alert-warning.alert-dismissible.fade.show(role='alert')
+        .row.align-items-center
+          .col-md-8
+            h5.alert-heading
+              i.fas.fa-bed.me-2
+              | Actualmente Internado
+            p.mb-0
+              strong Habitación:
+              |  #{internacionActiva.habitacion.tipo} - Nº #{internacionActiva.habitacion.numero}
+              br
+              strong Cama:
+              |  #{internacionActiva.cama.numero}
+              br
+              strong Desde:
+              |  #{new Date(internacionActiva.fecha_inicio).toLocaleDateString('es-AR')}
+              |  (#{internacionActiva.dataValues.duracion} día#{internacionActiva.dataValues.duracion !== 1 ? 's' : ''})
+          .col-md-4.text-md-end
+            a.btn.btn-warning(href=`/paciente/internaciones/${internacionActiva.id}`)
+              i.fas.fa-eye.me-2
+              | Ver Detalles
+        button.btn-close(type='button', data-bs-dismiss='alert')
+
+    //- Estadísticas
+    .row.mb-4
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-primary.text-white.mb-2
+              i.fas.fa-hospital.fa-2x
+            h3.stat-number.text-primary #{estadisticas.total}
+            p.stat-label.mb-0 Total Internaciones
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-warning.text-white.mb-2
+              i.fas.fa-hourglass-half.fa-2x
+            h3.stat-number.text-warning #{estadisticas.activas}
+            p.stat-label.mb-0 Activas
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-success.text-white.mb-2
+              i.fas.fa-check-circle.fa-2x
+            h3.stat-number.text-success #{estadisticas.finalizadas}
+            p.stat-label.mb-0 Finalizadas
+      .col-md-3.col-sm-6.mb-3
+        .card.stat-card.border-0.shadow-sm.text-center
+          .card-body
+            .stat-icon.bg-danger.text-white.mb-2
+              i.fas.fa-procedures.fa-2x
+            h3.stat-number.text-danger #{estadisticas.conCirugia}
+            p.stat-label.mb-0 Con Cirugía
+
+    //- Filtros
+    .card.border-0.shadow-sm.mb-4
+      .card-body
+        form(method='GET')
+          .row.g-3
+            .col-md-6
+              label.form-label Estado
+              select.form-select(name='estado')
+                option(value='', selected=!filtros.estado) Todas
+                option(value='activa', selected=filtros.estado === 'activa') Activas
+                option(value='finalizada', selected=filtros.estado === 'finalizada') Finalizadas
+            .col-md-6.d-flex.align-items-end
+              button.btn.btn-primary.w-100(type='submit')
+                i.fas.fa-filter.me-2
+                | Filtrar
+              button.btn.btn-secondary.ms-2(type='button', onclick='location.href="/paciente/internaciones"')
+                i.fas.fa-times
+
+    //- Lista de internaciones
+    .card.border-0.shadow-sm
+      .card-header.bg-light
+        h5.mb-0
+          i.fas.fa-list.me-2
+          | Historial de Internaciones
+      .card-body
+        if internaciones && internaciones.length > 0
+          .list-group.list-group-flush
+            each int in internaciones
+              .list-group-item(class=int.dataValues.estaRealmenteActiva ? 'border-warning border-2' : '')
+                .row.align-items-center
+                  .col-md-9
+                    .d-flex.align-items-start
+                      .flex-shrink-0.me-3
+                        .status-icon(class=int.dataValues.estaRealmenteActiva ? 'bg-warning' : 'bg-success' class='text-white')
+                          i.fas(class=int.dataValues.estaRealmenteActiva ? 'fa-bed' : 'fa-check')
+                      .flex-grow-1
+                        .d-flex.align-items-center.mb-2
+                          h6.mb-0.me-2 #{int.tipoInternacion.nombre}
+                          span.badge(class=int.dataValues.estadoClase)= int.dataValues.estadoMostrar
+                          if int.intervencionQuirurgica
+                            span.badge.bg-danger.ms-2
+                              i.fas.fa-procedures.me-1
+                              | Cirugía
+                        
+                        p.mb-1.text-muted
+                          i.fas.fa-door-open.me-2
+                          strong Habitación:
+                          |  #{int.habitacion.tipo} - Nº #{int.habitacion.numero}
+                          | , Cama #{int.cama.numero}
+                          if int.habitacion.sector
+                            br
+                            i.fas.fa-map-marker-alt.me-2
+                            | #{int.habitacion.sector.nombre}
+                        
+                        p.mb-1
+                          i.fas.fa-user-md.me-2
+                          | Dr/a. #{int.medico.usuario.nombre} #{int.medico.usuario.apellido}
+                          if int.medico.especialidad
+                            |  - #{int.medico.especialidad.nombre}
+                        
+                        p.mb-1
+                          small.text-muted
+                            i.fas.fa-calendar-alt.me-2
+                            strong Ingreso:
+                            |  #{new Date(int.fecha_inicio).toLocaleDateString('es-AR')}
+                            if int.fecha_alta
+                              |  
+                              i.fas.fa-calendar-check.me-2.ms-3
+                              strong Alta:
+                              |  #{new Date(int.fecha_alta).toLocaleDateString('es-AR')}
+                            else if int.dataValues.tieneAltaMedica && int.altasMedicas[0]
+                              |  
+                              i.fas.fa-calendar-check.me-2.ms-3
+                              strong Fecha de alta (médica):
+                              |  #{new Date(int.altasMedicas[0].fecha_alta).toLocaleDateString('es-AR')}
+                        
+                        p.mb-0
+                          small
+                            span.badge.bg-info
+                              i.fas.fa-clock.me-1
+                              | Duración: #{int.dataValues.duracion} día#{int.dataValues.duracion !== 1 ? 's' : ''}
+                  
+                  .col-md-3.text-md-end
+                    a.btn.btn-sm.btn-outline-primary(href=`/paciente/internaciones/${int.id}`)
+                      i.fas.fa-eye.me-1
+                      | Ver Detalle
+
+          if paginacion.totalPages > 1
+            nav.mt-4
+              ul.pagination.justify-content-center
+                li.page-item(class=!paginacion.hasPrev ? 'disabled' : '')
+                  a.page-link(href=`?page=${paginacion.currentPage - 1}`) Anterior
+                - for (let i = 1; i <= paginacion.totalPages; i++)
+                  li.page-item(class=i === paginacion.currentPage ? 'active' : '')
+                    a.page-link(href=`?page=${i}`) #{i}
+                li.page-item(class=!paginacion.hasNext ? 'disabled' : '')
+                  a.page-link(href=`?page=${paginacion.currentPage + 1}`) Siguiente
+        else
+          .text-center.py-5
+            i.fas.fa-bed.fa-4x.text-muted.mb-3
+            h5.text-muted No tienes internaciones registradas
+            p.text-muted Las internaciones se registran cuando requieres hospitalización
+
+block scripts
+  script.
+    // Configurar actualización automática cada 5 minutos
+    document.addEventListener('DOMContentLoaded', function() {
+      // Actualizar automáticamente cada 5 minutos si hay internación activa
+      setInterval(function() {
+        const botonActualizar = document.getElementById('actualizarEstado');
+        if (botonActualizar) {
+          botonActualizar.click();
+        }
+      }, 5 * 60 * 1000); // 5 minutos
+    });

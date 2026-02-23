@@ -9,18 +9,14 @@ const {
 /**
  * Vista principal de altas médicas
  */
-const getVistaAltas = async (req, res) => {
+const getVistaAltas = async (req, res, next) => {
   try {
     res.render('dashboard/admin/altas/altas-index', {
       title: 'Altas Médicas',
       user: req.user || req.session.user || req.session.usuario
     });
   } catch (error) {
-    console.error('Error al cargar vista de altas:', error);
-    res.status(500).render('error', { 
-      message: 'Error al cargar la página',
-      user: req.user || req.session.user
-    });
+    next(error);
   }
 };
 
@@ -28,7 +24,7 @@ const getVistaAltas = async (req, res) => {
  * Obtener lista de altas con paginación y búsqueda
 
  */
-const getListaAltas = async (req, res) => {
+const getListaAltas = async (req, res, next) => {
   try {
     const { 
       page = 1, 
@@ -220,12 +216,7 @@ const getListaAltas = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener lista de altas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener altas médicas',
-      error: error.message
-    });
+    next(error);
   }
 };
 
@@ -233,7 +224,7 @@ const getListaAltas = async (req, res) => {
  * Obtener detalle completo de un alta médica
 
  */
-const getDetalleAlta = async (req, res) => {
+const getDetalleAlta = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -382,19 +373,14 @@ const getDetalleAlta = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener detalle de alta:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener detalle',
-      error: error.message
-    });
+   next(error);
   }
 };
 
 /**
  * Obtener estadísticas de altas médicas
  */
-const getEstadisticas = async (req, res) => {
+const getEstadisticas = async (req, res, next) => {
   try {
     const hoy = new Date();
     const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
@@ -442,11 +428,7 @@ const getEstadisticas = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener estadísticas'
-    });
+    next(error);
   }
 };
 

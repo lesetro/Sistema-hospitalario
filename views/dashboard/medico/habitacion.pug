@@ -1,0 +1,240 @@
+extends layout
+
+block content
+  .container-fluid
+    //- BREADCRUMB
+    nav(aria-label='breadcrumb')
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href='/medico') Dashboard
+        li.breadcrumb-item
+          a(href='/medico/sectores') Mi Sector
+        li.breadcrumb-item.active Habitación #{habitacion.numero}
+    
+    //- ENCABEZADO
+    .d-flex.justify-content-between.align-items-center.mb-4
+      div
+        h2
+          i.fas.fa-bed.me-2
+          | Habitación #{habitacion.numero}
+        p.text-muted.mb-0
+          = habitacion.sector.nombre + ' - ' + (habitacion.tipoServicio ? habitacion.tipoServicio.nombre : 'Sin servicio')
+    
+    //- CAMAS
+    .row
+      each cama in camas
+        .col-md-6.col-lg-4.mb-3
+          .card(class=cama.estado === 'Libre' ? 'border-success' : cama.estado === 'Ocupada' ? 'border-danger' : 'border-warning')
+            .card-header(class=cama.estado === 'Libre' ? 'bg-success text-white' : cama.estado === 'Ocupada' ? 'bg-danger text-white' : 'bg-warning')
+              .d-flex.justify-content-between.align-items-center
+                span
+                  i.fas.fa-bed.me-2
+                  | Cama #{cama.numero}
+                span.badge.bg-light.text-dark= cama.estado
+            
+            .card-body
+              if cama.estado === 'Ocupada' && cama.internaciones && cama.internaciones.length > 0
+                - const internacion = cama.internaciones[0]
+                - const paciente = internacion.paciente
+                
+                h6.mb-2
+                  strong= paciente.usuario.nombre + ' ' + paciente.usuario.apellido
+                
+                p.mb-1.small
+                  strong DNI: 
+                  = paciente.usuario.dni
+                
+                p.mb-1.small
+                  strong Ingreso: 
+                  = new Date(internacion.fecha_inicio).toLocaleDateString('es-AR')
+                
+                if internacion.diagnostico_ingreso
+                  p.mb-2.small
+                    strong Diagnóstico: 
+                    = internacion.diagnostico_ingreso
+                
+                .btn-group.w-100.mb-2(role='group')
+                  a.btn.btn-sm.btn-primary(href=`/medico/pacientes/${paciente.id}` title='Ver paciente')
+                    i.fas.fa-eye
+                  
+                  button.btn.btn-sm.btn-warning(
+                    onclick=`abrirModalDerivar(${internacion.id}, '${paciente.usuario.nombre} ${paciente.usuario.apellido}')`
+                    title='Derivar'
+                  )
+                    i.fas.fa-share
+                  
+                  button.btn.btn-sm.btn-info(
+                    onclick=`abrirModalAlta(${internacion.id}, '${paciente.usuario.nombre} ${paciente.usuario.apellido}')`
+                    title='Dar de alta'
+                  )
+                    i.fas.fa-sign-out-alt
+              
+              else if cama.estado === 'Libre'
+                p.text-center.text-muted.mb-2
+                  i.fas.fa-check-circle.fa-2x
+                  br
+                  small Cama disponible
+                
+                button.btn.btn-success.w-100(
+                  onclick=`abrirModalInternar(${cama.id}, '${habitacion.numero}', '${cama.numero}')`
+                )
+                  i.fas.fa-plus.me-2
+                  | Internar Paciente
+              
+              else
+                p.text-center.text-warning.mb-0
+                  i.fas.fa-broom.fa-2x
+                  br
+                  small En limpieza
+
+//- ============================================================================
+//- MODAL: INTERNAR PACIENTE
+//- ============================================================================
+#modalInternarPaciente.modal.fade(tabindex='-1')
+  .modal-dialog.modal-lg
+    .modal-content
+      .modal-header.bg-success.text-white
+        h5.modal-title
+          i.fas.fa-bed.me-2
+          | Internar Paciente
+        button.btn-close(type='button' data-bs-dismiss='modal')
+      
+      form#formInternarPaciente
+        .modal-body
+          input#cama-id-internar(type='hidden')
+          input#paciente-id-internar(type='hidden')
+          
+          p.text-muted
+            strong Cama: 
+            span#info-cama-internar
+          
+          //- Buscar paciente
+          .mb-3
+            label.form-label DNI del Paciente
+            .input-group
+              input#dni-paciente-internar.form-control(
+                type='text' 
+                placeholder='Ingrese DNI'
+                required
+              )
+              button.btn.btn-primary(type='button' onclick='buscarPacienteParaInternar()')
+                i.fas.fa-search.me-2
+                | Buscar
+          
+          //- Info del paciente
+          #info-paciente-internar.mb-3(style='display:none')
+          
+          //- Datos de internación
+          #seccion-datos-internacion(style='display:none')
+            .mb-3
+              label.form-label Tipo de Internación
+              select#tipo-internacion.form-select(required)
+                option(value='') Seleccione...
+                each tipo in tiposInternacion
+                  option(value=tipo.id)= tipo.nombre
+            
+            .mb-3
+              label.form-label Diagnóstico de Ingreso
+              textarea#diagnostico-ingreso.form-control(
+                rows='3'
+                required
+                placeholder='Descripción del diagnóstico'
+              )
+            
+            .mb-3
+              label.form-label Observaciones
+              textarea#observaciones-internacion.form-control(
+                rows='2'
+                placeholder='Observaciones adicionales (opcional)'
+              )
+        
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button.btn.btn-success(type='button' onclick='confirmarInternacion()')
+            i.fas.fa-check.me-2
+            | Internar Paciente
+
+//- ============================================================================
+//- MODAL: DERIVAR A OTRO SECTOR
+//- ============================================================================
+#modalDerivarSector.modal.fade(tabindex='-1')
+  .modal-dialog
+    .modal-content
+      .modal-header.bg-warning
+        h5.modal-title
+          i.fas.fa-share.me-2
+          | Derivar Paciente
+        button.btn-close(type='button' data-bs-dismiss='modal')
+      
+      form#formDerivarSector
+        .modal-body
+          input#internacion-id-derivar(type='hidden')
+          
+          p
+            strong Paciente: 
+            span#paciente-nombre-derivar
+          
+          .mb-3
+            label.form-label Sector Destino
+            select#sector-destino.form-select(required)
+              option(value='') Seleccione...
+              each sector in sectoresParaDerivacion
+                option(value=sector.id)= sector.nombre
+          
+          .mb-3
+            label.form-label Motivo de Derivación
+            textarea#motivo-derivacion.form-control(
+              rows='3'
+              required
+              placeholder='Explique por qué se deriva al paciente'
+            )
+        
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button.btn.btn-warning(type='button' onclick='confirmarDerivacion()')
+            i.fas.fa-share.me-2
+            | Derivar Paciente
+
+//- ============================================================================
+//- MODAL: DAR DE ALTA
+//- ============================================================================
+#modalDarAlta.modal.fade(tabindex='-1')
+  .modal-dialog
+    .modal-content
+      .modal-header.bg-info.text-white
+        h5.modal-title
+          i.fas.fa-sign-out-alt.me-2
+          | Dar de Alta
+        button.btn-close(type='button' data-bs-dismiss='modal')
+      
+      form#formDarAlta
+        .modal-body
+          input#internacion-id-alta(type='hidden')
+          
+          p
+            strong Paciente: 
+            span#paciente-nombre-alta
+          
+          .mb-3
+            label.form-label Diagnóstico de Egreso
+            textarea#diagnostico-egreso.form-control(
+              rows='3'
+              required
+              placeholder='Diagnóstico final al dar de alta'
+            )
+          
+          .mb-3
+            label.form-label Indicaciones Médicas
+            textarea#indicaciones-medicas.form-control(
+              rows='3'
+              placeholder='Indicaciones post-alta (medicación, cuidados, etc.)'
+            )
+        
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button.btn.btn-info(type='button' onclick='confirmarAlta()')
+            i.fas.fa-check.me-2
+            | Dar de Alta
+
+block scripts
+  script(src='/js/medico/sectores.js')

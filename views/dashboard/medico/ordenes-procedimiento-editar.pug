@@ -1,0 +1,179 @@
+extends layout
+
+block content
+  .container-fluid
+    // Breadcrumb y header
+    .row.mb-4
+      .col-12
+        nav(aria-label="breadcrumb")
+          ol.breadcrumb
+            li.breadcrumb-item
+              a(href="/medico") Dashboard
+            li.breadcrumb-item
+              a(href="/medico/ordenes-procedimiento") Órdenes de Procedimientos
+            li.breadcrumb-item.active Editar Orden
+        
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-edit.me-2
+              | Editar Orden de Procedimiento
+            p.text-muted.mb-0 Modifique los datos de la orden
+          div
+            a.btn.btn-outline-secondary(href=`/medico/ordenes-procedimiento/${procedimiento.id}`)
+              i.fas.fa-arrow-left.me-2
+              | Volver
+
+    // Alerta si ya fue completado
+    if procedimiento.estado === 'COMPLETADA'
+      .row.mb-4
+        .col-12
+          .alert.alert-warning
+            i.fas.fa-exclamation-triangle.me-2
+            strong Atención:
+            |  Esta orden ya fue completada y no puede ser editada.
+
+    // Formulario
+    .row
+      .col-lg-8.mx-auto
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-file-medical.me-2
+              | Datos de la Orden
+          
+          .card-body
+            form#form-editar-orden(method="POST" action=`/medico/ordenes-procedimiento/${procedimiento.id}`)
+              input(type="hidden" name="_method" value="PUT")
+              
+              // Información del paciente (solo lectura)
+              .mb-4
+                label.form-label
+                  i.fas.fa-user.me-2
+                  | Paciente
+                .alert.alert-info
+                  strong #{procedimiento.evaluacion_medica.paciente.usuario.nombre} #{procedimiento.evaluacion_medica.paciente.usuario.apellido}
+                  br
+                  small DNI: #{procedimiento.evaluacion_medica.paciente.usuario.dni}
+
+              hr
+
+              // Nombre del procedimiento
+              .mb-3
+                label.form-label(for="nombre")
+                  i.fas.fa-tag.me-2
+                  | Nombre del Procedimiento
+                  span.text-danger *
+                input.form-control(
+                  type="text"
+                  id="nombre"
+                  name="nombre"
+                  value=procedimiento.nombre
+                  required
+                )
+
+              // Descripción
+              .mb-3
+                label.form-label(for="descripcion")
+                  i.fas.fa-align-left.me-2
+                  | Descripción Detallada
+                  span.text-danger *
+                textarea.form-control(
+                  id="descripcion"
+                  name="descripcion"
+                  rows="4"
+                  required
+                )= procedimiento.descripcion.split('\n\nINDICACIONES ESPECIALES:')[0]
+
+              // Indicaciones específicas
+              .mb-3
+                label.form-label(for="indicaciones_especificas")
+                  i.fas.fa-exclamation-circle.me-2
+                  | Indicaciones Especiales
+                textarea.form-control(
+                  id="indicaciones_especificas"
+                  name="indicaciones_especificas"
+                  rows="3"
+                )= procedimiento.descripcion.includes('INDICACIONES ESPECIALES:') ? procedimiento.descripcion.split('INDICACIONES ESPECIALES:\n')[1] : ''
+
+              .row
+                // Duración estimada
+                .col-md-6.mb-3
+                  label.form-label(for="duracion_estimada")
+                    i.fas.fa-clock.me-2
+                    | Duración Estimada (minutos)
+                  input.form-control(
+                    type="number"
+                    id="duracion_estimada"
+                    name="duracion_estimada"
+                    min="1"
+                    value=procedimiento.duracion_estimada || ''
+                  )
+
+                // Prioridad
+                .col-md-6.mb-3
+                  label.form-label(for="prioridad")
+                    i.fas.fa-flag.me-2
+                    | Prioridad
+                    span.text-danger *
+                  select.form-select(id="prioridad" name="prioridad" required)
+                    option(value="NORMAL" selected=procedimiento.prioridad === 'NORMAL') Normal
+                    option(value="ALTA" selected=procedimiento.prioridad === 'ALTA') Alta
+                    option(value="URGENTE" selected=procedimiento.prioridad === 'URGENTE') Urgente
+
+              // Requiere preparación
+              .mb-3
+                .form-check
+                  input.form-check-input(
+                    type="checkbox"
+                    id="requiere_preparacion"
+                    name="requiere_preparacion"
+                    value="true"
+                    checked=procedimiento.requiere_preparacion
+                  )
+                  label.form-check-label(for="requiere_preparacion")
+                    i.fas.fa-list-check.me-2
+                    | Este procedimiento requiere preparación previa del paciente
+
+              hr
+
+              // Botones
+              .d-grid.gap-2.d-md-flex.justify-content-md-end
+                a.btn.btn-secondary(href=`/medico/ordenes-procedimiento/${procedimiento.id}`)
+                  i.fas.fa-times.me-2
+                  | Cancelar
+                button.btn.btn-primary(type="submit")
+                  i.fas.fa-save.me-2
+                  | Guardar Cambios
+
+block scripts
+  script.
+    // Envío del formulario
+    document.getElementById('form-editar-orden').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const formData = new FormData(this);
+      const data = Object.fromEntries(formData.entries());
+      
+      try {
+        const response = await fetch(`/medico/ordenes-procedimiento/${#{procedimiento.id}}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          alert(result.message);
+          window.location.href = result.redirect;
+        } else {
+          alert('Error: ' + result.message);
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al actualizar la orden');
+      }
+    });

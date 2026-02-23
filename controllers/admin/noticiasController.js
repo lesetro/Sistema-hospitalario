@@ -16,25 +16,21 @@ function getUsuarioId(req) {
 /**
  * Vista principal de gestión de noticias
  */
-const getVistaNoticias = async (req, res) => {
+const getVistaNoticias = async (req, res, next) => {
   try {
     res.render('dashboard/admin/noticias/index', {
       title: 'Gestión de Noticias',
       user: getUsuarioSesion(req)
     });
   } catch (error) {
-    console.error('Error al cargar vista de noticias:', error);
-    res.status(500).render('error', { 
-      message: 'Error al cargar la página',
-      user: getUsuarioSesion(req)
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener lista de noticias con paginación
  */
-const getListaNoticias = async (req, res) => {
+const getListaNoticias = async (req, res, next) => {
   try {
     const { 
       page = 1, 
@@ -99,19 +95,14 @@ const getListaNoticias = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener lista de noticias:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener noticias',
-      error: error.message
-    });
+   next(error);
   }
 };
 
 /**
  * Obtener detalle de una noticia
  */
-const getDetalleNoticia = async (req, res) => {
+const getDetalleNoticia = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -149,18 +140,14 @@ const getDetalleNoticia = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener detalle:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener detalle'
-    });
+    next(error);
   }
 };
 
 /**
  * Crear nueva noticia
  */
-const crearNoticia = async (req, res) => {
+const crearNoticia = async (req, res, next) => {
   try {
     const { titulo, texto, fecha } = req.body;
     const autorId = getUsuarioId(req);
@@ -209,19 +196,14 @@ const crearNoticia = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al crear noticia:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al crear noticia',
-      error: error.message
-    });
+   next(error);
   }
 };
 
 /**
  * Actualizar noticia
  */
-const actualizarNoticia = async (req, res) => {
+const actualizarNoticia = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { titulo, texto, fecha } = req.body;
@@ -266,19 +248,14 @@ const actualizarNoticia = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al actualizar noticia:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al actualizar noticia',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Eliminar noticia (cambiar fecha a antigua)
  */
-const eliminarNoticia = async (req, res) => {
+const eliminarNoticia = async (req, res, next) => {
   try {
     const { id } = req.params;
     const usuarioId = getUsuarioId(req);
@@ -314,19 +291,14 @@ const eliminarNoticia = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al eliminar noticia:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al eliminar noticia',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Restaurar noticia (volver a mostrar en home)
  */
-const restaurarNoticia = async (req, res) => {
+const restaurarNoticia = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -350,18 +322,14 @@ const restaurarNoticia = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al restaurar noticia:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al restaurar noticia'
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener estadísticas
  */
-const getEstadisticas = async (req, res) => {
+const getEstadisticas = async (req, res, next) => {
   try {
     const fechaLimite = new Date();
     fechaLimite.setFullYear(fechaLimite.getFullYear() - 3);
@@ -398,11 +366,7 @@ const getEstadisticas = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener estadísticas'
-    });
+    next(error);
   }
 };
 

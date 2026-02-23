@@ -9,9 +9,9 @@ const {
  * Búsqueda global inteligente
  * GET /api/search/global
  */
-const busquedaGlobal = async (req, res) => {
+const busquedaGlobal = async (req, res, next) => {
   try {
-    const { search } = req.query;
+    const { search, filter = 'all' } = req.query;
 
     if (!search || search.trim().length < 2) {
       return res.status(400).json({
@@ -21,9 +21,9 @@ const busquedaGlobal = async (req, res) => {
     }
 
     const searchTerm = search.trim();
-    console.log('🔍 Búsqueda:', searchTerm);
+    console.log('🔍 Búsqueda:', searchTerm, '| Filtro:', filter);
 
-    // Buscar usuarios que coincidan
+    // Búsqueda de usuarios
     const usuarios = await Usuario.findAll({
       where: {
         [Op.or]: [
@@ -60,11 +60,12 @@ const busquedaGlobal = async (req, res) => {
           required: false
         }
       ],
-      limit: 20,
+      limit: 30,
       order: [['nombre', 'ASC']]
     });
 
-    const resultados = usuarios.map(u => ({
+    // Mapear resultados con tipo
+    let resultados = usuarios.map(u => ({
       id: u.id,
       nombre: `${u.nombre} ${u.apellido}`,
       dni: u.dni,
@@ -77,6 +78,23 @@ const busquedaGlobal = async (req, res) => {
       tipo_id: u.paciente?.id || u.medico?.id || u.enfermero?.id || u.administrativo?.id
     }));
 
+    // Aplicar filtro si no es 'all'
+    if (filter && filter !== 'all') {
+      const filtroMap = {
+        'pacientes': 'paciente',
+        'medicos': 'medico',
+        'enfermeros': 'enfermero',
+        'administrativos': 'administrativo'
+      };
+      
+      const tipoFiltro = filtroMap[filter];
+      if (tipoFiltro) {
+        resultados = resultados.filter(r => r.tipo === tipoFiltro);
+      }
+    }
+
+    console.log(`✅ Encontrados: ${resultados.length} resultados`);
+
     res.json({
       success: true,
       resultados,
@@ -85,10 +103,7 @@ const busquedaGlobal = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error en búsqueda:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al buscar'
-    });
+    next(error);
   }
 };
 
@@ -96,7 +111,7 @@ const busquedaGlobal = async (req, res) => {
  * Obtener ficha completa de un usuario
  * GET /api/search/ficha/:usuarioId
  */
-const getFichaCompleta = async (req, res) => {
+const getFichaCompleta = async (req, res, next) => {
   try {
     const { usuarioId } = req.params;
 
@@ -255,10 +270,7 @@ const getFichaCompleta = async (req, res) => {
 
   } catch (error) {
     console.error('❌ Error al obtener ficha:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener ficha'
-    });
+    next(error);
   }
 };
 

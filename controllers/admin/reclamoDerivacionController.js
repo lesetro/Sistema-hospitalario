@@ -16,7 +16,7 @@ const {
 /**
  * Vista principal
  */
-const getVistaReclamosDerivaciones = async (req, res) => {
+const getVistaReclamosDerivaciones = async (req, res, next) => {
   try {
     const sectores = await Sector.findAll({
       attributes: ['id', 'nombre'],
@@ -28,8 +28,7 @@ const getVistaReclamosDerivaciones = async (req, res) => {
       sectores
     });
   } catch (error) {
-    console.error('Error al cargar vista:', error);
-    res.status(500).render('error', { message: 'Error al cargar la página' });
+    next(error);
   }
 };
 
@@ -40,7 +39,7 @@ const getVistaReclamosDerivaciones = async (req, res) => {
 /**
  * Obtener lista de reclamos con filtros
  */
-const getListaReclamos = async (req, res) => {
+const getListaReclamos = async (req, res, next) => {
   try {
     const {
       page = 1,
@@ -113,18 +112,14 @@ const getListaReclamos = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener reclamos:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener reclamos',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener estadísticas de reclamos
  */
-const getEstadisticasReclamos = async (req, res) => {
+const getEstadisticasReclamos = async (req, res, next) => {
   try {
     const [total, pendientes, resueltos, hoy] = await Promise.all([
       Reclamo.count(),
@@ -150,19 +145,14 @@ const getEstadisticasReclamos = async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener estadísticas',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Cambiar estado de un reclamo
  */
-const cambiarEstadoReclamo = async (req, res) => {
+const cambiarEstadoReclamo = async (req, res, next) => {
   try {
     const { id } = req.params;
     const { estado } = req.body;
@@ -192,11 +182,7 @@ const cambiarEstadoReclamo = async (req, res) => {
 
   } catch (error) {
     console.error('Error al cambiar estado:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al cambiar estado del reclamo',
-      error: error.message
-    });
+    next(error);
   }
 };
 
@@ -207,7 +193,7 @@ const cambiarEstadoReclamo = async (req, res) => {
 /**
  * Obtener lista de derivaciones con filtros
  */
-const getListaDerivaciones = async (req, res) => {
+const getListaDerivaciones = async (req, res, next) => {
   try {
     const {
       page = 1,
@@ -294,18 +280,14 @@ const getListaDerivaciones = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener derivaciones:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener derivaciones',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener estadísticas de derivaciones
  */
-const getEstadisticasDerivaciones = async (req, res) => {
+const getEstadisticasDerivaciones = async (req, res, next) => {
   try {
     const [total, pendientes, aprobadas, rechazadas, internas, externas] = await Promise.all([
       SolicitudDerivacion.count(),
@@ -330,18 +312,14 @@ const getEstadisticasDerivaciones = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener estadísticas:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener estadísticas',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Obtener detalles de una derivación (con disponibilidad de recursos)
  */
-const getDetallesDerivacion = async (req, res) => {
+const getDetallesDerivacion = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -414,18 +392,14 @@ const getDetallesDerivacion = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener detalles:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener detalles',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Editar derivación
  */
-const editarDerivacion = async (req, res) => {
+const editarDerivacion = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
 
   try {
@@ -484,18 +458,14 @@ const editarDerivacion = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('Error al editar derivación:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al editar derivación',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 /**
  * Cambiar estado de derivación
  */
-const cambiarEstadoDerivacion = async (req, res) => {
+const cambiarEstadoDerivacion = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
 
   try {
@@ -538,11 +508,7 @@ const cambiarEstadoDerivacion = async (req, res) => {
   } catch (error) {
     await transaction.rollback();
     console.error('Error al cambiar estado:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al cambiar estado',
-      error: error.message
-    });
+   next(error);
   }
 };
 

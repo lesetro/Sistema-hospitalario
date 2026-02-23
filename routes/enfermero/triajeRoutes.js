@@ -17,5 +17,8 @@ router.put('/:id', triajeController.actualizarTriaje);
 // API endpoints
 router.get('/api/buscar-paciente', triajeController.buscarPacientePorDni);
 router.get('/api/estadisticas', triajeController.estadisticasTriaje);
+// Agregar estas rutas
+router.put('/:id/completar', triajeController.completarTriaje);
+router.put('/:id/derivar', triajeController.derivarMedico);
 
 module.exports = router;

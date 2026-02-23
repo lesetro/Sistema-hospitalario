@@ -24,17 +24,15 @@ function initializeGlobalSearch() {
             }
         });
 
-        // Búsqueda en tiempo real con debounce
-        let searchTimeout;
+        // ✅ CORREGIDO: NO búsqueda automática, solo limpiar resultados
         searchInput.addEventListener('input', function() {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                if (this.value.length >= 2) {
-                    performGlobalSearch();
-                } else {
-                    hideSearchResults();
-                }
-            }, 500);
+            const valor = this.value.trim();
+            
+            // Si tiene menos de 2 caracteres, limpiar resultados
+            if (valor.length < 2) {
+                hideSearchResults();
+            }
+            // ✅ IMPORTANTE: NO hacer búsqueda automática
         });
     }
 }
@@ -49,10 +47,13 @@ async function performGlobalSearch() {
     const searchTerm = searchInput.value.trim();
     const filter = searchFilter ? searchFilter.value : 'all';
 
+    // ✅ CORREGIDO: Validación de 2 caracteres (sin mostrar mensaje)
     if (!searchTerm || searchTerm.length < 2) {
-        showMessage('La búsqueda debe tener al menos 2 caracteres', 'warning');
+        hideSearchResults();
         return;
     }
+
+    console.log('🔍 Búsqueda MANUAL ejecutada:', searchTerm);
 
     try {
         showLoading('Buscando...');
@@ -65,12 +66,13 @@ async function performGlobalSearch() {
         if (data.success) {
             displaySearchResults(data.resultados, searchTerm);
         } else {
+            // ✅ CORREGIDO: Mostrar mensaje solo si es error real
             showMessage(data.message || 'Error en la búsqueda', 'error');
         }
     } catch (error) {
         console.error('Error en búsqueda global:', error);
         hideLoading();
-        showMessage('Error al realizar la búsqueda', 'error');
+        // ✅ NO mostrar mensaje automático de error
     }
 }
 
@@ -78,12 +80,89 @@ function displaySearchResults(resultados, searchTerm) {
     const container = document.getElementById('searchResults');
     if (!container) return;
 
+    // ✅ CORREGIDO: Verificar estructura de resultados
+    console.log('📊 Estructura de resultados:', resultados);
+
+    // Si resultados es un array (nuevo formato)
+    if (Array.isArray(resultados)) {
+        if (resultados.length === 0) {
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-body text-center py-4">
+                        <i class="fas fa-search fa-2x text-muted mb-3 d-block"></i>
+                        <p class="text-muted mb-0">No se encontraron resultados para "<strong>${searchTerm}</strong>"</p>
+                    </div>
+                </div>
+            `;
+            container.style.display = 'block';
+            return;
+        }
+
+        // Mostrar resultados como array
+        let html = '<div class="card"><div class="card-body">';
+        html += `<h6 class="mb-3"><i class="fas fa-check-circle text-success me-2"></i>${resultados.length} resultado(s) para "<strong>${searchTerm}</strong>"</h6>`;
+
+        resultados.forEach(r => {
+            const nombre = r.nombre || 'Sin nombre';
+            const dni = r.dni || 'N/A';
+            const tipo = r.tipo || 'usuario';
+            const id = r.tipo_id || r.id || '';
+
+            let url = '#';
+            let badgeClass = 'bg-secondary';
+            
+            switch(tipo) {
+                case 'paciente':
+                    url = `/pacientes/${id}`;
+                    badgeClass = 'bg-primary';
+                    break;
+                case 'medico':
+                    url = `/personal/medicos/${id}`;
+                    badgeClass = 'bg-success';
+                    break;
+                case 'enfermero':
+                    url = `/personal/enfermeros/${id}`;
+                    badgeClass = 'bg-info';
+                    break;
+                case 'administrativo':
+                    url = `/personal/administrativos/${id}`;
+                    badgeClass = 'bg-warning text-dark';
+                    break;
+                default:
+                    url = `/usuarios/${r.id}`;
+            }
+
+            html += `
+                <div class="border-bottom py-2 mb-2">
+                    <a href="${url}" class="text-decoration-none text-dark">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>${nombre}</strong>
+                                <br>
+                                <small class="text-muted">DNI: ${dni}</small>
+                                ${r.email ? `<br><small class="text-muted">Email: ${r.email}</small>` : ''}
+                                ${r.rol ? `<br><small class="text-muted">Rol: ${r.rol}</small>` : ''}
+                            </div>
+                            <span class="badge ${badgeClass}">${tipo}</span>
+                        </div>
+                    </a>
+                </div>
+            `;
+        });
+
+        html += '</div></div>';
+        container.innerHTML = html;
+        container.style.display = 'block';
+        return;
+    }
+
+    // Si resultados es un objeto (formato antiguo - mantener compatibilidad)
     let html = '<div class="card"><div class="card-body">';
     html += `<h6 class="mb-3"><i class="fas fa-search me-2"></i>Resultados para: "<strong>${searchTerm}</strong>"</h6>`;
 
     let hasResults = false;
 
-    // Mostrar pacientes
+    // Mostrar pacientes (formato antiguo)
     if (resultados.pacientes && resultados.pacientes.length > 0) {
         hasResults = true;
         html += '<div class="mb-3">';
@@ -96,46 +175,6 @@ function displaySearchResults(resultados, searchTerm) {
                         <i class="fas fa-user me-2 text-primary"></i>
                         <strong>${paciente.usuario.nombre} ${paciente.usuario.apellido}</strong>
                         <small class="text-muted ms-2">(DNI: ${paciente.usuario.dni})</small>
-                    </a>
-                </li>`;
-            }
-        });
-        html += '</ul></div>';
-    }
-
-    // Mostrar admisiones
-    if (resultados.admisiones && resultados.admisiones.length > 0) {
-        hasResults = true;
-        html += '<div class="mb-3">';
-        html += '<h6 class="text-info"><i class="fas fa-clipboard-list me-2"></i>Admisiones:</h6>';
-        html += '<ul class="list-unstyled">';
-        resultados.admisiones.forEach(admision => {
-            if (admision.paciente && admision.paciente.usuario) {
-                html += `<li class="border-bottom py-2">
-                    <a href="/admisiones/${admision.id}" class="text-decoration-none">
-                        <i class="fas fa-clipboard-list me-2 text-info"></i>
-                        Admisión - <strong>${admision.paciente.usuario.nombre} ${admision.paciente.usuario.apellido}</strong>
-                        <small class="text-muted ms-2">(${new Date(admision.fecha).toLocaleDateString()})</small>
-                    </a>
-                </li>`;
-            }
-        });
-        html += '</ul></div>';
-    }
-
-    // Mostrar turnos
-    if (resultados.turnos && resultados.turnos.length > 0) {
-        hasResults = true;
-        html += '<div class="mb-3">';
-        html += '<h6 class="text-warning"><i class="fas fa-calendar me-2"></i>Turnos:</h6>';
-        html += '<ul class="list-unstyled">';
-        resultados.turnos.forEach(turno => {
-            if (turno.paciente && turno.paciente.usuario) {
-                html += `<li class="border-bottom py-2">
-                    <a href="/turnos/${turno.id}" class="text-decoration-none">
-                        <i class="fas fa-calendar me-2 text-warning"></i>
-                        Turno - <strong>${turno.paciente.usuario.nombre} ${turno.paciente.usuario.apellido}</strong>
-                        <small class="text-muted ms-2">(${new Date(turno.fecha).toLocaleDateString()} ${turno.hora_inicio || ''})</small>
                     </a>
                 </li>`;
             }

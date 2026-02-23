@@ -4,743 +4,1209 @@ const {
   Usuario,
   Medico,
   Habitacion,
+  Sector,
   EvaluacionMedica,
+  EvaluacionEnfermeria,
   ListaEspera,
   Internacion,
-  sequelize
+  TipoTurno,
+  Especialidad,
+  Cama,
+  Enfermero,
+  TipoInternacion,
+  Notificacion,
+  HistorialMedico,
+  ControlEnfermeria,
+  TipoDeServicio,
+  EstudioSolicitado
 } = require('../../models');
 const { Op } = require('sequelize');
+const db = require('../../database/db');
 
 // ========================================
-// RENDERIZAR VISTA
+// RENDERIZAR VISTA PRINCIPAL
 // ========================================
-exports.renderIntervenciones = async (req, res) => {
+exports.renderCirugias = async (req, res, next) => {
   try {
-    console.log('🔍 renderIntervenciones - usuario_id:', req.user.usuario_id);
+    const medicoId = req.user.medico_id;
     
-    const usuario = await Usuario.findByPk(req.user.usuario_id, {
+    res.render('dashboard/medico/cirugias', {
+      title: 'Mis Cirugías',
+      user: req.user
+    });
+  } catch (error) {
+    console.error('❌ Error al renderizar cirugías:', error);
+    next(error);
+  }
+};
+
+// ========================================
+// OBTENER PACIENTES PARA CIRUGÍA
+// (Unifica turnos programados + urgencias)
+// ========================================
+exports.obtenerPacientesCirugia = async (req, res, next) => {
+  try {
+    const medicoId = req.user.medico_id;
+    const { estado, origen, prioridad } = req.query;
+    
+    console.log(' Obteniendo pacientes para cirugía - Médico:', medicoId);
+    
+    // ========== 1. PACIENTES EN LISTA DE ESPERA TIPO CIRUGIA ==========
+    const whereListaEspera = {
+      estado: { [Op.in]: ['PENDIENTE', 'ASIGNADO'] }
+    };
+    
+    // Si hay médico asignado, filtrar por él. Si no, mostrar todos los sin asignar del sector
+    const medico = await Medico.findByPk(medicoId, {
+      include: [{ model: Sector, as: 'sector' }]
+    });
+    
+    whereListaEspera[Op.or] = [
+      { medico_id: medicoId },  // Asignados a mí
+      { medico_id: null }        // Sin asignar (los puede tomar)
+    ];
+    
+    if (prioridad && prioridad !== 'TODOS') {
+      whereListaEspera.prioridad = prioridad;
+    }
+    
+    const listasEspera = await ListaEspera.findAll({
+      where: whereListaEspera,
       include: [
+        {
+          model: Paciente,
+          as: 'paciente',
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['id', 'nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo']
+          }]
+        },
+        {
+          model: TipoTurno,
+          as: 'tipo_turno',  
+          where: { nombre: 'CIRUGIA' }, 
+          attributes: ['id', 'nombre']
+        },
         {
           model: Medico,
-          as: 'medico',
-          include: [
-            { model: require('../../models').Especialidad, as: 'especialidad' }
-          ]
-        }
-      ]
-    });
-
-    if (!usuario || !usuario.medico) {
-      return res.status(404).render('error', {
-        title: 'Error',
-        message: 'No tienes permisos de médico'
-      });
-    }
-
-    console.log('✅ Renderizando vista de intervenciones...');
-
-    res.render('dashboard/medico/intervenciones', {
-      title: 'Intervenciones Quirúrgicas',
-      user: {
-        ...usuario.toJSON(),
-        especialidad: usuario.medico?.especialidad?.nombre
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error al renderizar intervenciones:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: error.message
-    });
-  }
-};
-
-// ========================================
-// OBTENER INTERVENCIONES
-// ========================================
-exports.obtenerIntervenciones = async (req, res) => {
-  try {
-    console.log('📋 obtenerIntervenciones - usuario_id:', req.user.usuario_id);
-    
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
-    });
-
-    if (!medico) {
-      console.error('❌ Médico no encontrado');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
-      });
-    }
-
-    const { 
-      pacienteId,
-      estado,
-      resultado,
-      fechaDesde,
-      fechaHasta,
-      page = 1, 
-      limit = 10 
-    } = req.query;
-    const offset = (page - 1) * limit;
-
-    const whereClause = { medico_id: medico.id };
-
-    if (pacienteId) {
-      whereClause.paciente_id = pacienteId;
-    }
-
-    if (resultado && resultado !== 'TODOS') {
-      whereClause.resultado_cirugia = resultado;
-    }
-
-    if (fechaDesde && fechaHasta) {
-      whereClause.fecha_inicio = {
-        [Op.between]: [fechaDesde, fechaHasta]
-      };
-    } else if (fechaDesde) {
-      whereClause.fecha_inicio = { [Op.gte]: fechaDesde };
-    } else if (fechaHasta) {
-      whereClause.fecha_inicio = { [Op.lte]: fechaHasta };
-    }
-
-    // Filtrar por estado (en curso o finalizadas)
-    if (estado === 'EN_CURSO') {
-      whereClause.fecha_fin = null;
-    } else if (estado === 'FINALIZADAS') {
-      whereClause.fecha_fin = { [Op.ne]: null };
-    }
-
-    const { count, rows: intervenciones } = await IntervencionQuirurgica.findAndCountAll({
-      where: whereClause,
-      include: [
-        {
-          model: Paciente,
-          as: 'paciente',
-          include: [
-            {
-              model: Usuario,
-              as: 'usuario',
-              attributes: ['id', 'nombre', 'apellido', 'dni']
-            }
-          ]
-        },
-        {
-          model: Habitacion,
-          as: 'habitacion',
-          attributes: ['id', 'numero', 'tipo']
-        },
-        {
-          model: EvaluacionMedica,
-          as: 'evaluacion_medica',
-          attributes: ['id', 'fecha'],
-          required: false
-        },
-        {
-          model: ListaEspera,
-          as: 'lista_espera',
-          attributes: ['id', 'estado', 'prioridad'],
-          required: false
+          as: 'medico_asignado',  
+          required: false,
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido']
+          }]
         }
       ],
-      order: [['fecha_inicio', 'DESC']],
-      limit: parseInt(limit),
-      offset: parseInt(offset)
-    });
-
-    console.log('✅ Intervenciones obtenidas:', count);
-
-    res.json({
-      success: true,
-      data: intervenciones,
-      pagination: {
-        total: count,
-        page: parseInt(page),
-        totalPages: Math.ceil(count / limit)
-      }
-    });
-  } catch (error) {
-    console.error('❌ Error al obtener intervenciones:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
-  }
-};
-
-// ========================================
-// OBTENER INTERVENCIÓN POR ID
-// ========================================
-exports.obtenerIntervencionPorId = async (req, res) => {
-  try {
-    console.log('🔍 obtenerIntervencionPorId - usuario_id:', req.user.usuario_id);
-    
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
-    });
-
-    if (!medico) {
-      console.error('❌ Médico no encontrado');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
-      });
-    }
-
-    const intervencion = await IntervencionQuirurgica.findOne({
-      where: {
-        id: req.params.id,
-        medico_id: medico.id
-      },
-      include: [
-        {
-          model: Paciente,
-          as: 'paciente',
-          include: [
-            {
-              model: Usuario,
-              as: 'usuario',
-              attributes: { exclude: ['password'] }
-            },
-            {
-              model: require('../../models').ObraSocial,
-              as: 'obraSocial',
-              attributes: ['id', 'nombre']
-            }
-          ]
-        },
-        {
-          model: Habitacion,
-          as: 'habitacion',
-          include: [
-            {
-              model: require('../../models').Sector,
-              as: 'sector',
-              attributes: ['nombre']
-            }
-          ]
-        },
-        {
-          model: EvaluacionMedica,
-          as: 'evaluacion_medica',
-          include: [
-            {
-              model: require('../../models').Diagnostico,
-              as: 'diagnostico',
-              attributes: ['codigo', 'nombre']
-            }
-          ]
-        },
-        {
-          model: ListaEspera,
-          as: 'lista_espera',
-          attributes: ['id', 'estado', 'prioridad']
-        },
-        {
-          model: Internacion,
-          as: 'intervencion_quirurgica',
-          attributes: ['id', 'fecha_inicio', 'estado_paciente'],
-          required: false
-        }
+      order: [
+        ['prioridad', 'DESC'],
+        ['fecha_registro', 'ASC']
       ]
     });
-
-    if (!intervencion) {
-      console.error('❌ Intervención no encontrada');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Intervención no encontrada' 
-      });
-    }
-
-    console.log('✅ Intervención encontrada:', intervencion.id);
-
-    res.json({
-      success: true,
-      data: intervencion
-    });
-  } catch (error) {
-    console.error('❌ Error al obtener intervención:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
-  }
-};
-
-// ========================================
-// OBTENER INTERVENCIONES PRÓXIMAS
-// ========================================
-exports.obtenerIntervencionesProximas = async (req, res) => {
-  try {
-    console.log('📅 obtenerIntervencionesProximas - usuario_id:', req.user.usuario_id);
     
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
-    });
-
-    if (!medico) {
-      console.error('❌ Médico no encontrado');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
-      });
+    console.log(` Listas de espera encontradas: ${listasEspera.length}`);
+    
+    // ========== 2. INTERVENCIONES EN CURSO ==========
+    const whereIntervenciones = {
+      medico_id: medicoId,
+      estado_cirugia: { [Op.in]: ['PROGRAMADA', 'PRE_OPERATORIO', 'EN_CIRUGIA', 'POST_OPERATORIO'] }
+    };
+    
+    if (estado && estado !== 'TODOS') {
+      whereIntervenciones.estado_cirugia = estado;
     }
-
-    const hoy = new Date();
-    const proximosDias = new Date();
-    proximosDias.setDate(hoy.getDate() + 7);
-
+    
     const intervenciones = await IntervencionQuirurgica.findAll({
-      where: {
-        medico_id: medico.id,
-        fecha_inicio: {
-          [Op.between]: [hoy, proximosDias]
-        },
-        fecha_fin: null
-      },
+      where: whereIntervenciones,
       include: [
         {
           model: Paciente,
           as: 'paciente',
-          include: [
-            {
-              model: Usuario,
-              as: 'usuario',
-              attributes: ['nombre', 'apellido']
-            }
-          ]
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['id', 'nombre', 'apellido', 'dni']
+          }]
         },
         {
           model: Habitacion,
           as: 'habitacion',
-          attributes: ['numero']
+          attributes: ['id', 'numero']
+        },
+        {
+          model: EvaluacionMedica,
+          as: 'evaluacion_medica',
+          required: false
         }
       ],
-      order: [['fecha_inicio', 'ASC']],
+      order: [
+        ['estado_cirugia', 'ASC'],
+        ['fecha_inicio', 'ASC']
+      ]
+    });
+    
+    console.log(` Intervenciones en curso: ${intervenciones.length}`);
+    
+    // ========== 3. COMBINAR Y FORMATEAR RESPUESTA ==========
+    const pacientesFormateados = [];
+    
+    // Agregar de lista de espera (pendientes de operar)
+    for (const lista of listasEspera) {
+      // Verificar si ya tiene intervención creada
+      const tieneIntervencion = intervenciones.some(i => i.paciente_id === lista.paciente_id);
+      if (tieneIntervencion) continue;  // Ya está en intervenciones
+      
+      // Verificar si tiene evaluación médica
+      const evaluacion = await EvaluacionMedica.findOne({
+        where: { paciente_id: lista.paciente_id },
+        order: [['fecha', 'DESC']]
+      });
+      
+      // Verificar triage
+      const evaluacionEnfermeria = await EvaluacionEnfermeria.findOne({
+        where: { paciente_id: lista.paciente_id },
+        order: [['fecha', 'DESC']]
+      });
+      
+      // Determinar si es urgencia por la prioridad (ya que tipo_turno siempre es CIRUGIA)
+      const esUrgencia = lista.prioridad === 'ALTA';
+      
+      pacientesFormateados.push({
+        id: lista.id,
+        tipo: 'LISTA_ESPERA',
+        paciente: {
+          id: lista.paciente?.id,
+          nombre: `${lista.paciente?.usuario?.nombre} ${lista.paciente?.usuario?.apellido}`,
+          dni: lista.paciente?.usuario?.dni,
+          edad: calcularEdad(lista.paciente?.usuario?.fecha_nacimiento),
+          sexo: lista.paciente?.usuario?.sexo
+        },
+        origen: esUrgencia ? 'URGENCIA' : 'PROGRAMADA',
+        prioridad: lista.prioridad,
+        estado: 'PENDIENTE',
+        triage: evaluacionEnfermeria?.nivel_triaje || null,
+        tiene_evaluacion_medica: !!evaluacion,
+        evaluacion_medica_id: evaluacion?.id || null,
+        asignado_a_mi: lista.medico_id === medicoId,
+        fecha_registro: lista.fecha_registro,
+        observaciones: lista.observaciones
+      });
+    }
+    
+    // Agregar intervenciones en curso
+    for (const intervencion of intervenciones) {
+      pacientesFormateados.push({
+        id: intervencion.id,
+        tipo: 'INTERVENCION',
+        paciente: {
+          id: intervencion.paciente?.id,
+          nombre: `${intervencion.paciente?.usuario?.nombre} ${intervencion.paciente?.usuario?.apellido}`,
+          dni: intervencion.paciente?.usuario?.dni
+        },
+        origen: intervencion.es_urgencia ? 'URGENCIA' : 'PROGRAMADA',
+        prioridad: intervencion.es_urgencia ? 'ALTA' : 'NORMAL',
+        estado: intervencion.estado_cirugia,
+        tipo_procedimiento: intervencion.tipo_procedimiento,
+        quirofano: intervencion.habitacion?.numero,
+        tiene_evaluacion_medica: !!intervencion.evaluacion_medica_id,
+        fecha_inicio: intervencion.fecha_inicio,
+        observaciones: intervencion.observaciones
+      });
+    }
+    
+    // Filtrar por origen si se especificó
+    let resultado = pacientesFormateados;
+    if (origen && origen !== 'TODOS') {
+      resultado = pacientesFormateados.filter(p => p.origen === origen);
+    }
+    
+    // Ordenar: urgencias primero, luego por prioridad
+    resultado.sort((a, b) => {
+      if (a.origen === 'URGENCIA' && b.origen !== 'URGENCIA') return -1;
+      if (a.origen !== 'URGENCIA' && b.origen === 'URGENCIA') return 1;
+      return 0;
+    });
+    
+    res.json({
+      success: true,
+      data: resultado,
+      estadisticas: {
+        total: resultado.length,
+        urgencias: resultado.filter(p => p.origen === 'URGENCIA').length,
+        programadas: resultado.filter(p => p.origen === 'PROGRAMADA').length,
+        en_cirugia: resultado.filter(p => p.estado === 'EN_CIRUGIA').length,
+        pendientes: resultado.filter(p => p.estado === 'PENDIENTE').length
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error al obtener pacientes:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener pacientes para cirugía',
+      error: error.message
+    });
+  }
+};
+
+// ========================================
+// ACEPTAR PACIENTE DE URGENCIA
+// ========================================
+exports.aceptarPaciente = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
+  try {
+    const { lista_espera_id } = req.params;
+    const medicoId = req.user.medico_id;
+    
+    console.log(` Aceptando paciente - Lista: ${lista_espera_id}, Médico: ${medicoId}`);
+    
+    const listaEspera = await ListaEspera.findByPk(lista_espera_id, {
+      include: [{
+        model: Paciente,
+        as: 'paciente',
+        include: [{ model: Usuario, as: 'usuario' }]
+      }],
+      transaction
+    });
+    
+    if (!listaEspera) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Paciente no encontrado en lista de espera'
+      });
+    }
+    
+    if (listaEspera.medico_id && listaEspera.medico_id !== medicoId) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Este paciente ya fue asignado a otro cirujano'
+      });
+    }
+    
+    // Asignar al cirujano
+    await listaEspera.update({
+      medico_id: medicoId,
+      estado: 'ASIGNADO'
+    }, { transaction });
+    
+    await transaction.commit();
+    
+    console.log(` Paciente ${listaEspera.paciente?.usuario?.nombre} asignado al cirujano`);
+    
+    res.json({
+      success: true,
+      message: `Paciente ${listaEspera.paciente?.usuario?.nombre} ${listaEspera.paciente?.usuario?.apellido} asignado correctamente`,
+      data: {
+        lista_espera_id: listaEspera.id,
+        paciente_id: listaEspera.paciente_id
+      }
+    });
+    
+  } catch (error) {
+    await transaction.rollback();
+    console.error('❌ Error al aceptar paciente:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al aceptar paciente',
+      error: error.message
+    });
+  }
+};
+
+// ========================================
+// VER DETALLE DEL PACIENTE
+// ========================================
+exports.verDetallePaciente = async (req, res, next) => {
+  try {
+    const { paciente_id } = req.params;
+    
+    console.log(` Obteniendo detalle del paciente: ${paciente_id}`);
+    
+    const paciente = await Paciente.findByPk(paciente_id, {
+      include: [{
+        model: Usuario,
+        as: 'usuario',
+        attributes: { exclude: ['password'] }
+      }]
+    });
+    
+    if (!paciente) {
+      return res.status(404).json({
+        success: false,
+        message: 'Paciente no encontrado'
+      });
+    }
+    
+    // Obtener evaluaciones médicas
+    const evaluacionesMedicas = await EvaluacionMedica.findAll({
+      where: { paciente_id },
+      include: [{
+        model: Medico,
+        as: 'medico',
+        include: [{ model: Usuario, as: 'usuario' }]
+      }],
+      order: [['fecha', 'DESC']],
+      limit: 5
+    });
+    
+    // Obtener evaluaciones de enfermería (incluye triage)
+    const evaluacionesEnfermeria = await EvaluacionEnfermeria.findAll({
+      where: { paciente_id },
+      order: [['fecha', 'DESC']],
+      limit: 5
+    });
+    
+    // Obtener estudios solicitados
+    const estudios = await EstudioSolicitado.findAll({
+      where: { paciente_id },
+      order: [['created_at', 'DESC']],
       limit: 10
     });
-
-    console.log('✅ Intervenciones próximas encontradas:', intervenciones.length);
-
+    
+    // Obtener controles de enfermería
+    const controles = await ControlEnfermeria.findAll({
+      include: [{
+        model: EvaluacionEnfermeria,
+        as: 'evaluacion',
+        where: { paciente_id }
+      }],
+      order: [['created_at', 'DESC']],
+      limit: 5
+    });
+    
+    // Obtener internación activa si existe
+    const internacion = await Internacion.findOne({
+      where: { 
+        paciente_id,
+        fecha_alta: null
+      },
+      include: [
+        { model: Cama, as: 'cama' },
+        { model: Habitacion, as: 'habitacion' }
+      ]
+    });
+    
+    // Obtener intervenciones previas
+    const intervencionesAnteriores = await IntervencionQuirurgica.findAll({
+      where: { 
+        paciente_id,
+        estado_cirugia: 'FINALIZADA'
+      },
+      order: [['fecha_fin', 'DESC']],
+      limit: 5
+    });
+    
     res.json({
       success: true,
-      data: intervenciones
+      data: {
+        paciente: {
+          id: paciente.id,
+          nombre: `${paciente.usuario.nombre} ${paciente.usuario.apellido}`,
+          dni: paciente.usuario.dni,
+          fecha_nacimiento: paciente.usuario.fecha_nacimiento,
+          edad: calcularEdad(paciente.usuario.fecha_nacimiento),
+          sexo: paciente.usuario.sexo,
+          telefono: paciente.usuario.telefono,
+          direccion: paciente.usuario.direccion
+        },
+        evaluaciones_medicas: evaluacionesMedicas,
+        evaluaciones_enfermeria: evaluacionesEnfermeria,
+        estudios: estudios,
+        controles: controles,
+        internacion: internacion,
+        intervenciones_anteriores: intervencionesAnteriores,
+        tiene_evaluacion_medica: evaluacionesMedicas.length > 0,
+        ultimo_triage: evaluacionesEnfermeria[0]?.nivel_triaje || null
+      }
     });
+    
   } catch (error) {
-    console.error('❌ Error al obtener intervenciones próximas:', error.message);
-    res.status(500).json({ 
+    console.error('❌ Error al obtener detalle:', error);
+    res.status(500).json({
       success: false,
-      message: error.message 
+      message: 'Error al obtener detalle del paciente',
+      error: error.message
     });
   }
 };
 
 // ========================================
-// CREAR INTERVENCIÓN
+// CREAR INTERVENCIÓN QUIRÚRGICA
 // ========================================
-exports.crearIntervencion = async (req, res) => {
-  const transaction = await sequelize.transaction();
-
+exports.crearIntervencion = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
   try {
-    console.log('✅ crearIntervencion - usuario_id:', req.user.usuario_id);
-    
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
-    });
-
-    if (!medico) {
-      await transaction.rollback();
-      console.error('❌ Médico no encontrado');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
-      });
-    }
-
+    const medicoId = req.user.medico_id;
     const {
       paciente_id,
+      tipo_procedimiento,
       habitacion_id,
+      fecha_inicio,
       evaluacion_medica_id,
       lista_espera_id,
-      tipo_procedimiento,
-      fecha_inicio,
-      observaciones
+      es_urgencia,
+      observaciones,
+      iniciar_inmediatamente
     } = req.body;
-
+    
+    console.log(' Creando intervención quirúrgica:', { paciente_id, tipo_procedimiento, habitacion_id });
+    
     // Validaciones
-    const paciente = await Paciente.findByPk(paciente_id, { transaction });
-    if (!paciente) {
+    if (!paciente_id || !tipo_procedimiento || !habitacion_id) {
       await transaction.rollback();
-      return res.status(404).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Paciente no encontrado' 
+        message: 'Faltan datos requeridos: paciente, tipo de procedimiento y quirófano'
       });
     }
-
+    
+    // Verificar que el paciente existe
+    const paciente = await Paciente.findByPk(paciente_id, {
+      include: [{
+        model: Usuario,
+        as: 'usuario',
+        attributes: ['sexo']
+      }],
+      transaction
+    });
+    
+    if (!paciente) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Paciente no encontrado'
+      });
+    }
+    
+    // Verificar quirófano disponible
     const habitacion = await Habitacion.findByPk(habitacion_id, { transaction });
     if (!habitacion) {
       await transaction.rollback();
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'Habitación no encontrada' 
+        message: 'Quirófano no encontrado'
       });
     }
-
-    if (evaluacion_medica_id) {
-      const evaluacion = await EvaluacionMedica.findOne({
-        where: {
-          id: evaluacion_medica_id,
-          medico_id: medico.id
-        },
-        transaction
-      });
-      if (!evaluacion) {
-        await transaction.rollback();
-        return res.status(404).json({ 
-          success: false,
-          message: 'Evaluación médica no encontrada o no pertenece a este médico' 
-        });
-      }
-    }
-
-    const listaEspera = await ListaEspera.findByPk(lista_espera_id, { transaction });
-    if (!listaEspera) {
+    
+    //  Buscar una cama libre en el quirófano
+    const camaLibre = await Cama.findOne({
+      where: {
+        habitacion_id: habitacion_id,
+        estado: 'Libre'
+      },
+      transaction
+    });
+    
+    if (!camaLibre) {
       await transaction.rollback();
-      return res.status(404).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'Lista de espera no encontrada' 
+        message: 'No hay camas disponibles en el quirófano seleccionado'
       });
     }
-
-    // Crear intervención
-    const intervencion = await IntervencionQuirurgica.create({
+    
+    console.log(` Cama encontrada: ${camaLibre.numero} (ID: ${camaLibre.id})`);
+    
+    //  Asignar la cama al paciente
+    await camaLibre.update({
+      estado: 'Ocupada',
+      sexo_ocupante: paciente.usuario?.sexo || null
+    }, { transaction });
+    
+    console.log(` Cama ${camaLibre.numero} asignada al paciente`);
+    
+    // Determinar estado inicial
+    let estadoInicial = 'PROGRAMADA';
+    if (iniciar_inmediatamente) {
+      estadoInicial = es_urgencia ? 'EN_CIRUGIA' : 'PRE_OPERATORIO';
+    }
+    
+    // Crear intervención (incluir cama_id si el modelo lo soporta)
+    const datosIntervencion = {
       paciente_id,
-      medico_id: medico.id,
+      medico_id: medicoId,
       habitacion_id,
-      evaluacion_medica_id,
-      lista_espera_id,
       tipo_procedimiento,
       fecha_inicio: fecha_inicio || new Date(),
+      evaluacion_medica_id: evaluacion_medica_id || null,
+      lista_espera_id: lista_espera_id || null,
+      estado_cirugia: estadoInicial,
+      es_urgencia: es_urgencia || false,
       observaciones
-    }, { transaction });
-
+    };
+    
+    // Si el modelo tiene cama_id, agregarlo
+    if (IntervencionQuirurgica.rawAttributes.cama_id) {
+      datosIntervencion.cama_id = camaLibre.id;
+    }
+    
+    const intervencion = await IntervencionQuirurgica.create(datosIntervencion, { transaction });
+    
+    // Actualizar lista de espera si existe
+    if (lista_espera_id) {
+      await ListaEspera.update({
+        estado: 'EN_PROCESO'
+      }, {
+        where: { id: lista_espera_id },
+        transaction
+      });
+    }
+    
     await transaction.commit();
-
-    console.log('✅ Intervención creada:', intervencion.id);
-
+    
+    console.log(` Intervención creada: ID ${intervencion.id}, Cama: ${camaLibre.numero}`);
+    
     res.json({
       success: true,
       message: 'Intervención quirúrgica creada correctamente',
-      data: intervencion
+      data: {
+        id: intervencion.id,
+        estado: intervencion.estado_cirugia,
+        cama: camaLibre.numero
+      }
     });
+    
   } catch (error) {
     await transaction.rollback();
-    console.error('❌ Error al crear intervención:', error.message);
-    res.status(500).json({ 
+    console.error('❌ Error al crear intervención:', error);
+    res.status(500).json({
       success: false,
-      message: error.message 
+      message: 'Error al crear intervención',
+      error: error.message
     });
   }
 };
-
 // ========================================
-// ACTUALIZAR INTERVENCIÓN
+// ACTUALIZAR ESTADO DE CIRUGÍA
 // ========================================
-exports.actualizarIntervencion = async (req, res) => {
-  const transaction = await sequelize.transaction();
-
+exports.actualizarEstado = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
   try {
-    console.log('🔄 actualizarIntervencion - usuario_id:', req.user.usuario_id);
+    const { id } = req.params;
+    const { estado_cirugia, notas } = req.body;
+    const medicoId = req.user.medico_id;
     
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
-    });
-
-    if (!medico) {
-      await transaction.rollback();
-      console.error('❌ Médico no encontrado');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
-      });
-    }
-
+    console.log(` Actualizando estado cirugía ${id} a ${estado_cirugia}`);
+    
     const intervencion = await IntervencionQuirurgica.findOne({
-      where: {
-        id: req.params.id,
-        medico_id: medico.id
-      },
+      where: { id, medico_id: medicoId },
       transaction
     });
-
+    
     if (!intervencion) {
       await transaction.rollback();
-      console.error('❌ Intervención no encontrada');
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'Intervención no encontrada' 
+        message: 'Intervención no encontrada'
       });
     }
-
-    const { observaciones } = req.body;
-
-    // Solo se pueden actualizar intervenciones en curso
-    if (intervencion.fecha_fin) {
+    
+    // Validar transición de estado
+    const transicionesValidas = {
+      'PROGRAMADA': ['PRE_OPERATORIO', 'CANCELADA'],
+      'PRE_OPERATORIO': ['EN_CIRUGIA', 'CANCELADA'],
+      'EN_CIRUGIA': ['POST_OPERATORIO', 'FINALIZADA'],
+      'POST_OPERATORIO': ['FINALIZADA']
+    };
+    
+    if (!transicionesValidas[intervencion.estado_cirugia]?.includes(estado_cirugia)) {
       await transaction.rollback();
-      return res.status(400).json({ 
+      return res.status(400).json({
         success: false,
-        message: 'No se puede actualizar una intervención finalizada' 
+        message: `No se puede pasar de ${intervencion.estado_cirugia} a ${estado_cirugia}`
       });
     }
-
-    await intervencion.update({ observaciones }, { transaction });
-
+    
+    // Actualizar según el estado
+    const updateData = { estado_cirugia };
+    
+    if (estado_cirugia === 'PRE_OPERATORIO' && notas) {
+      updateData.notas_preoperatorio = notas;
+    }
+    
+    if (estado_cirugia === 'EN_CIRUGIA') {
+      updateData.fecha_inicio = new Date();
+    }
+    
+    if (estado_cirugia === 'POST_OPERATORIO' && notas) {
+      updateData.notas_postoperatorio = notas;
+    }
+    
+    await intervencion.update(updateData, { transaction });
+    
     await transaction.commit();
-
-    console.log('✅ Intervención actualizada:', intervencion.id);
-
+    
     res.json({
       success: true,
-      message: 'Intervención actualizada correctamente',
-      data: intervencion
+      message: `Estado actualizado a ${estado_cirugia}`,
+      data: { estado: estado_cirugia }
     });
+    
   } catch (error) {
     await transaction.rollback();
-    console.error('❌ Error al actualizar intervención:', error.message);
-    res.status(500).json({ 
+    console.error('❌ Error al actualizar estado:', error);
+    res.status(500).json({
       success: false,
-      message: error.message 
+      message: 'Error al actualizar estado',
+      error: error.message
     });
   }
 };
 
 // ========================================
-// FINALIZAR INTERVENCIÓN
+// FINALIZAR CIRUGÍA
 // ========================================
-exports.finalizarIntervencion = async (req, res) => {
-  const transaction = await sequelize.transaction();
-
+exports.finalizarCirugia = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
   try {
-    console.log('❌ finalizarIntervencion - usuario_id:', req.user.usuario_id);
+    const { id } = req.params;
+    const { resultado_cirugia, notas_postoperatorio, observaciones } = req.body;
+    const medicoId = req.user.medico_id;
     
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
+    console.log(`🏁 Finalizando cirugía ${id} - Resultado: ${resultado_cirugia}`);
+    
+    const intervencion = await IntervencionQuirurgica.findOne({
+      where: { id, medico_id: medicoId },
+      include: [{
+        model: Paciente,
+        as: 'paciente',
+        include: [{ model: Usuario, as: 'usuario' }]
+      }],
+      transaction
     });
-
-    if (!medico) {
+    
+    if (!intervencion) {
       await transaction.rollback();
-      console.error('❌ Médico no encontrado');
-      return res.status(404).json({ 
+      return res.status(404).json({
         success: false,
-        message: 'Médico no encontrado' 
+        message: 'Intervención no encontrada'
       });
     }
-
-    const intervencion = await IntervencionQuirurgica.findOne({
+    
+    if (!resultado_cirugia) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'Debe especificar el resultado de la cirugía'
+      });
+    }
+    
+    // Actualizar intervención
+    await intervencion.update({
+      estado_cirugia: 'FINALIZADA',
+      resultado_cirugia,
+      fecha_fin: new Date(),
+      notas_postoperatorio: notas_postoperatorio || intervencion.notas_postoperatorio,
+      observaciones: observaciones || intervencion.observaciones
+    }, { transaction });
+    
+    // ========================================
+    // DETERMINAR DESTINO DEL PACIENTE
+    // ========================================
+    const requiereInternacion = resultado_cirugia === 'REQUIERE_INTERNACION';
+    const requiereUCI = resultado_cirugia === 'REQUIERE_UCI';
+    const esAlta = resultado_cirugia === 'EXITOSA' || resultado_cirugia === 'EXITOSA_CON_COMPLICACIONES';
+    
+    let internacionCreada = null;
+    let camaAsignada = null;
+    let sectorDestino = null;
+    
+    // ========================================
+    // LIBERAR CAMA DEL QUIRÓFANO
+    // ========================================
+    const camaQuirofano = await Cama.findOne({
       where: {
-        id: req.params.id,
-        medico_id: medico.id
+        habitacion_id: intervencion.habitacion_id,
+        estado: 'Ocupada'
       },
       transaction
     });
-
-    if (!intervencion) {
-      await transaction.rollback();
-      console.error('❌ Intervención no encontrada');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Intervención no encontrada' 
-      });
+    
+    if (camaQuirofano) {
+      await camaQuirofano.update({
+        estado: 'EnLimpieza',
+        sexo_ocupante: null
+      }, { transaction });
+      console.log(`🧹 Cama quirófano ${camaQuirofano.numero} liberada para limpieza`);
     }
-
-    if (intervencion.fecha_fin) {
-      await transaction.rollback();
-      return res.status(400).json({ 
-        success: false,
-        message: 'La intervención ya está finalizada' 
+    
+    // ========================================
+    // SI REQUIERE INTERNACIÓN O UCI
+    // ========================================
+    if (requiereInternacion || requiereUCI) {
+      console.log(`🏥 Paciente requiere ${requiereUCI ? 'UCI' : 'Internación'}`);
+      
+      // Buscar el sector destino
+      const nombreSectorDestino = requiereUCI ? 'UTI' : 'Internación';
+      sectorDestino = await Sector.findOne({
+        where: {
+          nombre: { [Op.like]: `%${nombreSectorDestino}%` }
+        },
+        transaction
       });
+      
+      if (!sectorDestino) {
+        console.log(`⚠️ Sector ${nombreSectorDestino} no encontrado, buscando alternativa...`);
+        sectorDestino = await Sector.findOne({
+          where: {
+            nombre: { [Op.or]: [
+              { [Op.like]: '%Internación%' },
+              { [Op.like]: '%Internacion%' },
+              { [Op.like]: '%UTI%' },
+              { [Op.like]: '%Terapia%' }
+            ]}
+          },
+          transaction
+        });
+      }
+      
+      if (sectorDestino) {
+        // Buscar cama libre en el sector destino
+        camaAsignada = await Cama.findOne({
+          where: { estado: 'Libre' },
+          include: [{
+            model: Habitacion,
+            as: 'habitacion',
+            where: { sector_id: sectorDestino.id }
+          }],
+          transaction
+        });
+        
+        if (camaAsignada) {
+          const sexoPaciente = intervencion.paciente?.usuario?.sexo || null;
+          
+          // Ocupar la cama
+          await camaAsignada.update({
+            estado: 'Ocupada',
+            sexo_ocupante: sexoPaciente
+          }, { transaction });
+          
+          // ========================================
+          // BUSCAR TIPO DE INTERNACIÓN
+          // ========================================
+          let tipoInternacion = await TipoInternacion.findOne({
+            where: {
+              nombre: { [Op.like]: requiereUCI ? '%Intensiv%' : '%General%' }
+            },
+            transaction
+          });
+          
+          // Si no encuentra, buscar cualquier tipo de internación
+          if (!tipoInternacion) {
+            tipoInternacion = await TipoInternacion.findOne({ transaction });
+          }
+          
+          // ========================================
+          // BUSCAR MÉDICO DEL SECTOR DESTINO
+          // ========================================
+          let medicoDestino = await Medico.findOne({
+            where: { sector_id: sectorDestino.id },
+            transaction
+          });
+          
+          // Si no hay médico en el sector, usar el cirujano actual
+          const medicoAsignadoId = medicoDestino?.id || medicoId;
+          
+          // ========================================
+          // BUSCAR O CREAR TIPO DE TURNO PARA INTERNACIÓN
+          // ========================================
+          let tipoTurnoInternacion = await TipoTurno.findOne({
+            where: {
+              nombre: { [Op.or]: [
+                { [Op.like]: '%Internación%' },
+                { [Op.like]: '%Internacion%' },
+                { [Op.like]: '%Programado%' }
+              ]}
+            },
+            transaction
+          });
+          
+          // Si no existe, usar cualquier tipo de turno
+          if (!tipoTurnoInternacion) {
+            tipoTurnoInternacion = await TipoTurno.findOne({ transaction });
+          }
+          
+          // ========================================
+          // CREAR LISTA DE ESPERA PARA INTERNACIÓN
+          // ========================================
+          const listaEsperaInternacion = await ListaEspera.create({
+            paciente_id: intervencion.paciente_id,
+            tipo_turno_id: tipoTurnoInternacion.id,
+            medico_id: medicoAsignadoId,
+            habitacion_id: camaAsignada.habitacion_id,
+            prioridad: requiereUCI ? 'ALTA' : 'MEDIA',
+            estado: 'COMPLETADO',
+            creador_tipo: 'MEDICO',
+            creador_id: req.user.usuario_id,
+            fecha_registro: new Date()
+          }, { transaction });
+          
+          console.log(`📋 Lista de espera creada: ID ${listaEsperaInternacion.id}`);
+          
+          // ========================================
+          // CREAR LA INTERNACIÓN
+          // ========================================
+          internacionCreada = await Internacion.create({
+            paciente_id: intervencion.paciente_id,
+            medico_id: medicoAsignadoId,
+            cama_id: camaAsignada.id,
+            habitacion_id: camaAsignada.habitacion_id,
+            tipo_internacion_id: tipoInternacion.id,
+            lista_espera_id: listaEsperaInternacion.id,
+            fecha_ingreso: new Date(),
+            motivo: `Post-operatorio: ${intervencion.tipo_procedimiento}`,
+            estado: 'ACTIVA',
+            observaciones: `Derivado desde cirugía. Resultado: ${resultado_cirugia}. ${notas_postoperatorio || ''}`
+          }, { transaction });
+          
+          console.log(` Internación creada: ID ${internacionCreada.id}, Cama: ${camaAsignada.numero}`);
+          
+          // ========================================
+          // NOTIFICAR AL SECTOR DESTINO
+          // ========================================
+          const medicosDestino = await Medico.findAll({
+            where: { sector_id: sectorDestino.id },
+            include: [{ model: Usuario, as: 'usuario' }],
+            transaction
+          });
+          
+          const enfermerosDestino = await Enfermero.findAll({
+            where: { sector_id: sectorDestino.id },
+            include: [{ model: Usuario, as: 'usuario' }],
+            transaction
+          });
+          
+          const notificaciones = [];
+          const mensajeNotificacion = `Nuevo paciente post-operatorio: ${intervencion.paciente?.usuario?.nombre} ${intervencion.paciente?.usuario?.apellido}. Cirugía: ${intervencion.tipo_procedimiento}. Cama: ${camaAsignada.numero}`;
+          
+          for (const medico of medicosDestino) {
+            notificaciones.push({
+              usuario_id: medico.usuario_id,
+              titulo: '🏥 Nuevo paciente post-operatorio',
+              mensaje: mensajeNotificacion,
+              tipo: 'DERIVACION_INTERNA',
+              leida: false,
+              fecha: new Date()
+            });
+          }
+          
+          for (const enfermero of enfermerosDestino) {
+            notificaciones.push({
+              usuario_id: enfermero.usuario_id,
+              titulo: '🏥 Nuevo paciente post-operatorio',
+              mensaje: mensajeNotificacion,
+              tipo: 'DERIVACION_INTERNA',
+              leida: false,
+              fecha: new Date()
+            });
+          }
+          
+          if (notificaciones.length > 0) {
+            await Notificacion.bulkCreate(notificaciones, { transaction });
+            console.log(` ${notificaciones.length} notificaciones enviadas al sector ${sectorDestino.nombre}`);
+          }
+          
+        } else {
+          console.log(`⚠️ No hay camas disponibles en ${sectorDestino.nombre}`);
+          
+          // Notificar a administrativos
+          const administrativos = await Usuario.findAll({
+            where: { rol: 'ADMINISTRATIVO' },
+            transaction
+          });
+          
+          for (const admin of administrativos) {
+            await Notificacion.create({
+              usuario_id: admin.id,
+              titulo: '⚠️ URGENTE: Paciente sin cama disponible',
+              mensaje: `El paciente ${intervencion.paciente?.usuario?.nombre} ${intervencion.paciente?.usuario?.apellido} requiere ${requiereUCI ? 'UCI' : 'internación'} pero no hay camas disponibles. Cirugía: ${intervencion.tipo_procedimiento}`,
+              tipo: 'ALERTA_CAMA',
+              leida: false,
+              fecha: new Date()
+            }, { transaction });
+          }
+        }
+      } else {
+        console.log('⚠️ No se encontró sector de internación');
+      }
     }
-
-    const { resultado_cirugia, observaciones } = req.body;
-
-    if (!resultado_cirugia) {
-      await transaction.rollback();
-      return res.status(400).json({ 
-        success: false,
-        message: 'Debe especificar el resultado de la cirugía' 
-      });
-    }
-
-    await intervencion.update({
-      fecha_fin: new Date(),
-      resultado_cirugia,
-      observaciones
-    }, { transaction });
-
-    // Actualizar lista de espera
+    
+    // ========================================
+    // ACTUALIZAR LISTA DE ESPERA ORIGINAL (de cirugía)
+    // ========================================
     if (intervencion.lista_espera_id) {
-      await ListaEspera.update(
-        { estado: 'COMPLETADO' },
-        { where: { id: intervencion.lista_espera_id }, transaction }
-      );
+      await ListaEspera.update({
+        estado: 'COMPLETADO'
+      }, {
+        where: { id: intervencion.lista_espera_id },
+        transaction
+      });
     }
-
-    // Crear registro en historial médico
-    await require('../../models').HistorialMedico.create({
+    
+    // ========================================
+    // CREAR REGISTRO EN HISTORIAL MÉDICO
+    // ========================================
+    let descripcionHistorial = `Cirugía: ${intervencion.tipo_procedimiento}. Resultado: ${resultado_cirugia}`;
+    if (internacionCreada) {
+      descripcionHistorial += `. Derivado a ${sectorDestino?.nombre || 'Internación'}, Cama: ${camaAsignada?.numero}`;
+    }
+    
+    await HistorialMedico.create({
       paciente_id: intervencion.paciente_id,
-      descripcion: `Intervención quirúrgica: ${intervencion.tipo_procedimiento}. Resultado: ${resultado_cirugia}`,
+      descripcion: descripcionHistorial,
       tipo_evento: 'Cirugia',
       fecha: new Date()
     }, { transaction });
-
+    
     await transaction.commit();
-
-    console.log('✅ Intervención finalizada:', intervencion.id);
-
+    
+    console.log(` Cirugía finalizada correctamente`);
+    
+    // ========================================
+    // RESPUESTA
+    // ========================================
     res.json({
       success: true,
-      message: 'Intervención finalizada correctamente',
-      data: intervencion
+      message: 'Cirugía finalizada correctamente',
+      data: {
+        resultado: resultado_cirugia,
+        requiere_internacion: requiereInternacion || requiereUCI,
+        internacion: internacionCreada ? {
+          id: internacionCreada.id,
+          sector: sectorDestino?.nombre,
+          cama: camaAsignada?.numero,
+          habitacion: camaAsignada?.habitacion?.numero
+        } : null,
+        sin_cama_disponible: (requiereInternacion || requiereUCI) && !camaAsignada
+      }
     });
+    
   } catch (error) {
     await transaction.rollback();
-    console.error('❌ Error al finalizar intervención:', error.message);
-    res.status(500).json({ 
+    console.error('❌ Error al finalizar cirugía:', error);
+    res.status(500).json({
       success: false,
-      message: error.message 
+      message: 'Error al finalizar cirugía',
+      error: error.message
     });
   }
 };
-
 // ========================================
-// OBTENER HABITACIONES DISPONIBLES
+// OBTENER QUIRÓFANOS DISPONIBLES
 // ========================================
-exports.obtenerHabitacionesDisponibles = async (req, res) => {
+exports.obtenerQuirofanos = async (req, res, next) => {
   try {
-    console.log('🏥 obtenerHabitacionesDisponibles');
+    console.log(' Buscando quirófanos...');
     
+    // Buscar habitaciones donde el tipo de servicio sea de cirugía
     const habitaciones = await Habitacion.findAll({
-      attributes: ['id', 'numero', 'tipo'],
       include: [
         {
-          model: require('../../models').Sector,
-          as: 'sector',
-          attributes: ['nombre']
+          model: Sector,
+          as: 'sector'
         },
         {
-          model: require('../../models').TipoDeServicio,
+          model: TipoDeServicio,
           as: 'tipoServicio',
-          attributes: ['nombre']
+          where: {
+            nombre: { [Op.like]: '%Cirug%' }  // Cirugía de Urgencia y Cirugía Programada
+          }
+        },
+        {
+          model: Cama,
+          as: 'camas',
+          required: false
         }
       ],
       order: [['numero', 'ASC']]
     });
 
-    console.log('✅ Habitaciones encontradas:', habitaciones.length);
+    console.log(` Quirófanos encontrados: ${habitaciones.length}`);
 
-    res.json({
-      success: true,
-      data: habitaciones
-    });
-  } catch (error) {
-    console.error('❌ Error al obtener habitaciones:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
-  }
-};
-
-// ========================================
-// OBTENER ESTADÍSTICAS
-// ========================================
-// ✅ CORREGIDO - SIN sequelize.fn() y .get()
-exports.obtenerEstadisticas = async (req, res) => {
-  try {
-    console.log('📊 obtenerEstadisticas - usuario_id:', req.user.usuario_id);
-    
-    const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
-    });
-
-    if (!medico) {
-      console.error('❌ Médico no encontrado');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
+    // Verificar cuáles están ocupados
+    const quirofanosConEstado = await Promise.all(habitaciones.map(async (hab) => {
+      const enUso = await IntervencionQuirurgica.findOne({
+        where: {
+          habitacion_id: hab.id,
+          estado_cirugia: { [Op.in]: ['EN_CIRUGIA', 'PRE_OPERATORIO'] }
+        },
+        include: [{
+          model: Paciente,
+          as: 'paciente',
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido']
+          }]
+        }]
       });
-    }
 
-    console.log('🔍 Contando intervenciones en curso...');
-    // Intervenciones en curso
-    const enCurso = await IntervencionQuirurgica.count({
-      where: {
-        medico_id: medico.id,
-        fecha_fin: null
-      }
-    });
+      const camasLibres = hab.camas?.filter(c => c.estado === 'Libre').length || 0;
+      const camasTotal = hab.camas?.length || 0;
 
-    console.log('🔍 Contando intervenciones finalizadas...');
-    // Intervenciones finalizadas
-    const finalizadas = await IntervencionQuirurgica.count({
-      where: {
-        medico_id: medico.id,
-        fecha_fin: { [Op.ne]: null }
-      }
-    });
+      return {
+        id: hab.id,
+        numero: hab.numero,
+        tipo: hab.tipo,
+        sector: hab.sector?.nombre,
+        tipo_servicio: hab.tipoServicio?.nombre,
+        es_urgencia: hab.tipoServicio?.nombre?.includes('Urgencia'),
+        disponible: !enUso,
+        camas_libres: camasLibres,
+        camas_total: camasTotal,
+        en_uso_por: enUso ? {
+          paciente: `${enUso.paciente?.usuario?.nombre} ${enUso.paciente?.usuario?.apellido}`,
+          estado: enUso.estado_cirugia,
+          procedimiento: enUso.tipo_procedimiento
+        } : null
+      };
+    }));
 
-    console.log('🔍 Contando intervenciones este mes...');
-    // Intervenciones este mes
-    const inicioMes = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
-    const esteMes = await IntervencionQuirurgica.count({
-      where: {
-        medico_id: medico.id,
-        fecha_inicio: { [Op.gte]: inicioMes }
-      }
-    });
-
-    console.log('🔍 Obteniendo intervenciones por resultado...');
-    // ✅ SIN sequelize.fn() y .get() - traer todo y contar en JavaScript
-    const porResultadoData = await IntervencionQuirurgica.findAll({
-      where: {
-        medico_id: medico.id,
-        resultado_cirugia: { [Op.ne]: null }
-      },
-      attributes: ['resultado_cirugia'],
-      raw: true
-    });
-
-    // ✅ CONTAR EN JAVASCRIPT
-    const resultados = {};
-    porResultadoData.forEach(item => {
-      const resultado = item.resultado_cirugia;
-      if (!resultados[resultado]) {
-        resultados[resultado] = 0;
-      }
-      resultados[resultado]++;
-    });
-
-    const finalResult = {
-      enCurso,
-      finalizadas,
-      esteMes,
-      totalIntervenciones: enCurso + finalizadas,
-      porResultado: resultados
-    };
-
-    console.log('✅ Estadísticas calculadas:', finalResult);
+    console.log(' Quirófanos:', quirofanosConEstado);
 
     res.json({
       success: true,
-      data: finalResult
+      data: quirofanosConEstado,
+      total: quirofanosConEstado.length,
+      disponibles: quirofanosConEstado.filter(q => q.disponible).length
     });
+
   } catch (error) {
-    console.error('❌ Error al obtener estadísticas:', error.message);
-    res.status(500).json({ 
+    console.error('❌ Error al obtener quirófanos:', error);
+    res.status(500).json({
       success: false,
-      message: error.message 
+      message: 'Error al obtener quirófanos',
+      error: error.message
     });
   }
 };
+// ========================================
+// VERIFICAR CIRUGÍAS PENDIENTES (para notificaciones)
+// ========================================
+exports.verificarPendientes = async (req, res, next) => {
+  try {
+    const medicoId = req.user.medico_id;
+    
+    // Buscar sector del médico
+    const medico = await Medico.findByPk(medicoId, {
+      include: [{ model: Sector, as: 'sector' }]
+    });
+    
+    // Contar cirugías sin asignar
+    const count = await ListaEspera.count({
+      where: {
+        estado: 'PENDIENTE',
+        medico_id: null
+      },
+      include: [{
+        model: TipoTurno,
+        as: 'tipo_turno',
+        where: { nombre: 'CIRUGIA' }
+      }]
+    });
+    
+    res.json({
+      success: true,
+      hay_pendientes: count > 0,
+      count: count
+    });
+    
+  } catch (error) {
+    console.error('❌ Error al verificar pendientes:', error);
+    res.json({
+      success: false,
+      hay_pendientes: false,
+      count: 0
+    });
+  }
+};
+
+// ========================================
+// ESTADÍSTICAS
+// ========================================
+exports.obtenerEstadisticas = async (req, res, next) => {
+  try {
+    const medicoId = req.user.medico_id;
+    
+    const [programadas, enCurso, finalizadasHoy, finalizadasMes] = await Promise.all([
+      IntervencionQuirurgica.count({
+        where: { medico_id: medicoId, estado_cirugia: 'PROGRAMADA' }
+      }),
+      IntervencionQuirurgica.count({
+        where: { 
+          medico_id: medicoId, 
+          estado_cirugia: { [Op.in]: ['PRE_OPERATORIO', 'EN_CIRUGIA', 'POST_OPERATORIO'] }
+        }
+      }),
+      IntervencionQuirurgica.count({
+        where: {
+          medico_id: medicoId,
+          estado_cirugia: 'FINALIZADA',
+          fecha_fin: { [Op.gte]: new Date(new Date().setHours(0, 0, 0, 0)) }
+        }
+      }),
+      IntervencionQuirurgica.count({
+        where: {
+          medico_id: medicoId,
+          estado_cirugia: 'FINALIZADA',
+          fecha_fin: { [Op.gte]: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
+        }
+      })
+    ]);
+    
+    // Pendientes de aceptar (cirugías)
+    const pendientesUrgencia = await ListaEspera.count({
+      where: {
+        estado: 'PENDIENTE',
+        medico_id: null
+      },
+      include: [{
+        model: TipoTurno,
+        as: 'tipo_turno',
+        where: { nombre: 'CIRUGIA' }
+      }]
+    });
+    
+    res.json({
+      success: true,
+      data: {
+        programadas,
+        en_curso: enCurso,
+        finalizadas_hoy: finalizadasHoy,
+        finalizadas_mes: finalizadasMes,
+        pendientes_urgencia: pendientesUrgencia
+      }
+    });
+    
+  } catch (error) {
+    console.error('❌ Error al obtener estadísticas:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al obtener estadísticas'
+    });
+  }
+};
+
+// ========================================
+// FUNCIÓN AUXILIAR
+// ========================================
+function calcularEdad(fechaNacimiento) {
+  if (!fechaNacimiento) return null;
+  const hoy = new Date();
+  const nacimiento = new Date(fechaNacimiento);
+  let edad = hoy.getFullYear() - nacimiento.getFullYear();
+  const mes = hoy.getMonth() - nacimiento.getMonth();
+  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
+    edad--;
+  }
+  return edad;
+}
+
+module.exports = exports;

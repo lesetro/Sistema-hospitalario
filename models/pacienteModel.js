@@ -47,8 +47,47 @@ module.exports = (sequelize, DataTypes) => {
     Paciente.hasMany(models.EvaluacionMedica, { foreignKey: 'paciente_id', as: 'evaluaciones' });
     Paciente.hasMany(models.AltaMedica, { foreignKey: 'paciente_id', as: 'altas_med' });
     Paciente.hasMany(models.HistorialMedico, { foreignKey: 'paciente_id', as: 'historial' });
-    Paciente.hasMany(models.Factura, { foreignKey: 'paciente_id', as: 'facturas' });
-    Paciente.hasMany(models.Admision, { foreignKey: 'paciente_id', as: 'admisiones' });
+    Paciente.hasMany(models.Factura, { foreignKey: 'paciente_id', as: 'facturas' }); 
+    Paciente.hasMany(models.ProcedimientoPreQuirurgico, { foreignKey: 'paciente_id', as: 'procedimientos_pre_quirurgicos' });
+    Paciente.hasMany(models.Internacion, { foreignKey: 'paciente_id', as: 'internaciones' });
+    Paciente.hasMany(models.ControlEnfermeria, { foreignKey: 'paciente_id', as: 'controles' });
+    
+  };
+// Método para verificar si el paciente está internado
+  Paciente.prototype.estaInternado = async function() {
+    const internacionActiva = await sequelize.models.Internacion.findOne({
+      where: {
+        paciente_id: this.id,
+        fecha_alta: null // Sin fecha de alta = internación activa
+      }
+    });
+    return !!internacionActiva;
+  };
+
+  // Método para obtener la internación activa actual
+  Paciente.prototype.obtenerInternacionActiva = async function() {
+    return await sequelize.models.Internacion.findOne({
+      where: {
+        paciente_id: this.id,
+        fecha_alta: null
+      },
+      include: [
+        { model: sequelize.models.Cama, as: 'cama' },
+        { model: sequelize.models.Sala, as: 'sala' }
+      ]
+    });
+  };
+
+  // Método de clase para buscar todos los pacientes internados
+  Paciente.buscarInternados = async function() {
+    return await this.findAll({
+      include: [{
+        model: sequelize.models.Internacion,
+        as: 'internaciones',
+        where: { fecha_alta: null },
+        required: true
+      }]
+    });
   };
 
   return Paciente;

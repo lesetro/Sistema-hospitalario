@@ -92,6 +92,7 @@ block content
                       th Paciente
                       th DNI
                       th Enfermero
+                      th Estado
                       th Peso/Altura
                       th P.A.
                       th Temp.
@@ -99,49 +100,77 @@ block content
                       th Acciones
                   tbody
                     each control in controles
-                      tr
-                        td
-                          small= new Date(control.created_at).toLocaleString('es-AR')
-                        td
-                          strong= `${control.evaluacion.paciente.usuario.nombre} ${control.evaluacion.paciente.usuario.apellido}`
-                          if control.alergias && control.alergias.trim() !== ''
-                            br
-                            span.badge.bg-warning.text-dark
-                              i.fas.fa-exclamation-triangle.me-1
-                              | Alergias
-                        td
-                          small.text-muted= control.evaluacion.paciente.usuario.dni
-                        td
-                          small= `${control.evaluacion.enfermero.usuario.nombre} ${control.evaluacion.enfermero.usuario.apellido}`
-                        td
-                          if control.peso && control.altura
-                            small
-                              = `${control.peso} kg / ${control.altura} cm`
-                              - const imc = (control.peso / Math.pow(control.altura / 100, 2)).toFixed(1)
+                      - const pacienteData = control.evaluacion?.paciente || control.paciente
+                      if pacienteData
+                        tr
+                          td
+                            small= new Date(control.createdAt).toLocaleString('es-AR')
+                          td
+                            strong= `${pacienteData.usuario.nombre} ${pacienteData.usuario.apellido}`
+                            if control.alergias && control.alergias.trim() !== ''
                               br
-                              span.text-muted IMC: #{imc}
-                          else
-                            small.text-muted N/A
-                        td
-                          small= control.presion_arterial || 'N/A'
-                        td
-                          if control.temperatura
-                            small= `${control.temperatura}°C`
-                          else
-                            small.text-muted N/A
-                        td
-                          if control.grupo_sanguineo
-                            span.badge.bg-danger= `${control.grupo_sanguineo} ${control.factor_rh || ''}`
-                          else
-                            small.text-muted N/A
-                        td
-                          .btn-group.btn-group-sm(role='group')
-                            a.btn.btn-outline-info(href=`/enfermero/controles/${control.id}` title='Ver detalle')
-                              i.fas.fa-eye
-                            button.btn.btn-outline-primary(onclick=`editarControl(${control.id})` title='Editar')
-                              i.fas.fa-edit
-                            button.btn.btn-outline-secondary(onclick=`verHistorial(${control.evaluacion.paciente.id})` title='Historial')
-                              i.fas.fa-history
+                              span.badge.bg-warning.text-dark
+                                i.fas.fa-exclamation-triangle.me-1
+                                | Alergias
+                          td
+                            small.text-muted= pacienteData.usuario.dni
+                          td
+                            if control.evaluacion && control.evaluacion.enfermero && control.evaluacion.enfermero.usuario
+                              small= `${control.evaluacion.enfermero.usuario.nombre} ${control.evaluacion.enfermero.usuario.apellido}`
+                            else
+                              small.text-muted No asignado
+                          td
+                            if control.estado === 'SOLICITADO'
+                              span.badge.bg-warning.text-dark= control.estado
+                            else if control.estado === 'PENDIENTE'
+                              span.badge.bg-info= control.estado
+                            else if control.estado === 'COMPLETADO'
+                              span.badge.bg-success= control.estado
+                            else
+                              span.badge.bg-secondary= control.estado || 'N/A'
+                          td
+                            if control.peso && control.altura
+                              small
+                                = `${control.peso} kg / ${control.altura} cm`
+                                - const imc = (control.peso / Math.pow(control.altura / 100, 2)).toFixed(1)
+                                br
+                                span.text-muted IMC: #{imc}
+                            else
+                              small.text-muted N/A
+                          td
+                            small= control.presion_arterial || 'N/A'
+                          td
+                            if control.temperatura
+                              small= `${control.temperatura}°C`
+                            else
+                              small.text-muted N/A
+                          td
+                            if control.grupo_sanguineo
+                              span.badge.bg-danger= `${control.grupo_sanguineo} ${control.factor_rh || ''}`
+                            else
+                              small.text-muted N/A
+                          td
+                            .btn-group.btn-group-sm(role='group')
+                              //- Si está SOLICITADO → Botón "Completar"
+                              if control.estado === 'SOLICITADO'
+                                a.btn.btn-warning(href=`/enfermero/controles/${control.id}/editar` title='Completar control')
+                                  i.fas.fa-clipboard-check.me-1
+                                  | Completar
+                              else
+                                //- Si está COMPLETADO → Botones normales
+                                a.btn.btn-outline-info(href=`/enfermero/controles/${control.id}` title='Ver detalle')
+                                  i.fas.fa-eye
+                                a.btn.btn-outline-primary(href=`/enfermero/controles/${control.id}/editar` title='Editar')
+                                  i.fas.fa-edit
+                              
+                              button.btn.btn-outline-secondary(onclick=`verHistorial(${pacienteData.id})` title='Historial')
+                                i.fas.fa-history
+                      else
+                        tr.table-danger
+                          td(colspan='10')
+                            small.text-danger
+                              i.fas.fa-exclamation-triangle.me-1
+                              | Control ##{control.id} sin paciente asociado (datos corruptos)
             else
               .p-5.text-center.text-muted
                 i.fas.fa-clipboard.fa-4x.mb-3

@@ -1,0 +1,314 @@
+extends ../../../dashboard/admin/layout
+
+block content
+  .container-fluid
+    //- ENCABEZADO
+    .row.mb-4
+      .col-md-8
+        h2
+          i.fas.fa-stethoscope.me-2
+          | #{servicio.nombre}
+        p.text-muted 
+          | Sector: #{servicio.sector ? servicio.sector.nombre : 'Sin sector'}
+          if servicio.descripcion
+            br
+            small #{servicio.descripcion}
+      .col-md-4
+        .d-flex.justify-content-end.align-items-center.h-100
+          a.btn.btn-secondary.me-2(href='/turnos')
+            i.fas.fa-arrow-left.me-2
+            | Volver
+          button#btnActualizar.btn.btn-primary
+            i.fas.fa-sync-alt.me-2
+            | Actualizar
+
+    //- LOADING
+    #loading.text-center.d-none
+      .spinner-border(role='status')
+      p.mt-2 Cargando datos...
+
+    //- ESTADÍSTICAS DEL DÍA
+    .row.mb-4
+      .col-md-3
+        .card.bg-info.text-white
+          .card-body.text-center
+            h3#total-espera 0
+            p.mb-0 En espera
+      .col-md-3
+        .card.bg-success.text-white
+          .card-body.text-center
+            h3#total-turnos 0
+            p.mb-0 Turnos hoy
+      .col-md-3
+        .card.bg-warning
+          .card-body.text-center
+            h3#capacidad-hoy ∞
+            p.mb-0 Capacidad hoy
+            small
+              i.fas.fa-edit.me-1.cursor-pointer#editar-capacidad(style="cursor: pointer;")
+              | Editar
+      .col-md-3
+        .card.bg-primary.text-white
+          .card-body.text-center
+            h3#disponibles ∞
+            p.mb-0 Disponibles
+
+    //- FILTRO DE FECHA
+    .row.mb-4
+      .col-md-12
+        .card
+          .card-body
+            .row
+              .col-md-3
+                label.form-label Fecha
+                input#filtro-fecha.form-control(type='date' value=hoy)
+              .col-md-9.d-flex.align-items-end
+                .form-check
+                  input#solo-hoy.form-check-input(type='checkbox' checked)
+                  label.form-check-label(for='solo-hoy')
+                    | Mostrar solo turnos de hoy
+
+    //- VISTA DE DOS COLUMNAS
+    .row
+      //- COLUMNA IZQUIERDA: LISTA DE ESPERA
+      .col-md-6
+        .card.h-100
+          .card-header.bg-warning.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-clock.me-2
+              | Pacientes en Espera
+            span.badge.bg-dark#contador-espera 0
+          .card-body.p-0
+            .table-responsive(style="max-height: 500px; overflow-y: auto;")
+              table.table.table-hover.mb-0
+                thead
+                  tr
+                    th(style="width: 5%") #
+                    th Paciente
+                    th(style="width: 15%") Prioridad
+                    th(style="width: 15%") Días
+                    th(style="width: 10%") Acción
+                tbody#tabla-espera
+                  tr
+                    td.text-center(colspan='5')
+                      .text-center.py-4
+                        .spinner-border.text-warning(role='status')
+                        p.mt-2 Cargando pacientes...
+
+      //- COLUMNA DERECHA: TURNOS ASIGNADOS
+      .col-md-6
+        .card.h-100
+          .card-header.bg-success.text-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-calendar-check.me-2
+              | Turnos Asignados
+            span.badge.bg-dark#contador-turnos 0
+          .card-body.p-0
+            .table-responsive(style="max-height: 500px; overflow-y: auto;")
+              table.table.table-hover.mb-0
+                thead
+                  tr
+                    th Hora
+                    th Paciente
+                    th Estado
+                    th(style="width: 15%") Acción
+                tbody#tabla-turnos
+                  tr
+                    td.text-center(colspan='4')
+                      .text-center.py-4
+                        .spinner-border.text-success(role='status')
+                        p.mt-2 Cargando turnos...
+
+  //- MODAL: ASIGNAR TURNO
+  #modalAsignarTurno.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-success.text-white
+          h5.modal-title
+            i.fas.fa-calendar-plus.me-2
+            | Asignar Turno
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          .alert.alert-info
+            i.fas.fa-user-circle.me-2
+            strong#modal-paciente-nombre
+            br
+            small#modal-paciente-dni
+        
+          form#formAsignarTurno
+            input#modal-lista-id(type='hidden')
+            input#modal-tipo-servicio-id(type='hidden' value=servicio.id)
+          
+            .mb-3
+              label.form-label(for='modal-fecha') 
+                | Fecha 
+                span.text-danger *
+              input#modal-fecha.form-control(type='date' required)
+          
+            .mb-3
+              label.form-label(for='modal-medico') Médico (opcional)
+              select#modal-medico.form-select
+                option(value='') Seleccione médico...
+          
+            .mb-3
+              label.form-label(for='modal-hora') 
+                | Hora 
+                span.text-danger *
+              select#modal-hora.form-select(required disabled)
+                option(value='') Primero seleccione médico y fecha
+            
+            //- INFO DEL HORARIO
+            #info-horario.mt-2
+          
+            //- VALIDACIÓN EN TIEMPO REAL
+            #validacion-horario.mt-2
+
+          .modal-footer
+            button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+            button#btnConfirmarAsignacion.btn.btn-success(type='button' disabled)
+              i.fas.fa-check.me-2
+              | Asignar Turno
+  //- MODAL: EDITAR CAPACIDAD
+  #modalCapacidad.modal.fade(tabindex='-1')
+    .modal-dialog.modal-sm
+      .modal-content
+        .modal-header.bg-warning
+          h5.modal-title
+            i.fas.fa-edit.me-2
+            | Capacidad del Día
+          button.btn-close(type='button' data-bs-dismiss='modal')
+        .modal-body
+          .mb-3
+            label.form-label(for='input-capacidad')
+              | ¿Cuántos pacientes podemos atender hoy?
+              br
+              small.text-muted (Dejar vacío para ilimitado)
+            input#input-capacidad.form-control(
+              type='number' 
+              min='1' 
+              placeholder='Ej: 20'
+            )
+            .form-text
+              i.fas.fa-info-circle.me-1
+              | Esto es solo una guía para el administrativo
+
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cancelar
+          button#btnGuardarCapacidad.btn.btn-warning(type='button')
+            i.fas.fa-save.me-2
+            | Guardar
+
+  //- MODAL: DETALLES DE PACIENTE
+  #modalDetallesPaciente.modal.fade(tabindex='-1')
+    .modal-dialog.modal-xl
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5.modal-title
+            i.fas.fa-user-circle.me-2
+            | Detalles del Paciente
+          button.btn-close.btn-close-white(type='button' data-bs-dismiss='modal')
+        .modal-body
+          //- DATOS PERSONALES
+          .card.mb-3
+            .card-header.bg-light
+              h6.mb-0
+                i.fas.fa-id-card.me-2
+                | Información Personal
+            .card-body
+              .row
+                .col-md-4
+                  p.mb-2
+                    strong Nombre:
+                    |  
+                    span#detalle-nombre
+                .col-md-4
+                  p.mb-2
+                    strong DNI:
+                    |  
+                    span#detalle-dni
+                .col-md-4
+                  p.mb-2
+                    strong Sexo:
+                    |  
+                    span#detalle-sexo
+              .row
+                .col-md-4
+                  p.mb-2
+                    strong Email:
+                    |  
+                    span#detalle-email
+                .col-md-4
+                  p.mb-2
+                    strong Teléfono:
+                    |  
+                    span#detalle-telefono
+                .col-md-4
+                  p.mb-2
+                    strong Obra Social:
+                    |  
+                    span#detalle-obra-social
+
+          //- ESTADÍSTICAS RÁPIDAS
+          .row.mb-3
+            .col-md-4
+              .card.bg-primary.text-white
+                .card-body.text-center
+                  h4#stat-admisiones 0
+                  p.mb-0 Admisiones
+            .col-md-4
+              .card.bg-success.text-white
+                .card-body.text-center
+                  h4#stat-turnos 0
+                  p.mb-0 Turnos Totales
+            .col-md-4
+              .card.bg-warning
+                .card-body.text-center
+                  h4#stat-pendientes 0
+                  p.mb-0 Pendientes
+
+          //- HISTORIAL DE ADMISIONES
+          .card.mb-3
+            .card-header.bg-light
+              h6.mb-0
+                i.fas.fa-clipboard-list.me-2
+                | Historial de Admisiones
+            .card-body
+              .table-responsive
+                table.table.table-sm
+                  thead
+                    tr
+                      th Fecha
+                      th Médico
+                      th Sector
+                      th Estado
+                  tbody#historial-admisiones
+                    tr
+                      td.text-center(colspan='4') Cargando...
+
+          //- HISTORIAL DE TURNOS
+          .card
+            .card-header.bg-light
+              h6.mb-0
+                i.fas.fa-calendar.me-2
+                | Historial de Turnos
+            .card-body
+              .table-responsive
+                table.table.table-sm
+                  thead
+                    tr
+                      th Fecha
+                      th Hora
+                      th Médico
+                      th Estado
+                  tbody#historial-turnos
+                    tr
+                      td.text-center(colspan='4') Cargando...
+
+        .modal-footer
+          button.btn.btn-secondary(type='button' data-bs-dismiss='modal') Cerrar
+
+block scripts
+  
+  #page-data.d-none(data-servicio-id=servicio.id)
+  
+  script(src='/js/admin/turno-servicio.js')

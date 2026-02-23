@@ -1,0 +1,560 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-hospital-user.me-2
+              | Gestión de Camas
+            p.text-muted.mb-0
+              | Panel de control - 
+              span#nombre-sector.fw-semibold Cargando sector...
+          div
+            button.btn.btn-outline-primary(type='button' onclick='actualizarEstadisticas()' id='btn-actualizar')
+              i.fas.fa-sync-alt.me-2
+              | Actualizar
+
+    // Tarjetas de navegación principal
+    .row.g-4.mb-5
+      .col-xl-3.col-md-6
+        .card.border-0.shadow-sm.h-100.text-center.hover-card(onclick="window.location.href='/enfermero/camas/sector'")
+          .card-body.p-4
+            .p-3.rounded-circle.bg-primary.bg-opacity-10.d-inline-flex.mb-3
+              i.fas.fa-sitemap.fa-2x.text-primary
+            h4.card-title Ver Mi Sector
+            p.card-text.text-muted
+              | Navega por tu sector y servicios asociados para gestionar camas
+
+      .col-xl-3.col-md-6
+        .card.border-0.shadow-sm.h-100.text-center.hover-card(onclick="window.location.href='/enfermero/camas/disponibles'")
+          .card-body.p-4
+            .p-3.rounded-circle.bg-success.bg-opacity-10.d-inline-flex.mb-3
+              i.fas.fa-bed.fa-2x.text-success
+            h4.card-title Camas Disponibles
+            p.card-text.text-muted
+              | Encuentra camas libres para nuevas internaciones
+            .mt-3
+              span#disponibles-count.badge.bg-success.fs-6 -
+              span.ms-2.text-muted camas libres
+
+      .col-xl-3.col-md-6
+        .card.border-0.shadow-sm.h-100.text-center.hover-card(onclick="window.location.href='/enfermero/camas/limpieza'")
+          .card-body.p-4
+            .p-3.rounded-circle.bg-warning.bg-opacity-10.d-inline-flex.mb-3
+              i.fas.fa-broom.fa-2x.text-warning
+            h4.card-title Camas en Limpieza
+            p.card-text.text-muted
+              | Controla el estado de limpieza de las camas
+            .mt-3
+              span#limpieza-count.badge.bg-warning.text-dark.fs-6 -
+              span.ms-2.text-muted en limpieza
+
+      .col-xl-3.col-md-6
+        .card.border-0.shadow-sm.h-100.text-center.hover-card(data-bs-toggle='modal' data-bs-target='#modalEstadisticas')
+          .card-body.p-4
+            .p-3.rounded-circle.bg-info.bg-opacity-10.d-inline-flex.mb-3
+              i.fas.fa-chart-bar.fa-2x.text-info
+            h4.card-title Estadísticas
+            p.card-text.text-muted
+              | Estadísticas detalladas de tu sector
+            .mt-3
+              span.badge.bg-info
+                i.fas.fa-chart-line.me-1
+                | Ver Detalles
+
+    // Estadísticas rápidas del sector
+    .row.mb-5
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-chart-pie.me-2
+              | Vista Rápida de Mi Sector
+            span#sector-badge.badge.bg-primary Cargando...
+          .card-body
+            .row.g-3
+              .col-md-2.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h3.text-primary.mb-1#total-habitaciones -
+                    small.text-muted Habitaciones
+              
+              .col-md-2.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h3.text-info.mb-1#total-camas -
+                    small.text-muted Total Camas
+              
+              .col-md-2.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h3.text-success.mb-1#total-camas-libres -
+                    small.text-muted Libres
+              
+              .col-md-2.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h3.text-danger.mb-1#total-camas-ocupadas -
+                    small.text-muted Ocupadas
+
+              .col-md-2.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h3.text-warning.mb-1#total-camas-limpieza -
+                    small.text-muted En Limpieza
+
+              .col-md-2.col-sm-6
+                .card.border-0.bg-light
+                  .card-body.text-center.p-3
+                    h3.text-secondary.mb-1
+                      span#porcentaje-ocupacion -
+                      | %
+                    small.text-muted Ocupación
+
+    // Servicios del sector
+    .row.mb-5
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-concierge-bell.me-2
+              | Servicios en Mi Sector
+          .card-body#servicios-container
+            .text-center.py-4
+              .spinner-border.text-primary(role='status')
+                span.visually-hidden Cargando servicios...
+
+    // Acciones rápidas
+    .row.mb-5
+      .col-12
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-bolt.me-2
+              | Acciones Rápidas
+          .card-body
+            .row.g-3
+              .col-lg-2.col-md-4.col-sm-6
+                button.btn.btn-outline-primary.w-100(type='button' onclick="window.location.href='/enfermero/camas/sector'")
+                  i.fas.fa-sitemap.me-2
+                  | Mi Sector
+              
+              .col-lg-2.col-md-4.col-sm-6
+                button.btn.btn-outline-success.w-100(type='button' onclick="window.location.href='/enfermero/camas/disponibles'")
+                  i.fas.fa-bed.me-2
+                  | Disponibles
+              
+              .col-lg-2.col-md-4.col-sm-6
+                button.btn.btn-outline-warning.w-100(type='button' onclick="window.location.href='/enfermero/camas/limpieza'")
+                  i.fas.fa-broom.me-2
+                  | Limpieza
+
+              .col-lg-2.col-md-4.col-sm-6
+                button.btn.btn-outline-info.w-100(type='button' onclick="window.location.href='/enfermero/camas/servicios'")
+                  i.fas.fa-th-list.me-2
+                  | Servicios
+              
+              .col-lg-2.col-md-4.col-sm-6
+                button.btn.btn-outline-dark.w-100(type='button' onclick='actualizarTodo()')
+                  i.fas.fa-sync-alt.me-2
+                  | Actualizar Todo
+
+    // Modal: Estadísticas detalladas
+    #modalEstadisticas.modal.fade(tabindex='-1')
+      .modal-dialog.modal-lg
+        .modal-content
+          .modal-header.bg-primary.text-white
+            h5.modal-title
+              i.fas.fa-chart-bar.me-2
+              | Estadísticas Detalladas - 
+              span#modal-sector-nombre Mi Sector
+            button.btn-close.btn-close-white(data-bs-dismiss='modal')
+          .modal-body
+            #contenido-estadisticas
+              .text-center.py-4
+                .spinner-border.text-primary(role='status')
+                  span.visually-hidden Cargando estadísticas...
+
+block scripts
+  script.
+    // Variables globales para almacenar datos
+    let datosEstadisticas = null;
+    let datosSector = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+      cargarDatosIniciales();
+    });
+
+    // Carga todos los datos necesarios
+    async function cargarDatosIniciales() {
+      try {
+        // Cargar estadísticas y detalle del sector en paralelo
+        const [statsResponse, sectorResponse, serviciosResponse] = await Promise.all([
+          fetch('/enfermero/camas/api/estadisticas'),
+          fetch('/enfermero/camas/api/sector/detalle'),
+          fetch('/enfermero/camas/api/servicios')
+        ]);
+
+        const statsData = await statsResponse.json();
+        const sectorData = await sectorResponse.json();
+        const serviciosData = await serviciosResponse.json();
+
+        if (statsData.success) {
+          datosEstadisticas = statsData.estadisticas;
+          actualizarUIEstadisticas(datosEstadisticas);
+        }
+
+        if (sectorData.success) {
+          datosSector = sectorData.sector;
+          actualizarUISector(datosSector);
+        }
+
+        if (serviciosData.success) {
+          renderizarServicios(serviciosData.servicios);
+        }
+
+      } catch (error) {
+        console.error('Error al cargar datos iniciales:', error);
+        mostrarNotificacion('danger', 'Error al cargar los datos del sector');
+      }
+    }
+
+    // Actualiza la UI con las estadísticas
+    function actualizarUIEstadisticas(stats) {
+      // Contadores en las tarjetas
+      document.getElementById('disponibles-count').textContent = stats.libres || 0;
+      document.getElementById('limpieza-count').textContent = stats.en_limpieza || 0;
+      
+      // Estadísticas rápidas
+      document.getElementById('total-habitaciones').textContent = stats.habitaciones?.total || 0;
+      document.getElementById('total-camas').textContent = stats.totalCamas || 0;
+      document.getElementById('total-camas-libres').textContent = stats.libres || 0;
+      document.getElementById('total-camas-ocupadas').textContent = stats.ocupadas || 0;
+      document.getElementById('total-camas-limpieza').textContent = stats.en_limpieza || 0;
+      document.getElementById('porcentaje-ocupacion').textContent = stats.porcentaje_ocupacion || 0;
+      
+      // Nombre del sector
+      if (stats.sector_nombre) {
+        document.getElementById('nombre-sector').textContent = `Sector: ${stats.sector_nombre}`;
+        document.getElementById('sector-badge').textContent = stats.sector_nombre;
+        document.getElementById('modal-sector-nombre').textContent = stats.sector_nombre;
+      }
+    }
+
+    // Actualiza la UI con datos del sector
+    function actualizarUISector(sector) {
+      if (sector.nombre) {
+        document.getElementById('nombre-sector').textContent = `Sector: ${sector.nombre}`;
+        document.getElementById('sector-badge').textContent = sector.nombre;
+        document.getElementById('modal-sector-nombre').textContent = sector.nombre;
+      }
+
+      // Si tenemos estadísticas del sector, actualizamos
+      if (sector.estadisticas) {
+        document.getElementById('total-habitaciones').textContent = sector.estadisticas.totalHabitaciones || 0;
+        document.getElementById('total-camas').textContent = sector.estadisticas.totalCamas || 0;
+        document.getElementById('total-camas-libres').textContent = sector.estadisticas.camasLibres || 0;
+        document.getElementById('total-camas-ocupadas').textContent = sector.estadisticas.camasOcupadas || 0;
+        document.getElementById('total-camas-limpieza').textContent = sector.estadisticas.camasLimpieza || 0;
+        document.getElementById('porcentaje-ocupacion').textContent = sector.estadisticas.porcentajeOcupacion || 0;
+      }
+    }
+
+    // Renderiza los servicios del sector
+    function renderizarServicios(servicios) {
+      const container = document.getElementById('servicios-container');
+      
+      if (!servicios || servicios.length === 0) {
+        container.innerHTML = `
+          <div class="text-center py-4 text-muted">
+            <i class="fas fa-info-circle fa-2x mb-2"></i>
+            <p>No hay servicios configurados en tu sector</p>
+          </div>
+        `;
+        return;
+      }
+
+      let html = '<div class="row g-3">';
+      
+      servicios.forEach(servicio => {
+        html += `
+          <div class="col-md-4 col-sm-6">
+            <div class="card border-0 bg-light h-100 hover-card" 
+                 onclick="window.location.href='/enfermero/camas/servicios/${servicio.id}/habitaciones' "
+                 style="cursor: pointer;">
+              <div class="card-body">
+                <div class="d-flex align-items-center">
+                  <div class="p-2 rounded-circle bg-primary bg-opacity-10 me-3">
+                    <i class="fas fa-concierge-bell text-primary"></i>
+                  </div>
+                  <div>
+                    <h6 class="mb-0">${servicio.nombre}</h6>
+                    ${servicio.descripcion ? `<small class="text-muted">${servicio.descripcion}</small>` : ''}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        `;
+      });
+      
+      html += '</div>';
+      container.innerHTML = html;
+    }
+
+    // Actualiza las estadísticas
+    async function actualizarEstadisticas() {
+      const boton = document.getElementById('btn-actualizar');
+      const originalHtml = boton.innerHTML;
+      
+      boton.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Actualizando...';
+      boton.disabled = true;
+      
+      try {
+        await cargarDatosIniciales();
+        mostrarNotificacion('success', 'Estadísticas actualizadas correctamente');
+      } catch (error) {
+        mostrarNotificacion('danger', 'Error al actualizar estadísticas');
+      } finally {
+        boton.innerHTML = originalHtml;
+        boton.disabled = false;
+      }
+    }
+
+    // Actualiza toda la página
+    function actualizarTodo() {
+      mostrarNotificacion('info', 'Actualizando toda la información...');
+      setTimeout(() => {
+        window.location.reload();
+      }, 500);
+    }
+
+    // Muestra una notificación
+    function mostrarNotificacion(tipo, mensaje) {
+      // Eliminar notificaciones anteriores
+      document.querySelectorAll('.alert-notification').forEach(el => el.remove());
+      
+      const alerta = document.createElement('div');
+      alerta.className = `alert alert-${tipo} alert-dismissible fade show position-fixed alert-notification`;
+      alerta.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);';
+      
+      const iconos = {
+        success: 'check-circle',
+        danger: 'exclamation-triangle',
+        warning: 'exclamation-circle',
+        info: 'info-circle'
+      };
+      
+      alerta.innerHTML = `
+        <i class="fas fa-${iconos[tipo] || 'info-circle'} me-2"></i>
+        ${mensaje}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+      `;
+      
+      document.body.appendChild(alerta);
+      
+      setTimeout(() => {
+        if (alerta.parentNode) {
+          alerta.classList.remove('show');
+          setTimeout(() => alerta.remove(), 150);
+        }
+      }, 3000);
+    }
+
+    // Configurar el modal de estadísticas
+    const modalEstadisticas = document.getElementById('modalEstadisticas');
+    if (modalEstadisticas) {
+      modalEstadisticas.addEventListener('show.bs.modal', async function() {
+        const contenido = document.getElementById('contenido-estadisticas');
+        
+        contenido.innerHTML = `
+          <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status">
+              <span class="visually-hidden">Cargando estadísticas...</span>
+            </div>
+          </div>
+        `;
+        
+        try {
+          const response = await fetch('/enfermero/camas/api/sector/detalle');
+          const data = await response.json();
+          
+          if (data.success) {
+            const sector = data.sector;
+            const stats = sector.estadisticas;
+            
+            // Calcular porcentajes para gráfico
+            const total = stats.totalCamas || 1;
+            const porcLibres = Math.round((stats.camasLibres / total) * 100);
+            const porcOcupadas = Math.round((stats.camasOcupadas / total) * 100);
+            const porcLimpieza = Math.round((stats.camasLimpieza / total) * 100);
+            
+            contenido.innerHTML = `
+              <div class="row">
+                <!-- Distribución de Camas -->
+                <div class="col-md-6 mb-4">
+                  <div class="card border-0 bg-light h-100">
+                    <div class="card-body">
+                      <h6 class="text-muted mb-3">
+                        <i class="fas fa-bed me-2"></i>Distribución de Camas
+                      </h6>
+                      
+                      <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                          <span><i class="fas fa-circle text-success me-2"></i>Libres</span>
+                          <span class="fw-bold">${stats.camasLibres} (${porcLibres}%)</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                          <div class="progress-bar bg-success" style="width: ${porcLibres}%"></div>
+                        </div>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                          <span><i class="fas fa-circle text-danger me-2"></i>Ocupadas</span>
+                          <span class="fw-bold">${stats.camasOcupadas} (${porcOcupadas}%)</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                          <div class="progress-bar bg-danger" style="width: ${porcOcupadas}%"></div>
+                        </div>
+                      </div>
+                      
+                      <div class="mb-3">
+                        <div class="d-flex justify-content-between mb-1">
+                          <span><i class="fas fa-circle text-warning me-2"></i>En Limpieza</span>
+                          <span class="fw-bold">${stats.camasLimpieza} (${porcLimpieza}%)</span>
+                        </div>
+                        <div class="progress" style="height: 8px;">
+                          <div class="progress-bar bg-warning" style="width: ${porcLimpieza}%"></div>
+                        </div>
+                      </div>
+                      
+                      <hr>
+                      <div class="d-flex justify-content-between">
+                        <span class="fw-semibold">Total de Camas</span>
+                        <span class="fw-bold text-primary">${stats.totalCamas}</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Tasa de Ocupación -->
+                <div class="col-md-6 mb-4">
+                  <div class="card border-0 bg-light h-100">
+                    <div class="card-body text-center">
+                      <h6 class="text-muted mb-3">
+                        <i class="fas fa-chart-pie me-2"></i>Tasa de Ocupación
+                      </h6>
+                      <div class="py-3">
+                        <div class="display-3 fw-bold ${stats.porcentajeOcupacion > 80 ? 'text-danger' : stats.porcentajeOcupacion > 60 ? 'text-warning' : 'text-success'}">
+                          ${stats.porcentajeOcupacion}%
+                        </div>
+                        <small class="text-muted">Ocupación actual del sector</small>
+                      </div>
+                      <div class="mt-3">
+                        <span class="badge ${stats.porcentajeOcupacion > 80 ? 'bg-danger' : stats.porcentajeOcupacion > 60 ? 'bg-warning' : 'bg-success'}">
+                          ${stats.porcentajeOcupacion > 80 ? 'Alta ocupación' : stats.porcentajeOcupacion > 60 ? 'Ocupación media' : 'Baja ocupación'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Habitaciones -->
+                <div class="col-md-6 mb-4">
+                  <div class="card border-0 bg-light h-100">
+                    <div class="card-body">
+                      <h6 class="text-muted mb-3">
+                        <i class="fas fa-door-open me-2"></i>Habitaciones
+                      </h6>
+                      <div class="text-center py-2">
+                        <div class="display-5 fw-bold text-primary">${stats.totalHabitaciones}</div>
+                        <small class="text-muted">Total de habitaciones</small>
+                      </div>
+                      
+                      ${sector.tiposHabitacion && sector.tiposHabitacion.length > 0 ? `
+                        <hr>
+                        <h6 class="text-muted mb-2">Por tipo:</h6>
+                        ${sector.tiposHabitacion.map(tipo => `
+                          <div class="d-flex justify-content-between mb-1">
+                            <span><i class="fas ${tipo.icono} me-2 text-secondary"></i>${tipo.tipo}</span>
+                            <span class="fw-bold">${tipo.cantidad}</span>
+                          </div>
+                        `).join('')}
+                      ` : ''}
+                    </div>
+                  </div>
+                </div>
+                
+                <!-- Servicios -->
+                <div class="col-md-6 mb-4">
+                  <div class="card border-0 bg-light h-100">
+                    <div class="card-body">
+                      <h6 class="text-muted mb-3">
+                        <i class="fas fa-concierge-bell me-2"></i>Servicios Disponibles
+                      </h6>
+                      ${sector.tiposServicio && sector.tiposServicio.length > 0 ? `
+                        <ul class="list-unstyled mb-0">
+                          ${sector.tiposServicio.map(servicio => `
+                            <li class="mb-2">
+                              <i class="fas fa-check-circle text-success me-2"></i>
+                              <span>${servicio.nombre}</span>
+                              ${servicio.descripcion ? `<br><small class="text-muted ms-4">${servicio.descripcion}</small>` : ''}
+                            </li>
+                          `).join('')}
+                        </ul>
+                      ` : `
+                        <p class="text-muted text-center mb-0">No hay servicios configurados</p>
+                      `}
+                    </div>
+                  </div>
+                </div>
+              </div>
+              
+              <!-- Información del Sector -->
+              <div class="row">
+                <div class="col-12">
+                  <div class="card border-0 bg-primary bg-opacity-10">
+                    <div class="card-body">
+                      <div class="d-flex align-items-center">
+                        <div class="p-3 rounded-circle bg-primary bg-opacity-25 me-3">
+                          <i class="fas fa-hospital fa-2x text-primary"></i>
+                        </div>
+                        <div>
+                          <h5 class="mb-1">${sector.nombre}</h5>
+                          <p class="text-muted mb-0">${sector.descripcion || 'Sin descripción'}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            `;
+          } else {
+            throw new Error(data.message || 'Error al cargar datos');
+          }
+        } catch (error) {
+          console.error('Error:', error);
+          contenido.innerHTML = `
+            <div class="alert alert-danger">
+              <i class="fas fa-exclamation-triangle me-2"></i>
+              Error al cargar las estadísticas: ${error.message}
+            </div>
+          `;
+        }
+      });
+    }
+
+  style.
+    .hover-card {
+      transition: all 0.3s ease;
+      cursor: pointer;
+    }
+    .hover-card:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 25px rgba(0,0,0,0.15) !important;
+    }

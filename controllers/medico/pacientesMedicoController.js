@@ -8,18 +8,23 @@ const {
   Internacion,
   AltaMedica,
   Diagnostico,
-  sequelize
+  ListaEspera ,
+  EvaluacionEnfermeria,
+  Enfermero,
+  ControlEnfermeria,
+  MotivoConsulta
 } = require('../../models');
 const { Op } = require('sequelize');
+const db = require('../../database/db');
 
 // ========================================
 // RENDERIZAR VISTA DE PACIENTES
 // ========================================
-exports.renderPacientes = async (req, res) => {
+exports.renderPacientes = async (req, res, next) => {
   try {
     console.log('🔍 renderPacientes - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+    //  Usar usuario_id
     const usuario = await Usuario.findByPk(req.user.usuario_id, {
       include: [
         {
@@ -49,31 +54,23 @@ exports.renderPacientes = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al renderizar pacientes:', error);
-    res.status(500).render('error', {
-      title: 'Error',
-      message: error.message
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER PACIENTES DEL MÉDICO
 // ========================================
-exports.obtenerPacientes = async (req, res) => {
+exports.obtenerPacientes = async (req, res, next) => {
   try {
     console.log('👥 obtenerPacientes - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
 
     if (!medico) {
-      console.error('❌ Médico no encontrado');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
-      });
+      return res.status(404).json({ success: false, message: 'Médico no encontrado' });
     }
 
     console.log('✅ Médico encontrado:', medico.id);
@@ -81,15 +78,14 @@ exports.obtenerPacientes = async (req, res) => {
     const { busqueda, estado, obraSocial, page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
 
-    // Construir filtros para pacientes
     const whereUsuario = {};
     const wherePaciente = {};
 
     if (busqueda) {
       whereUsuario[Op.or] = [
-        { nombre: { [Op.like]: `%${busqueda}%` } },
+        { nombre:   { [Op.like]: `%${busqueda}%` } },
         { apellido: { [Op.like]: `%${busqueda}%` } },
-        { dni: { [Op.like]: `%${busqueda}%` } }
+        { dni:      { [Op.like]: `%${busqueda}%` } }
       ];
     }
 
@@ -101,27 +97,40 @@ exports.obtenerPacientes = async (req, res) => {
       wherePaciente.obra_social_id = obraSocial;
     }
 
-    // Obtener pacientes únicos que han sido atendidos por el médico
-    console.log('🔍 Buscando evaluaciones...');
-    const evaluaciones = await EvaluacionMedica.findAll({
-      where: { medico_id: medico.id },
-      attributes: ['paciente_id'],
-      group: ['paciente_id']
-    });
+    // ✅ Las 3 fuentes: evaluaciones, internaciones, urgencias
+    console.log('🔍 Buscando pacientes del médico...');
+    const [porEvaluacion, porInternacion, porUrgencia] = await Promise.all([
+      EvaluacionMedica.findAll({
+        where: { medico_id: medico.id },
+        attributes: ['paciente_id'],
+        raw: true
+      }),
+      Internacion.findAll({
+        where: { medico_id: medico.id },
+        attributes: ['paciente_id'],
+        raw: true
+      }),
+      ListaEspera.findAll({
+        where: { medico_id: medico.id },
+        attributes: ['paciente_id'],
+        raw: true
+      })
+    ]);
 
-    const pacientesIds = evaluaciones.map(e => e.paciente_id);
+    const todosLosIds = [
+      ...porEvaluacion.map(e => e.paciente_id),
+      ...porInternacion.map(i => i.paciente_id),
+      ...porUrgencia.map(u => u.paciente_id)
+    ];
+
+    const pacientesIds = [...new Set(todosLosIds)];
     console.log('✅ Pacientes encontrados:', pacientesIds.length);
 
     if (pacientesIds.length === 0) {
-      console.warn('⚠️ Sin pacientes para este médico');
       return res.json({
         success: true,
         data: [],
-        pagination: {
-          total: 0,
-          page: parseInt(page),
-          totalPages: 0
-        }
+        pagination: { total: 0, page: parseInt(page), totalPages: 0 }
       });
     }
 
@@ -133,7 +142,7 @@ exports.obtenerPacientes = async (req, res) => {
         {
           model: Usuario,
           as: 'usuario',
-          where: whereUsuario,
+          where: Object.keys(whereUsuario).length > 0 ? whereUsuario : undefined,
           attributes: ['id', 'nombre', 'apellido', 'dni', 'telefono', 'email', 'fecha_nacimiento', 'sexo']
         },
         {
@@ -151,33 +160,19 @@ exports.obtenerPacientes = async (req, res) => {
 
     console.log('✅ Total de pacientes encontrados:', count);
 
-    // Agregar información adicional de cada paciente
     const pacientesConInfo = await Promise.all(pacientes.map(async (paciente) => {
-      // Última evaluación
       const ultimaEvaluacion = await EvaluacionMedica.findOne({
-        where: { 
-          paciente_id: paciente.id,
-          medico_id: medico.id
-        },
+        where: { paciente_id: paciente.id, medico_id: medico.id },
         order: [['fecha', 'DESC']],
         attributes: ['fecha', 'observaciones_diagnostico']
       });
 
-      // Total de evaluaciones
       const totalEvaluaciones = await EvaluacionMedica.count({
-        where: { 
-          paciente_id: paciente.id,
-          medico_id: medico.id
-        }
+        where: { paciente_id: paciente.id, medico_id: medico.id }
       });
 
-      // Internación activa
       const internacionActiva = await Internacion.findOne({
-        where: {
-          paciente_id: paciente.id,
-          medico_id: medico.id,
-          fecha_alta: null
-        }
+        where: { paciente_id: paciente.id, medico_id: medico.id, fecha_alta: null }
       });
 
       return {
@@ -187,7 +182,7 @@ exports.obtenerPacientes = async (req, res) => {
         internacionActiva: !!internacionActiva
       };
     }));
-
+    console.log('Paciente ejemplo:', JSON.stringify(pacientes[0], null, 2));
     res.json({
       success: true,
       data: pacientesConInfo,
@@ -197,153 +192,101 @@ exports.obtenerPacientes = async (req, res) => {
         totalPages: Math.ceil(count / limit)
       }
     });
+
   } catch (error) {
     console.error('❌ Error al obtener pacientes:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER DETALLE DE UN PACIENTE
 // ========================================
-exports.obtenerPacienteDetalle = async (req, res) => {
+
+exports.renderDetallePaciente = async (req, res, next) => {
   try {
-    console.log('🔍 obtenerPacienteDetalle - usuario_id:', req.user.usuario_id);
-    
-    // ✅ CORRECTO: Usar usuario_id
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
 
-    if (!medico) {
-      console.error('❌ Médico no encontrado');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Médico no encontrado' 
-      });
-    }
+    if (!medico) return res.status(404).render('error', { message: 'Médico no encontrado' });
 
     const paciente = await Paciente.findByPk(req.params.id, {
       include: [
-        {
-          model: Usuario,
-          as: 'usuario',
-          attributes: { exclude: ['password'] }
-        },
-        {
-          model: ObraSocial,
-          as: 'obraSocial',
-          attributes: ['id', 'nombre', 'descripcion']
-        }
+        { model: Usuario, as: 'usuario', attributes: { exclude: ['password'] } },
+        { model: ObraSocial, as: 'obraSocial', attributes: ['id', 'nombre'] }
       ]
     });
 
-    if (!paciente) {
-      console.error('❌ Paciente no encontrado');
-      return res.status(404).json({ 
-        success: false,
-        message: 'Paciente no encontrado' 
-      });
-    }
+    if (!paciente) return res.status(404).render('error', { message: 'Paciente no encontrado' });
 
-    // Verificar que el médico haya atendido al paciente
-    const haAtendido = await EvaluacionMedica.findOne({
-      where: {
-        paciente_id: paciente.id,
-        medico_id: medico.id
+    const [evaluaciones, internaciones, historial, controles] = await Promise.all([
+      EvaluacionMedica.findAll({
+        where: { paciente_id: paciente.id },
+        include: [
+          { model: Diagnostico, as: 'diagnostico', attributes: ['id', 'nombre', 'codigo'] },
+          { model: Medico, as: 'medico', include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] }
+        ],
+        order: [['fecha', 'DESC']],
+        limit: 10
+      }),
+      Internacion.findAll({
+        where: { paciente_id: paciente.id },
+        include: [
+          { model: require('../../models').Cama, as: 'cama', include: [{ model: require('../../models').Habitacion, as: 'habitacion', attributes: ['numero', 'tipo'] }] },
+          { model: Medico, as: 'medico', include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] }
+        ],
+        order: [['fecha_inicio', 'DESC']],
+        limit: 5
+      }),
+      HistorialMedico.findAll({
+        where: { paciente_id: paciente.id },
+        include: [{ model: MotivoConsulta, as: 'motivo_consulta', attributes: ['nombre'] }],
+        order: [['fecha', 'DESC']],
+        limit: 10
+      }),
+      ControlEnfermeria.findAll({
+        where: { paciente_id: paciente.id },
+        include: [{
+          model: EvaluacionEnfermeria,
+          as: 'evaluacion',
+          required: false,
+          include: [{ model: Enfermero, as: 'enfermero', include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] }]
+        }],
+        order: [['createdAt', 'DESC']],
+        limit: 5
+      })
+    ]);
+
+    res.render('dashboard/medico/paciente-detalle', {
+      title: `Detalle - ${paciente.usuario.nombre} ${paciente.usuario.apellido}`,
+      user: req.user,
+      paciente,
+      evaluaciones,
+      internaciones,
+      historial,
+      controles,
+      pacienteDni: paciente.usuario.dni,
+      estadisticas: {
+        totalEvaluaciones: evaluaciones.length,
+        totalInternaciones: internaciones.length,
+        totalControles: controles.length
       }
     });
 
-    if (!haAtendido) {
-      console.error('❌ Médico no ha atendido este paciente');
-      return res.status(403).json({ 
-        success: false,
-        message: 'No tiene permiso para ver este paciente' 
-      });
-    }
-
-    // Obtener evaluaciones médicas
-    const evaluaciones = await EvaluacionMedica.findAll({
-      where: {
-        paciente_id: paciente.id,
-        medico_id: medico.id
-      },
-      include: [
-        {
-          model: Diagnostico,
-          as: 'diagnostico',
-          attributes: ['id', 'nombre', 'codigo']
-        }
-      ],
-      order: [['fecha', 'DESC']],
-      limit: 10
-    });
-
-    // Obtener internaciones
-    const internaciones = await Internacion.findAll({
-      where: {
-        paciente_id: paciente.id,
-        medico_id: medico.id
-      },
-      include: [
-        {
-          model: require('../../models').Cama,
-          as: 'cama',
-          include: [
-            {
-              model: require('../../models').Habitacion,
-              as: 'habitacion',
-              attributes: ['numero', 'tipo']
-            }
-          ]
-        }
-      ],
-      order: [['fecha_inicio', 'DESC']],
-      limit: 5
-    });
-
-    // Obtener historial médico
-    const historial = await HistorialMedico.findAll({
-      where: { paciente_id: paciente.id },
-      order: [['fecha', 'DESC']],
-      limit: 10
-    });
-
-    console.log('✅ Datos del paciente obtenidos');
-
-    res.json({
-      success: true,
-      data: {
-        paciente,
-        evaluaciones,
-        internaciones,
-        historial,
-        estadisticas: {
-          totalEvaluaciones: evaluaciones.length,
-          totalInternaciones: internaciones.length
-        }
-      }
-    });
   } catch (error) {
-    console.error('❌ Error al obtener detalle del paciente:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    console.error('❌ Error al renderizar detalle paciente:', error);
+    next(error);
   }
 };
-
 // ========================================
 // OBTENER HISTORIAL MÉDICO DEL PACIENTE
 // ========================================
-exports.obtenerHistorialPaciente = async (req, res) => {
+exports.obtenerHistorialPaciente = async (req, res, next) => {
   try {
     console.log('📋 obtenerHistorialPaciente - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+    //  Usar usuario_id
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
@@ -394,21 +337,18 @@ exports.obtenerHistorialPaciente = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener historial:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER EVALUACIONES DEL PACIENTE
 // ========================================
-exports.obtenerEvaluacionesPaciente = async (req, res) => {
+exports.obtenerEvaluacionesPaciente = async (req, res, next) => {
   try {
     console.log('📊 obtenerEvaluacionesPaciente - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+    //  Usar usuario_id
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
@@ -451,17 +391,14 @@ exports.obtenerEvaluacionesPaciente = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener evaluaciones:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER OBRAS SOCIALES PARA FILTRO
 // ========================================
-exports.obtenerObrasSociales = async (req, res) => {
+exports.obtenerObrasSociales = async (req, res, next) => {
   try {
     console.log('🏥 obtenerObrasSociales');
     
@@ -478,21 +415,18 @@ exports.obtenerObrasSociales = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener obras sociales:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
-    });
+    next(error);
   }
 };
 
 // ========================================
 // OBTENER ESTADÍSTICAS DE PACIENTES
 // ========================================
-exports.obtenerEstadisticasPacientes = async (req, res) => {
+exports.obtenerEstadisticasPacientes = async (req, res, next) => {
   try {
     console.log('📈 obtenerEstadisticasPacientes - usuario_id:', req.user.usuario_id);
     
-    // ✅ CORRECTO: Usar usuario_id
+    //  Usar usuario_id
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
     });
@@ -506,11 +440,29 @@ exports.obtenerEstadisticasPacientes = async (req, res) => {
     }
 
     // Total de pacientes únicos
-    const totalPacientes = await EvaluacionMedica.count({
-      where: { medico_id: medico.id },
-      distinct: true,
-      col: 'paciente_id'
-    });
+    const [porEvaluacion, porInternacion, porUrgencia] = await Promise.all([
+     EvaluacionMedica.findAll({
+        where: { medico_id: medico.id },
+        attributes: ['paciente_id'],
+        raw: true
+     }),
+      Internacion.findAll({
+        where: { medico_id: medico.id },
+        attributes: ['paciente_id'],
+        raw: true
+      }),
+      ListaEspera.findAll({
+        where: { medico_id: medico.id },
+        attributes: ['paciente_id'],
+        raw: true
+     })
+    ]);
+
+    const totalPacientes = new Set([
+      ...porEvaluacion.map(e => e.paciente_id),
+      ...porInternacion.map(i => i.paciente_id),
+      ...porUrgencia.map(u => u.paciente_id)
+    ]).size;
 
     // Pacientes internados actualmente
     const pacientesInternados = await Internacion.count({
@@ -545,9 +497,56 @@ exports.obtenerEstadisticasPacientes = async (req, res) => {
     });
   } catch (error) {
     console.error('❌ Error al obtener estadísticas:', error.message);
-    res.status(500).json({ 
-      success: false,
-      message: error.message 
+    next(error);
+  }
+};
+// solicitar un control para luego poder hacer una evaluacion del paciente 
+exports.solicitarControlesEnfermeria = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
+  try {
+    const pacienteId = req.params.id;
+
+    const paciente = await Paciente.findByPk(pacienteId, {
+      include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido', 'dni'] }],
+      transaction
     });
+
+    if (!paciente) {
+      await transaction.rollback();
+      return res.status(404).json({ success: false, message: 'Paciente no encontrado' });
+    }
+
+    // Evitar duplicados — si ya hay uno SOLICITADO, no crear otro
+    const controlExistente = await ControlEnfermeria.findOne({
+      where: { paciente_id: pacienteId, estado: 'SOLICITADO' },
+      transaction
+    });
+
+    if (controlExistente) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `Ya existe un control solicitado para ${paciente.usuario.apellido}, ${paciente.usuario.nombre}`
+      });
+    }
+
+    //  Crear control con solo paciente_id y estado SOLICITADO
+    await ControlEnfermeria.create({
+      paciente_id: pacienteId,
+      estado: 'SOLICITADO'
+    }, { transaction });
+
+    await transaction.commit();
+
+    res.json({
+      success: true,
+      message: `Control solicitado para ${paciente.usuario.apellido}, ${paciente.usuario.nombre}. Visible para enfermería.`
+    });
+
+  } catch (error) {
+    await transaction.rollback();
+    console.error('Error al solicitar controles:', error);
+    next(error);
   }
 };

@@ -11,7 +11,7 @@ const { Op } = require('sequelize');
 const db = require('../../database/db');
 
 // Listar pacientes para registro de signos vitales
-exports.listarPacientes = async (req, res) => {
+exports.listarPacientes = async (req, res, next) => {
   try {
     const { tipo_paciente, busqueda } = req.query;
     
@@ -119,15 +119,12 @@ exports.listarPacientes = async (req, res) => {
 
   } catch (error) {
     console.error('Error al listar pacientes:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar pacientes',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Formulario para registrar signos vitales
-exports.formularioRegistro = async (req, res) => {
+exports.formularioRegistro = async (req, res, next) => {
   try {
     const { paciente_id } = req.query;
     
@@ -169,19 +166,16 @@ exports.formularioRegistro = async (req, res) => {
 
   } catch (error) {
     console.error('Error al cargar formulario:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el formulario',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Registrar signos vitales
-exports.registrarSignos = async (req, res) => {
+exports.registrarSignos = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
-    // ✅ CORRECCIÓN
+    
     const enfermeroId = req.user.id;
     const {
       paciente_id,
@@ -251,24 +245,25 @@ exports.registrarSignos = async (req, res) => {
       message: 'Signos vitales registrados correctamente',
       evaluacion_id: evaluacion.id,
       alertas,
-      redirect: '/dashboard/enfermero/signos-vitales'
+      redirect: '/enfermero/signos-vitales'
     });
 
   } catch (error) {
     await transaction.rollback();
     console.error('Error al registrar signos:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al registrar signos vitales',
-      error: error.message
-    });
+   next(error);
   }
 };
 
 // Ver historial de signos vitales de un paciente
-exports.verHistorial = async (req, res) => {
+exports.verHistorial = async (req, res, next) => {
   try {
     const { paciente_id } = req.params;
+    const { pagina = 1, limite = 10, busqueda, desde, hasta } = req.query;
+    
+    const paginaNum = parseInt(pagina);
+    const limiteNum = parseInt(limite);
+    const offset = (paginaNum - 1) * limiteNum;
 
     const paciente = await Paciente.findByPk(paciente_id, {
       include: [{
@@ -284,9 +279,37 @@ exports.verHistorial = async (req, res) => {
       });
     }
 
+    // Construir condiciones WHERE
+    const whereConditions = { paciente_id: paciente_id };
+    
+    // Filtro por búsqueda
+    if (busqueda) {
+      whereConditions[Op.or] = [
+        { observaciones: { [Op.like]: `%${busqueda}%` } },
+        { signos_vitales: { [Op.like]: `%${busqueda}%` } }
+      ];
+    }
+    
+    // Filtro por fecha
+    if (desde || hasta) {
+      whereConditions.fecha = {};
+      if (desde) whereConditions.fecha[Op.gte] = new Date(desde);
+      if (hasta) {
+        const fechaHasta = new Date(hasta);
+        fechaHasta.setHours(23, 59, 59, 999);
+        whereConditions.fecha[Op.lte] = fechaHasta;
+      }
+    }
+
+    // Obtener total de registros
+    const total = await EvaluacionEnfermeria.count({ where: whereConditions });
+
+    // Obtener registros paginados
     const historial = await EvaluacionEnfermeria.findAll({
-      where: { paciente_id },
+      where: whereConditions,
       order: [['fecha', 'DESC']],
+      limit: limiteNum,
+      offset: offset,
       include: [{
         model: Enfermero,
         as: 'enfermero',
@@ -298,24 +321,34 @@ exports.verHistorial = async (req, res) => {
       }]
     });
 
+    const totalPaginas = Math.ceil(total / limiteNum);
+
     res.render('dashboard/enfermero/signos-vitales-historial', {
       title: 'Historial de Signos Vitales',
       user: req.user,
       paciente,
-      historial
+      historial,
+      paginacion: {
+        pagina: paginaNum,
+        limite: limiteNum,
+        total: total,
+        totalPaginas: totalPaginas,
+        tieneAnterior: paginaNum > 1,
+        tieneSiguiente: paginaNum < totalPaginas,
+        busqueda: busqueda || '',
+        desde: desde || '',
+        hasta: hasta || ''
+      }
     });
 
   } catch (error) {
     console.error('Error al ver historial:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el historial',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Obtener gráfica de evolución
-exports.obtenerGrafica = async (req, res) => {
+exports.obtenerGrafica = async (req, res, next) => {
   try {
     const { paciente_id, parametro, dias } = req.query;
 
@@ -380,15 +413,12 @@ exports.obtenerGrafica = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener gráfica:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al generar gráfica'
-    });
+    next(error);
   }
 };
 
 // Obtener últimos signos vitales de un paciente
-exports.ultimosSignos = async (req, res) => {
+exports.ultimosSignos = async (req, res, next) => {
   try {
     const { paciente_id } = req.params;
 
@@ -432,15 +462,12 @@ exports.ultimosSignos = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener últimos signos:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener signos vitales'
-    });
+    next(error);
   }
 };
 
 // Exportar historial a CSV
-exports.exportarCSV = async (req, res) => {
+exports.exportarCSV = async (req, res, next) => {
   try {
     const { paciente_id } = req.params;
 
@@ -479,10 +506,7 @@ exports.exportarCSV = async (req, res) => {
 
   } catch (error) {
     console.error('Error al exportar CSV:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al exportar datos'
-    });
+    next(error);
   }
 };
 

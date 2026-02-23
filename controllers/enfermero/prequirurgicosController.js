@@ -10,7 +10,7 @@ const { Op } = require('sequelize');
 const db = require('../../database/db');
 
 // Listar procedimientos pre-quirúrgicos
-exports.listarPrequirurgicos = async (req, res) => {
+exports.listarPrequirurgicos = async (req, res, next) => {
   try {
     const { estado, fecha_inicio, fecha_fin, paciente } = req.query;
     
@@ -39,7 +39,7 @@ exports.listarPrequirurgicos = async (req, res) => {
               include: [{
                 model: Usuario,
                 as: 'usuario',
-                attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo', 'telefono'],
+                attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo', 'telefono','created_at', 'updated_at'],
                 where: paciente ? {
                   [Op.or]: [
                     { nombre: { [Op.like]: `%${paciente}%` } },
@@ -100,15 +100,12 @@ exports.listarPrequirurgicos = async (req, res) => {
 
   } catch (error) {
     console.error('Error al listar pre-quirúrgicos:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar procedimientos pre-quirúrgicos',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Ver detalle de preparación pre-quirúrgica
-exports.verPrequirurgico = async (req, res) => {
+exports.verPrequirurgico = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -156,18 +153,29 @@ exports.verPrequirurgico = async (req, res) => {
     });
 
     if (!procedimiento) {
-      return res.status(404).render('error', {
-        message: 'Procedimiento pre-quirúrgico no encontrado'
-      });
+      return res.status(404).render('error', { message: 'Procedimiento pre-quirúrgico no encontrado' });
     }
 
-    // Buscar si hay intervención quirúrgica asociada
     const intervencion = await IntervencionQuirurgica.findOne({
       where: {
         paciente_id: procedimiento.evaluacion_medica.paciente_id,
         evaluacion_medica_id: procedimiento.evaluacion_medica_id
-      }
+      },
+      attributes: ['id', 'created_at', 'updated_at']
     });
+
+    // Debug
+    console.log('DEBUG verPrequirurgico ──────────────────────────────');
+    console.log('ID:', id);
+    console.log('procedimiento.created_at:', procedimiento.created_at);
+    console.log('procedimiento.createdAt:', procedimiento.createdAt);
+    console.log('procedimiento (plain):', procedimiento.get({ plain: true }));
+    if (intervencion) {
+      console.log('intervencion.created_at:', intervencion.created_at);
+    } else {
+      console.log('intervencion: null (no encontrada)');
+    }
+    console.log('──────────────────────────────────────────────────────');
 
     res.render('dashboard/enfermero/prequirurgicos-detalle', {
       title: 'Detalle Pre-quirúrgico',
@@ -178,15 +186,11 @@ exports.verPrequirurgico = async (req, res) => {
 
   } catch (error) {
     console.error('Error al ver pre-quirúrgico:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el detalle',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
-
 // Formulario para completar preparación
-exports.formularioCompletar = async (req, res) => {
+exports.formularioCompletar = async (req, res, next) => {
   try {
     const { id } = req.params;
 
@@ -215,7 +219,7 @@ exports.formularioCompletar = async (req, res) => {
     }
 
     if (procedimiento.estado === 'Completado') {
-      return res.redirect(`dashboard/enfermero/prequirurgicos/${id}`);
+      return res.redirect(`/enfermero/prequirurgicos/${id}`);
     }
 
     res.render('dashboard/enfermero/prequirurgicos-completar', {
@@ -226,19 +230,16 @@ exports.formularioCompletar = async (req, res) => {
 
   } catch (error) {
     console.error('Error al cargar formulario:', error);
-    res.status(500).render('error', {
-      message: 'Error al cargar el formulario',
-      error: process.env.NODE_ENV === 'development' ? error : {}
-    });
+    next(error);
   }
 };
 
 // Completar preparación pre-quirúrgica
-exports.completarPrequirurgico = async (req, res) => {
+exports.completarPrequirurgico = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
-    const enfermeroId = req.user.enfermero.id;
+    const enfermeroId = req.user.id;
     const { id } = req.params;
     const {
       ayuno_horas,
@@ -352,22 +353,18 @@ ${complicaciones ? `\n=== COMPLICACIONES ===\n${complicaciones}` : ''}
       success: true,
       message: 'Preparación pre-quirúrgica completada',
       evaluacion_id: evaluacion.id,
-      redirect: `dashboard/enfermero/prequirurgicos/${id}`
+      redirect: `/enfermero/prequirurgicos/${id}`
     });
 
   } catch (error) {
     await transaction.rollback();
     console.error('Error al completar pre-quirúrgico:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al completar la preparación',
-      error: error.message
-    });
+    next(error);
   }
 };
 
 // Obtener checklist estándar
-exports.checklistEstandar = async (req, res) => {
+exports.checklistEstandar = async (req, res, next) => {
   try {
     const checklist = {
       items: [
@@ -393,15 +390,12 @@ exports.checklistEstandar = async (req, res) => {
 
   } catch (error) {
     console.error('Error al obtener checklist:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al obtener checklist'
-    });
+    next(error);
   }
 };
 
 // Obtener preparaciones pendientes
-exports.pendientes = async (req, res) => {
+exports.pendientes = async (req, res, next) => {
   try {
     const procedimientos = await ProcedimientoPreQuirurgico.findAll({
       where: {
@@ -448,22 +442,19 @@ exports.pendientes = async (req, res) => {
           nombre: `${p.evaluacion_medica.paciente.usuario.nombre} ${p.evaluacion_medica.paciente.usuario.apellido}`,
           dni: p.evaluacion_medica.paciente.usuario.dni
         },
-        medico: `Dr. ${p.evaluacion_medica.medico.usuario.nombre} ${p.evaluacion_medica.medico.usuario.apellido}`,
-        fecha_solicitud: p.created_at
+        medico: `${p.evaluacion_medica.medico.usuario.nombre} ${p.evaluacion_medica.medico.usuario.apellido}`,
+        fecha_solicitud: p.created_at ? new Date(p.created_at).toLocaleDateString('es-AR') : 'Sin fecha'
       }))
     });
 
   } catch (error) {
     console.error('Error al buscar pendientes:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al buscar procedimientos pendientes'
-    });
+    next(error);
   }
 };
 
 // Registrar complicación pre-quirúrgica
-exports.registrarComplicacion = async (req, res) => {
+exports.registrarComplicacion = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
@@ -517,17 +508,13 @@ ${requiere_suspension === 'true' ? '⚠️ REQUIERE SUSPENSIÓN DE LA CIRUGÍA' 
     res.json({
       success: true,
       message: 'Complicación registrada. Se notificará al médico.',
-      redirect: `dashboard/enfermero/prequirurgicos/${id}`
+      redirect: `/enfermero/prequirurgicos/${id}`
     });
 
   } catch (error) {
     await transaction.rollback();
     console.error('Error al registrar complicación:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Error al registrar la complicación',
-      error: error.message
-    });
+    next(error);
   }
 };
 
