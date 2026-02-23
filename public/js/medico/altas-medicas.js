@@ -24,11 +24,6 @@ document.addEventListener('DOMContentLoaded', function() {
   // Cargar historial de altas
   actualizarTabla();
   
-  // Event listener para el formulario de nueva alta
-  const formNuevaAlta = document.getElementById('formNuevaAlta');
-  if (formNuevaAlta) {
-    formNuevaAlta.addEventListener('submit', handleSubmitNuevaAlta);
-  }
   
   // Event listener para filtros del historial
   const formFiltrosHistorial = document.getElementById('formFiltrosHistorial');
@@ -148,6 +143,7 @@ function renderizarInternaciones(internaciones) {
       new Date(internacion.fecha_inicio).toLocaleDateString('es-AR') : 'N/A';
     const habitacion = internacion.habitacion?.numero || 'N/A';
     const cama = internacion.cama?.numero || 'N/A';
+    const admisionId = internacion.admision_id || internacion.admision?.id || null;
     
     // Calcular días de internación
     const diasInternacion = internacion.fecha_inicio ? 
@@ -186,7 +182,7 @@ function renderizarInternaciones(internaciones) {
           </div>
           <div class="ms-3">
             <button class="btn btn-success btn-sm" 
-                    onclick="abrirModalAlta(${internacion.id}, ${internacion.paciente_id}, 'internacion')">
+                    onclick="abrirModalAlta(${internacion.id}, ${internacion.paciente_id}, 'internacion', ${admisionId})">
               <i class="fas fa-sign-out-alt me-1"></i>
               Dar Alta
             </button>
@@ -378,17 +374,18 @@ function renderizarSolicitudes(solicitudes) {
 function abrirModalAlta(internacionId, pacienteId, tipo, admisionId = null) {
   console.log('🏥 Abriendo modal alta:', { internacionId, pacienteId, tipo, admisionId });
   
-  // Resetear formulario
   document.getElementById('formNuevaAlta').reset();
-  
-  // Llenar datos
   document.getElementById('nuevoPacienteId').value = pacienteId;
   
   if (tipo === 'internacion') {
     document.getElementById('nuevaInternacionId').value = internacionId;
-    document.getElementById('nuevaAdmisionId').value = '';
-    document.getElementById('textoInfoSeleccionada').textContent = 
-      `Alta médica para internación ID: ${internacionId}`;
+    // ✅ También setear admision_id si existe
+    document.getElementById('nuevaAdmisionId').value = admisionId || '';
+    
+    let texto = `Alta médica para internación ID: ${internacionId}`;
+    if (admisionId) texto += ` (Admisión: ${admisionId})`;
+    document.getElementById('textoInfoSeleccionada').textContent = texto;
+    
   } else if (tipo === 'admision') {
     document.getElementById('nuevaInternacionId').value = '';
     document.getElementById('nuevaAdmisionId').value = admisionId;
@@ -398,7 +395,6 @@ function abrirModalAlta(internacionId, pacienteId, tipo, admisionId = null) {
   
   document.getElementById('infoSeleccionada').style.display = 'block';
   
-  // Abrir modal
   const modal = new bootstrap.Modal(document.getElementById('modalNuevaAlta'));
   modal.show();
 }
@@ -407,159 +403,67 @@ function abrirModalAlta(internacionId, pacienteId, tipo, admisionId = null) {
 // ABRIR MODAL ALTA DESDE SOLICITUD
 // ========================================
 function abrirModalAltaSolicitud(listaEsperaId, pacienteId, nombrePaciente) {
-  console.log('🏥 Abriendo modal alta desde solicitud:', { listaEsperaId, pacienteId, nombrePaciente });
+  console.log(' Abriendo modal alta solicitud:', { listaEsperaId, pacienteId, nombrePaciente });
   
-  Swal.fire({
-    title: 'Otorgar Alta Médica',
-    html: `
-      <div class="text-start">
-        <p><strong>Paciente:</strong> ${nombrePaciente}</p>
-        <hr>
-        <div class="mb-3">
-          <label class="form-label">Tipo de Alta *</label>
-          <select class="form-select" id="swal-tipo-alta">
-            <option value="Alta Voluntaria">Alta Voluntaria</option>
-            <option value="Alta Médica" selected>Alta Médica</option>
-            <option value="Alta por Mejoría">Alta por Mejoría</option>
-          </select>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Estado del Paciente *</label>
-          <select class="form-select" id="swal-estado-paciente">
-            <option value="Estable" selected>Estable</option>
-            <option value="Mejorado">Mejorado</option>
-            <option value="Recuperado">Recuperado</option>
-            <option value="En tratamiento">En tratamiento</option>
-          </select>
-        </div>
-        <div class="mb-3">
-          <label class="form-label">Instrucciones Post-Alta</label>
-          <textarea class="form-control" id="swal-instrucciones" rows="4" 
-                    placeholder="Indicaciones para el paciente...">Seguimiento ambulatorio. Control en 7 días.</textarea>
-        </div>
-      </div>
-    `,
-    icon: 'question',
-    showCancelButton: true,
-    confirmButtonText: '<i class="fas fa-check"></i> Otorgar Alta',
-    cancelButtonText: 'Cancelar',
-    confirmButtonColor: '#28a745',
-    cancelButtonColor: '#6c757d',
-    width: '600px',
-    preConfirm: () => {
-      const tipoAlta = document.getElementById('swal-tipo-alta').value;
-      const estadoPaciente = document.getElementById('swal-estado-paciente').value;
-      const instrucciones = document.getElementById('swal-instrucciones').value;
-      
-      if (!tipoAlta || !estadoPaciente) {
-        Swal.showValidationMessage('Por favor complete todos los campos obligatorios');
-        return false;
-      }
-      
-      return { tipoAlta, estadoPaciente, instrucciones };
-    }
-  }).then(async (result) => {
-    if (result.isConfirmed) {
-      await procesarAltaSolicitud(listaEsperaId, result.value);
-    }
-  });
+  // Llenar datos
+  document.getElementById('solicitudListaEsperaId').value = listaEsperaId;
+  document.getElementById('solicitudPacienteId').value = pacienteId;
+  document.getElementById('solicitudNombrePaciente').textContent = 'Paciente: ' + nombrePaciente;
+  
+  // Resetear selects a valores por defecto
+  document.getElementById('solicitudTipoAlta').value = 'Medica';
+  document.getElementById('solicitudEstadoPaciente').value = 'Estable';
+  document.getElementById('solicitudInstrucciones').value = 'Seguimiento ambulatorio. Control en 7 días.';
+  
+  // Abrir modal
+  const modal = new bootstrap.Modal(document.getElementById('modalAltaSolicitud'));
+  modal.show();
 }
 
-// ========================================
-// PROCESAR ALTA DESDE SOLICITUD
-// ========================================
-async function procesarAltaSolicitud(listaEsperaId, datos) {
-  try {
-    console.log('📝 Procesando alta desde solicitud...', datos);
-    
-    Swal.fire({
-      title: 'Procesando...',
-      text: 'Registrando alta médica',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
-    
-    const response = await fetch('/medico/altas-medicas/solicitud', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({
-        lista_espera_id: listaEsperaId,
-        tipo_alta: datos.tipoAlta,
-        estado_paciente: datos.estadoPaciente,
-        instrucciones_post_alta: datos.instrucciones
-      })
-    });
-    
-    const result = await response.json();
-    
-    if (result.success) {
-      Swal.fire({
-        icon: 'success',
-        title: '¡Alta Otorgada!',
-        text: result.message,
-        timer: 2000,
-        showConfirmButton: false
-      });
-      
-      // Recargar datos
-      await cargarPendientes('solicitudes');
-      await cargarEstadisticas();
-      await actualizarTabla();
-      
-    } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: result.message || 'No se pudo registrar el alta'
-      });
-    }
-    
-  } catch (error) {
-    console.error('❌ Error:', error);
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'Error de conexión al procesar el alta'
-    });
-  }
-}
 
 // ========================================
 // SUBMIT NUEVA ALTA
 // ========================================
-async function handleSubmitNuevaAlta(e) {
-  e.preventDefault();
+async function submitNuevaAlta() {
+  console.log('submitNuevaAlta() INICIADA');
   
   try {
-    const formData = new FormData(e.target);
-    const data = Object.fromEntries(formData);
+    const data = {
+      paciente_id: document.getElementById('nuevoPacienteId').value,
+      internacion_id: document.getElementById('nuevaInternacionId').value || null,
+      admision_id: document.getElementById('nuevaAdmisionId').value || null,
+      tipo_alta: document.getElementById('nuevoTipoAlta').value,
+      estado_paciente: document.getElementById('nuevoEstadoPaciente').value,
+      instrucciones_post_alta: document.getElementById('nuevasInstrucciones').value
+    };
     
-    console.log('📝 Enviando nueva alta:', data);
+    console.log(' Data a enviar:', data);
     
     // Validaciones
     if (!data.paciente_id) {
-      mostrarError('Debe especificar un paciente');
+      alert('Debe especificar un paciente');
       return;
     }
     
     if (!data.internacion_id && !data.admision_id) {
-      mostrarError('Debe especificar una internación o admisión');
+      alert('Debe especificar una internación o admisión');
       return;
     }
     
-    // Mostrar loading
-    Swal.fire({
-      title: 'Procesando...',
-      text: 'Registrando alta médica',
-      allowOutsideClick: false,
-      didOpen: () => {
-        Swal.showLoading();
-      }
-    });
+    if (!data.tipo_alta) {
+      alert('Debe seleccionar el tipo de alta');
+      return;
+    }
+    
+    if (!data.estado_paciente) {
+      alert('Debe seleccionar el estado del paciente');
+      return;
+    }
+    
+    // Deshabilitar botón mientras procesa
+    const btnSubmit = document.querySelector('#modalNuevaAlta .btn-success');
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
     
     const response = await fetch('/medico/altas-medicas/altas', {
       method: 'POST',
@@ -569,16 +473,13 @@ async function handleSubmitNuevaAlta(e) {
       body: JSON.stringify(data)
     });
     
+    console.log(' Response status:', response.status);
+    
     const result = await response.json();
+    console.log(' Result:', result);
     
     if (result.success) {
-      Swal.fire({
-        icon: 'success',
-        title: '¡Alta Registrada!',
-        text: result.message,
-        timer: 2000,
-        showConfirmButton: false
-      });
+      alert('¡Alta registrada correctamente!');
       
       // Cerrar modal
       const modal = bootstrap.Modal.getInstance(document.getElementById('modalNuevaAlta'));
@@ -590,20 +491,19 @@ async function handleSubmitNuevaAlta(e) {
       await actualizarTabla();
       
     } else {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: result.message || 'No se pudo registrar el alta'
-      });
+      alert('Error: ' + (result.message || 'No se pudo registrar el alta'));
     }
     
   } catch (error) {
-    console.error('❌ Error:', error);
-    Swal.fire({
-      icon: 'error',
-      title: 'Error',
-      text: 'Error de conexión al registrar el alta'
-    });
+    console.error('❌ Error en submitNuevaAlta:', error);
+    alert('Error de conexión al registrar el alta');
+  } finally {
+    // Restaurar botón
+    const btnSubmit = document.querySelector('#modalNuevaAlta .btn-success');
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = '<i class="fas fa-save me-2"></i>Registrar Alta';
+    }
   }
 }
 
@@ -612,7 +512,7 @@ async function handleSubmitNuevaAlta(e) {
 // ========================================
 async function actualizarTabla() {
   try {
-    console.log('📋 Actualizando tabla de historial...');
+    console.log(' Actualizando tabla de historial...');
     
     const loading = document.getElementById('loading-altas');
     const tabla = document.getElementById('tabla-altas');
@@ -1003,6 +903,75 @@ async function cargarPacientesFiltro(busqueda = '') {
   }
 }
 
+
+
+
+
+async function submitAltaSolicitud() {
+  console.log(' Procesando alta desde solicitud...');
+  
+  try {
+    const listaEsperaId = document.getElementById('solicitudListaEsperaId').value;
+    const tipoAlta = document.getElementById('solicitudTipoAlta').value;
+    const estadoPaciente = document.getElementById('solicitudEstadoPaciente').value;
+    const instrucciones = document.getElementById('solicitudInstrucciones').value;
+    
+    if (!tipoAlta || !estadoPaciente) {
+      alert('Por favor complete todos los campos obligatorios');
+      return;
+    }
+    
+    // Deshabilitar botón
+    const btnSubmit = document.querySelector('#modalAltaSolicitud .btn-success');
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Procesando...';
+    
+    const response = await fetch('/medico/altas-medicas/solicitud', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        lista_espera_id: listaEsperaId,
+        tipo_alta: tipoAlta,
+        estado_paciente: estadoPaciente,
+        instrucciones_post_alta: instrucciones
+      })
+    });
+    
+    console.log('📡 Response status:', response.status);
+    
+    const result = await response.json();
+    console.log('📦 Result:', result);
+    
+    if (result.success) {
+      alert('¡Alta médica otorgada correctamente!');
+      
+      // Cerrar modal
+      const modal = bootstrap.Modal.getInstance(document.getElementById('modalAltaSolicitud'));
+      modal.hide();
+      
+      // Recargar datos
+      await cargarPendientes('solicitudes');
+      await cargarEstadisticas();
+      await actualizarTabla();
+      
+    } else {
+      alert('Error: ' + (result.message || 'No se pudo registrar el alta'));
+    }
+    
+  } catch (error) {
+    console.error('❌ Error:', error);
+    alert('Error de conexión al procesar el alta');
+  } finally {
+    // Restaurar botón
+    const btnSubmit = document.querySelector('#modalAltaSolicitud .btn-success');
+    if (btnSubmit) {
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = '<i class="fas fa-check me-2"></i>Otorgar Alta';
+    }
+  }
+}
 // ========================================
 // MOSTRAR LOADING
 // ========================================
@@ -1021,22 +990,12 @@ function mostrarLoading(tipo) {
 // MOSTRAR ERROR
 // ========================================
 function mostrarError(mensaje) {
-  Swal.fire({
-    icon: 'error',
-    title: 'Error',
-    text: mensaje
-  });
+  alert('Error: ' + mensaje);
 }
 
 // ========================================
 // MOSTRAR ÉXITO
 // ========================================
 function mostrarExito(mensaje) {
-  Swal.fire({
-    icon: 'success',
-    title: '¡Éxito!',
-    text: mensaje,
-    timer: 2000,
-    showConfirmButton: false
-  });
+  alert(mensaje);
 }

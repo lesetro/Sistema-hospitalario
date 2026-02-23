@@ -11,8 +11,15 @@ const {
   ListaEspera ,
   EvaluacionEnfermeria,
   Enfermero,
+  TipoTurno,
+  Especialidad, 
   ControlEnfermeria,
-  MotivoConsulta
+  MotivoConsulta,
+  Habitacion,
+  Sector,
+  Notificacion,
+  Tratamiento,
+  Cama
 } = require('../../models');
 const { Op } = require('sequelize');
 const db = require('../../database/db');
@@ -31,7 +38,7 @@ exports.renderPacientes = async (req, res, next) => {
           model: Medico,
           as: 'medico',
           include: [
-            { model: require('../../models').Especialidad, as: 'especialidad' }
+            { model: Especialidad, as: 'especialidad' }
           ]
         }
       ]
@@ -233,7 +240,7 @@ exports.renderDetallePaciente = async (req, res, next) => {
       Internacion.findAll({
         where: { paciente_id: paciente.id },
         include: [
-          { model: require('../../models').Cama, as: 'cama', include: [{ model: require('../../models').Habitacion, as: 'habitacion', attributes: ['numero', 'tipo'] }] },
+          { model: Cama, as: 'cama', include: [{ model: Habitacion, as: 'habitacion', attributes: ['numero', 'tipo'] }] },
           { model: Medico, as: 'medico', include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] }
         ],
         order: [['fecha_inicio', 'DESC']],
@@ -321,7 +328,7 @@ exports.obtenerHistorialPaciente = async (req, res, next) => {
       where: { paciente_id: pacienteId },
       include: [
         {
-          model: require('../../models').MotivoConsulta,
+          model: MotivoConsulta,
           as: 'motivo_consulta',
           attributes: ['nombre']
         }
@@ -375,7 +382,7 @@ exports.obtenerEvaluacionesPaciente = async (req, res, next) => {
           attributes: ['id', 'nombre', 'codigo']
         },
         {
-          model: require('../../models').Tratamiento,
+          model: Tratamiento,
           as: 'tratamiento',
           attributes: ['id', 'nombre', 'descripcion']
         }
@@ -548,5 +555,229 @@ exports.solicitarControlesEnfermeria = async (req, res, next) => {
     await transaction.rollback();
     console.error('Error al solicitar controles:', error);
     next(error);
+  }
+};
+
+exports.derivarACirugiaUrgencia = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
+  try {
+    const { id: pacienteId } = req.params;
+    const { observaciones, prioridad = 'ALTA' } = req.body;
+    const medicoId = req.user.medico_id;
+    const usuarioId = req.user.usuario_id;
+    
+    console.log(`🔪 Derivando paciente ${pacienteId} a cirugía de urgencia`);
+    
+    // 1. Validar paciente
+    const paciente = await Paciente.findByPk(pacienteId, {
+      include: [{
+        model: Usuario,
+        as: 'usuario',
+        attributes: ['id', 'nombre', 'apellido', 'dni']
+      }],
+      transaction
+    });
+    
+    if (!paciente) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Paciente no encontrado'
+      });
+    }
+    
+    // 2. Verificar que no tenga ya una lista de espera de cirugía pendiente
+    const tipoTurnoCirugia = await TipoTurno.findOne({
+      where: { nombre: { [Op.like]: '%CIRUG%' } },
+      transaction
+    });
+    
+    if (!tipoTurnoCirugia) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'No existe el tipo de turno de cirugía en el sistema'
+      });
+    }
+    
+    const listaExistente = await ListaEspera.findOne({
+      where: {
+        paciente_id: pacienteId,
+        tipo_turno_id: tipoTurnoCirugia.id,
+        estado: { [Op.in]: ['PENDIENTE', 'ASIGNADO'] }
+      },
+      transaction
+    });
+    
+    if (listaExistente) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: 'El paciente ya tiene una derivación a cirugía pendiente'
+      });
+    }
+    
+    // ========================================
+    // BUSCAR Y LIBERAR CAMA DEL PACIENTE
+    // ========================================
+    let camaLiberada = null;
+    
+    // Opción 1: Buscar internación activa
+    const internacionActiva = await Internacion.findOne({
+      where: {
+        paciente_id: pacienteId,
+        fecha_alta: null
+      },
+      include: [{ model: Cama, as: 'cama' }],
+      transaction
+    });
+    
+    if (internacionActiva?.cama) {
+      camaLiberada = internacionActiva.cama;
+    } else {
+      // Opción 2: Buscar cama ocupada por este paciente (por ListaEspera con habitacion_id)
+      const listaConCama = await ListaEspera.findOne({
+        where: {
+          paciente_id: pacienteId,
+          estado: 'ASIGNADO',
+          habitacion_id: { [Op.ne]: null }
+        },
+        transaction
+      });
+      
+      if (listaConCama?.habitacion_id) {
+        camaLiberada = await Cama.findOne({
+          where: {
+            habitacion_id: listaConCama.habitacion_id,
+            estado: 'Ocupada'
+          },
+          transaction
+        });
+      }
+    }
+    
+    // Liberar la cama (poner en limpieza)
+    if (camaLiberada) {
+      await camaLiberada.update({
+        estado: 'EnLimpieza',
+        sexo_ocupante: null
+      }, { transaction });
+      
+      console.log(` Cama ${camaLiberada.numero} liberada para limpieza (paciente va a cirugía)`);
+    }
+    
+    // ========================================
+    // 3. Crear lista de espera tipo CIRUGIA
+    // ========================================
+    const listaEspera = await ListaEspera.create({
+      paciente_id: pacienteId,
+      tipo_turno_id: tipoTurnoCirugia.id,
+      prioridad: prioridad,
+      estado: 'PENDIENTE',
+      fecha_registro: new Date(),
+      creador_id: usuarioId,
+      creador_tipo: 'MEDICO',
+      observaciones: ` CIRUGÍA DE URGENCIA\n` +
+                     `Derivado por: Dr. ${req.user.nombre}\n` +
+                     `Motivo: ${observaciones || 'Requiere intervención quirúrgica urgente'}`
+    }, { transaction });
+    
+    console.log(` Lista de espera para cirugía creada: ${listaEspera.id}`);
+    
+    // ========================================
+    // 4. Actualizar ListaEspera anterior (si existe)
+    // ========================================
+    await ListaEspera.update(
+      { estado: 'COMPLETADO' },
+      {
+        where: {
+          paciente_id: pacienteId,
+          estado: { [Op.in]: ['PENDIENTE', 'ASIGNADO'] },
+          id: { [Op.ne]: listaEspera.id }  // No actualizar la nueva
+        },
+        transaction
+      }
+    );
+    
+    // ========================================
+    // 5. Notificar a cirujanos del sector Emergencias
+    // ========================================
+    const sectorEmergencias = await Sector.findOne({
+      where: { nombre: { [Op.like]: '%Emergencia%' } },
+      transaction
+    });
+    
+    if (sectorEmergencias) {
+      const cirujanos = await Medico.findAll({
+        where: { sector_id: sectorEmergencias.id },
+        include: [
+          { model: Usuario, as: 'usuario' },
+          { 
+            model: Especialidad, 
+            as: 'especialidad',
+            where: { nombre: { [Op.like]: '%Cirug%' } },
+            required: false
+          }
+        ],
+        transaction
+      });
+      
+      console.log(` Médicos del sector emergencias encontrados: ${cirujanos.length}`);
+      
+      const mensajeCirugia = 
+        `🔪 **CIRUGÍA DE URGENCIA**\n\n` +
+        `Paciente: ${paciente.usuario.nombre} ${paciente.usuario.apellido}\n` +
+        `DNI: ${paciente.usuario.dni}\n` +
+        `Prioridad: ${prioridad}\n` +
+        `Derivado por: Dr. ${req.user.nombre}\n` +
+        `Fecha: ${new Date().toLocaleString('es-AR')}\n\n` +
+        `Motivo: ${observaciones || 'Requiere evaluación quirúrgica urgente'}`;
+      
+      for (const cirujano of cirujanos) {
+        await Notificacion.create({
+          usuario_id: cirujano.usuario_id,
+          remitente_id: usuarioId,
+          mensaje: mensajeCirugia,
+          leida: false,
+          tipo: 'CIRUGIA_URGENCIA'
+        }, { transaction });
+        
+        console.log(` Notificación enviada a Dr. ${cirujano.usuario.nombre}`);
+      }
+    }
+    
+    // ========================================
+    // 6. Crear registro en historial médico
+    // ========================================
+    await HistorialMedico.create({
+      paciente_id: pacienteId,
+      descripcion: `Derivado a cirugía de urgencia. Prioridad: ${prioridad}. ${observaciones || ''}${camaLiberada ? ` Cama ${camaLiberada.numero} liberada.` : ''}`,
+      tipo_evento: 'Derivacion',
+      fecha: new Date()
+    }, { transaction });
+    
+    await transaction.commit();
+    
+    console.log(`✅ Paciente derivado a cirugía exitosamente`);
+    
+    res.json({
+      success: true,
+      message: `Paciente ${paciente.usuario.nombre} ${paciente.usuario.apellido} derivado a cirugía de urgencia.${camaLiberada ? ` Cama ${camaLiberada.numero} en limpieza.` : ''} Se notificó a los cirujanos.`,
+      data: {
+        lista_espera_id: listaEspera.id,
+        prioridad: prioridad,
+        cama_liberada: camaLiberada?.numero || null
+      }
+    });
+    
+  } catch (error) {
+    await transaction.rollback();
+    console.error('❌ Error al derivar a cirugía:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al derivar paciente a cirugía',
+      error: error.message
+    });
   }
 };

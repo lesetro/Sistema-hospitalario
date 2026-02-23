@@ -367,17 +367,17 @@ exports.crearAlta = async (req, res, next) => {
     
     // Crear la alta médica
     const altaData = {
-      paciente_id,
+      paciente_id: parseInt(paciente_id),
       medico_id: medico.id,
       fecha_alta: new Date(),
       tipo_alta,
       estado_paciente,
       instrucciones_post_alta,
-      internacion_id: internacion_id || null,
-      admision_id: admision_id || null
+      internacion_id: internacion_id ? parseInt(internacion_id) : null,
+      admision_id: admision_id ? parseInt(admision_id) : null 
     };
     
-    console.log('📝 Creando alta con datos:', altaData);
+    console.log(' Creando alta con datos:', altaData);
     
     const alta = await AltaMedica.create(altaData, { transaction });
     
@@ -594,6 +594,12 @@ exports.obtenerPendientesAlta = async (req, res, next) => {
           model: Cama,
           as: 'cama',
           attributes: ['numero']
+        },
+        {
+          model: Admision,
+          as: 'admision',
+          attributes: ['id', 'estado'],
+          required: false  
         }
       ],
       order: [['fecha_inicio', 'ASC']],
@@ -700,15 +706,14 @@ exports.obtenerPendientesAlta = async (req, res, next) => {
   }
 };
 
-// ========================================
 // CREAR ALTA DESDE SOLICITUD DE ENFERMERÍA
 // ========================================
 exports.crearAltaDesdeSolicitud = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
-    console.log('🏥 CREANDO ALTA DESDE SOLICITUD DE ENFERMERÍA');
-    console.log('📋 Datos recibidos:', req.body);
+    console.log(' CREANDO ALTA DESDE SOLICITUD DE ENFERMERÍA');
+    console.log(' Datos recibidos:', req.body);
     
     const { 
       lista_espera_id,
@@ -718,6 +723,7 @@ exports.crearAltaDesdeSolicitud = async (req, res, next) => {
     } = req.body;
     
     if (!lista_espera_id) {
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         message: 'ID de lista de espera es requerido'
@@ -770,48 +776,65 @@ exports.crearAltaDesdeSolicitud = async (req, res, next) => {
       });
     }
     
-    const paciente = await Paciente.findByPk(listaEspera.paciente_id, {
+    //  BUSCAR INTERNACIÓN ACTIVA DEL PACIENTE
+    const internacion = await Internacion.findOne({
+      where: {
+        paciente_id: listaEspera.paciente_id,
+        fecha_alta: null
+      },
       transaction
     });
     
-    if (!paciente) {
+    //  BUSCAR ADMISIÓN PENDIENTE DEL PACIENTE
+    const admision = await Admision.findOne({
+      where: {
+        paciente_id: listaEspera.paciente_id,
+        estado: 'Pendiente'
+      },
+      transaction
+    });
+    
+    // VALIDAR QUE TENGA AL MENOS UNO
+    if (!internacion && !admision) {
       await transaction.rollback();
-      return res.status(404).json({
+      return res.status(400).json({
         success: false,
-        message: 'Paciente no encontrado'
+        message: 'El paciente no tiene internación ni admisión activa para dar alta'
       });
     }
     
     const altaData = {
-      paciente_id: listaEspera.paciente_id,
+      paciente_id: parseInt(listaEspera.paciente_id),
       medico_id: medico.id,
       fecha_alta: new Date(),
-      tipo_alta: tipo_alta || 'Alta Voluntaria',
+      tipo_alta: tipo_alta || 'Voluntaria',
       estado_paciente: estado_paciente || 'Estable',
       instrucciones_post_alta: instrucciones_post_alta || 'Seguimiento ambulatorio',
-      origen: 'ENFERMERIA',
-      lista_espera_id: lista_espera_id
+      internacion_id: internacion?.id || null,  
+      admision_id: admision?.id || null          
     };
     
-    console.log('📝 Creando alta con datos:', altaData);
+    console.log(' Creando alta con datos:', altaData);
     
     const alta = await AltaMedica.create(altaData, { transaction });
     
+    // Actualizar lista de espera
     await listaEspera.update({
       estado: 'COMPLETADO',
       fecha_completado: new Date()
     }, { transaction });
     
+    // Notificaciones (sin cambios)
     if (listaEspera.creador_id && listaEspera.creador_tipo === 'ENFERMERO') {
       try {
         await Notificacion.create({
           usuario_id: listaEspera.creador_id,
           remitente_id: req.user.usuario_id,
-          mensaje: `✅ ALTA MÉDICA OTORGADA\nPaciente: ${listaEspera.paciente?.usuario?.nombre || 'N/A'}\nMédico: Dr. ${medico.usuario?.nombre || 'N/A'}\nFecha: ${new Date().toLocaleDateString()}\nTipo de alta: ${altaData.tipo_alta}`,
+          mensaje: ` ALTA MÉDICA OTORGADA\nPaciente: ${listaEspera.paciente?.usuario?.nombre || 'N/A'}\nMédico: Dr. ${medico.usuario?.nombre || 'N/A'}\nFecha: ${new Date().toLocaleDateString()}\nTipo de alta: ${altaData.tipo_alta}`,
           leida: false,
           tipo: 'ALTA_MEDICA'
         }, { transaction });
-        console.log('✅ Notificación enviada al enfermero');
+        console.log(' Notificación enviada al enfermero');
       } catch (error) {
         console.error('❌ Error al notificar enfermero:', error.message);
       }
@@ -822,11 +845,11 @@ exports.crearAltaDesdeSolicitud = async (req, res, next) => {
         await Notificacion.create({
           usuario_id: listaEspera.paciente.usuario.id,
           remitente_id: req.user.usuario_id,
-          mensaje: `🏥 ALTA MÉDICA\nEstimado paciente, se le ha otorgado el alta médica.\nMédico: Dr. ${medico.usuario?.nombre || 'N/A'}\nFecha: ${new Date().toLocaleDateString()}\nInstrucciones: ${altaData.instrucciones_post_alta || 'Seguimiento ambulatorio'}`,
+          mensaje: ` ALTA MÉDICA\nEstimado paciente, se le ha otorgado el alta médica.\nMédico: Dr. ${medico.usuario?.nombre || 'N/A'}\nFecha: ${new Date().toLocaleDateString()}\nInstrucciones: ${altaData.instrucciones_post_alta || 'Seguimiento ambulatorio'}`,
           leida: false,
           tipo: 'ALTA_PACIENTE'
         }, { transaction });
-        console.log('✅ Notificación enviada al paciente');
+        console.log(' Notificación enviada al paciente');
       } catch (error) {
         console.error('❌ Error al notificar paciente:', error.message);
       }
@@ -834,7 +857,7 @@ exports.crearAltaDesdeSolicitud = async (req, res, next) => {
     
     await transaction.commit();
     
-    console.log(`✅ Alta médica creada desde solicitud. ID: ${alta.id}`);
+    console.log(` Alta médica creada desde solicitud. ID: ${alta.id}`);
     
     res.json({
       success: true,

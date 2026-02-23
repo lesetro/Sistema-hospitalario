@@ -2,7 +2,7 @@ let paginaActual = 1;
 const pacientesPorPagina = 10;
 
 document.addEventListener('DOMContentLoaded', function() {
-  console.log('✅ Página cargada - Iniciando cargas de datos');
+  console.log(' Página cargada - Iniciando cargas de datos');
   
   cargarEstadisticas();
   cargarObrasSociales();
@@ -195,7 +195,13 @@ function mostrarPacientes(pacientes) {
                     title="Solicitar control de enfermería">
               <i class="fas fa-heartbeat"></i>
             </button>
-
+            <!--  NUEVO: Derivar a cirugía -->
+            <button class="btn btn-sm btn-outline-danger"
+                    onclick="abrirModalDerivarCirugia(${paciente.id}, '${nombreEscapado}')"
+                    title="Derivar a cirugía de urgencia">
+              <i class="fas fa-procedures"></i>
+            </button>
+          
           </div>
         </td>
       </tr>
@@ -367,4 +373,46 @@ function mostrarAlerta(tipo, mensaje) {
   `;
   document.body.appendChild(alertContainer);
   setTimeout(() => alertContainer.remove(), 5000);
+}
+// ========================================
+// DERIVAR A CIRUGÍA DE URGENCIA
+// ========================================
+function abrirModalDerivarCirugia(pacienteId, nombrePaciente) {
+  document.getElementById('cirugiaPacienteId').value = pacienteId;
+  document.getElementById('cirugiaPacienteNombre').textContent = nombrePaciente;
+  document.getElementById('cirugiaPrioridad').value = 'ALTA';
+  document.getElementById('cirugiaObservaciones').value = '';
+  new bootstrap.Modal(document.getElementById('modalDerivarCirugia')).show();
+}
+
+async function confirmarDerivarCirugia() {
+  const pacienteId = document.getElementById('cirugiaPacienteId').value;
+  const prioridad = document.getElementById('cirugiaPrioridad').value;
+  const observaciones = document.getElementById('cirugiaObservaciones').value;
+  
+  if (!pacienteId) {
+    mostrarAlerta('error', 'Error: ID de paciente no válido');
+    return;
+  }
+
+  try {
+    const response = await fetch(`/medico/pacientes/${pacienteId}/derivar-cirugia`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ prioridad, observaciones })
+    });
+    
+    const data = await response.json();
+    bootstrap.Modal.getInstance(document.getElementById('modalDerivarCirugia')).hide();
+    
+    if (data.success) {
+      mostrarAlerta('success', data.message);
+      cargarPacientes(); // Refrescar lista
+    } else {
+      mostrarAlerta('error', data.message);
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    mostrarAlerta('error', 'Error al derivar a cirugía');
+  }
 }

@@ -225,6 +225,15 @@ function mostrarPacientes(pacientes) {
         <td>${prioridadBadge}</td>
         <td>${p.tipo_procedimiento || '<span class="text-muted">Por definir</span>'}</td>
         <td class="text-center">${evaluacionIcon}</td>
+        <td class="text-center">
+          ${p.observaciones ? `
+            <button class="btn btn-sm btn-outline-secondary btn-ver-observaciones" 
+                    data-observaciones="${p.observaciones.replace(/"/g, '&quot;').replace(/\n/g, '&#10;')}"
+                    title="Ver motivo de derivación">
+              <i class="fas fa-comment-medical"></i>
+            </button>
+          ` : '<span class="text-muted">-</span>'}
+        </td>
         <td>
           <div class="btn-group btn-group-sm">
             ${acciones}
@@ -285,6 +294,14 @@ function agregarEventListenersBotones() {
       mostrarModalFinalizar(intervencionId);
     });
   });
+  // Ver observaciones
+  document.querySelectorAll('.btn-ver-observaciones').forEach(btn => {
+    btn.addEventListener('click', function() {
+      const observaciones = this.dataset.observaciones.replace(/&#10;/g, '\n');
+      verObservaciones(observaciones);
+    });
+  });
+
 }
 
 // ========================================
@@ -669,4 +686,34 @@ function mostrarAlerta(tipo, mensaje) {
       setTimeout(() => alert.remove(), 150);
     }
   }, 5000);
+}
+// ========================================
+// VER OBSERVACIONES DE DERIVACIÓN
+// ========================================
+function verObservaciones(texto) {
+  const modalBody = document.getElementById('modalDetallePacienteBody');
+  if (!modalBody) return;
+  
+  // Cambiar título del modal temporalmente
+  const modalTitle = document.querySelector('#modalDetallePaciente .modal-title');
+  const tituloOriginal = modalTitle?.innerHTML;
+  if (modalTitle) {
+    modalTitle.innerHTML = '<i class="fas fa-comment-medical me-2"></i>Motivo de Derivación';
+  }
+  
+  modalBody.innerHTML = `
+    <div class="alert alert-info mb-0">
+      <pre style="white-space: pre-wrap; font-family: inherit; margin: 0;">${texto}</pre>
+    </div>
+  `;
+  
+  const modal = new bootstrap.Modal(document.getElementById('modalDetallePaciente'));
+  modal.show();
+  
+  // Restaurar título cuando se cierre
+  document.getElementById('modalDetallePaciente').addEventListener('hidden.bs.modal', function() {
+    if (modalTitle && tituloOriginal) {
+      modalTitle.innerHTML = tituloOriginal;
+    }
+  }, { once: true });
 }

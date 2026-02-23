@@ -304,7 +304,10 @@ exports.verificarEmergenciasPendientes = async (req, res, next) => {
   try {
     // Si no está autenticado, detener aquí
     if (!req.user || req.user.nombre === 'Guest') {
-      return res.json({ success: true, hay_pendientes: false, count: 0 });
+      return res.json({ 
+        success: true, 
+        hay_pendientes: false, 
+        count: 0 });
     }
 
     console.log('🔍 Buscando emergencias para médico:', req.user.usuario_id);
@@ -323,8 +326,8 @@ exports.verificarEmergenciasPendientes = async (req, res, next) => {
       limit: 10
     });
 
-    console.log('📊 Emergencias encontradas:', emergencias.length);
-    console.log('🚨 Datos:', emergencias.map(e => ({
+    console.log(' Emergencias encontradas:', emergencias.length);
+    console.log(' Datos:', emergencias.map(e => ({
       id: e.id,
       paciente: e.paciente?.usuario?.nombre,
       tipo_egreso: e.tipo_egreso,
@@ -346,7 +349,7 @@ exports.verificarEmergenciasPendientes = async (req, res, next) => {
 
 exports.verificarCirugiasPendientes = async (req, res, next) => {
   try {
-    console.log('🔪 Verificando cirugías pendientes...');
+    console.log(' Verificando cirugías pendientes...');
     
     const resultado = await notificacionesService.verificarCirugiasPendientes(
       req.user.medico_id,
@@ -399,21 +402,49 @@ exports.aceptarEmergencia = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Emergencia no encontrada o ya fue aceptada' });
     }
 
+    // ========================================
+    //  BUSCAR Y ASIGNAR CAMA EN EMERGENCIAS
+    // ========================================
+    let camaAsignada = null;
+    const sexoPaciente = listaEspera.paciente?.usuario?.sexo || null;
+    
+    // Buscar cama libre en el sector del médico (Emergencias)
+    camaAsignada = await Cama.findOne({
+      where: { estado: 'Libre' },
+      include: [{
+        model: Habitacion,
+        as: 'habitacion',
+        where: { sector_id: medico.sector_id }
+      }],
+      transaction
+    });
+    
+    if (camaAsignada) {
+      // Ocupar la cama
+      await camaAsignada.update({
+        estado: 'Ocupada',
+        sexo_ocupante: sexoPaciente
+      }, { transaction });
+      
+      console.log(` Cama ${camaAsignada.numero} asignada al paciente en Emergencias`);
+    } else {
+      console.log(' No hay camas disponibles en Emergencias');
+    }
+
     // Actualizar lista de espera
     await listaEspera.update({ 
       estado: 'ASIGNADO',
-      tipo_egreso: 'DERIVACION_MEDICO',
       medico_id: medico.id,
+      habitacion_id: camaAsignada?.habitacion_id || null,  // ✅ Guardar habitación
       fecha_asignacion: new Date()
     }, { transaction });
 
-    // Actualizar también la EvaluacionEnfermeria
-    // para que el polling deje de encontrarla
+    // Actualizar la EvaluacionEnfermeria
     const evaluacionEnfermeria = await EvaluacionEnfermeria.findOne({
       where: { 
         paciente_id: listaEspera.paciente_id,
         tipo_egreso: 'DERIVACION_URGENCIA',
-        estado: 'Pendiente'  // solo la que sigue pendiente
+        estado: 'Pendiente'
       },
       include: [{
         model: Enfermero,
@@ -425,19 +456,18 @@ exports.aceptarEmergencia = async (req, res, next) => {
     });
 
     if (evaluacionEnfermeria) {
-      // Cambiar estado para que el polling no la encuentre más
       await evaluacionEnfermeria.update({
         estado: 'Atendido',
         tipo_egreso: 'ORDEN_MEDICA',
         medico_id: medico.id
       }, { transaction });
 
-      // Notificar al enfermero si existe
+      // Notificar al enfermero
       if (evaluacionEnfermeria.enfermero?.usuario) {
         await Notificacion.create({
           usuario_id: evaluacionEnfermeria.enfermero.usuario.id,
           remitente_id: req.user.usuario_id,
-          mensaje: `El Dr. ${req.user.nombre} ${req.user.apellido} aceptó atender a ${listaEspera.paciente.usuario.nombre} ${listaEspera.paciente.usuario.apellido}`,
+          mensaje: `El Dr. ${req.user.nombre} aceptó atender a ${listaEspera.paciente.usuario.nombre} ${listaEspera.paciente.usuario.apellido}${camaAsignada ? `. Cama: ${camaAsignada.numero}` : ''}`,
           leida: false,
           tipo: 'EMERGENCIA_ACEPTADA'
         }, { transaction });
@@ -448,12 +478,22 @@ exports.aceptarEmergencia = async (req, res, next) => {
 
     res.json({
       success: true,
-      message: 'Paciente aceptado correctamente',
-      data: listaEspera
+      message: camaAsignada 
+        ? `Paciente aceptado. Cama asignada: ${camaAsignada.numero}`
+        : 'Paciente aceptado (sin cama disponible)',
+      data: {
+        ...listaEspera.toJSON(),
+        cama: camaAsignada ? {
+          id: camaAsignada.id,
+          numero: camaAsignada.numero,
+          habitacion: camaAsignada.habitacion?.numero
+        } : null
+      }
     });
 
   } catch (error) {
     await transaction.rollback();
+    console.error('❌ Error al aceptar emergencia:', error);
     next(error);
   }
 };

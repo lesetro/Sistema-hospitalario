@@ -114,7 +114,7 @@ class NotificacionesService {
   
   async verificarCirugiasPendientes(medicoId, usuarioId) {
     try {
-      console.log(`🔪 Buscando cirugías pendientes para médico: ${medicoId}`);
+      console.log(` Buscando cirugías pendientes para médico: ${medicoId}`);
 
       // Obtener el médico con su sector y especialidad
       const medico = await Medico.findOne({
@@ -145,8 +145,7 @@ class NotificacionesService {
       const tipoTurnoCirugia = await TipoTurno.findOne({
         where: {
           nombre: { [Op.or]: [
-            { [Op.like]: '%CIRUGIA%' },
-            { [Op.like]: '%URGENCIA%' }
+            { [Op.like]: '%CIRUGIA%' }
           ]}
         }
       });
@@ -169,7 +168,7 @@ class NotificacionesService {
         estado: { [Op.in]: ['PENDIENTE', 'ASIGNADO'] }
       };
 
-      if (esCirujano && esDeEmergencias) {
+      if (esCirujano || esDeEmergencias) {
         // Cirujano de emergencias ve las suyas + las sin asignar
         whereClause[Op.or] = [
           { medico_id: medico.id },
@@ -219,9 +218,9 @@ class NotificacionesService {
 
       return {
         success: true,
-        hay_pendientes: count > 0,
-        count,
-        sin_asignar: sinAsignar,
+        hay_pendientes: sinAsignar > 0, 
+        count: sinAsignar, 
+        total: count, 
         cirugias: cirugias.map(c => ({
           id: c.id,
           paciente_id: c.paciente_id,

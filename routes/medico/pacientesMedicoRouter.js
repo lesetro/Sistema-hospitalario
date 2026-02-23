@@ -10,6 +10,8 @@ router.use(authMiddleware);
 router.get('/', pacientesMedicoController.renderPacientes);
 router.post('/:id/solicitar-controles', pacientesMedicoController.solicitarControlesEnfermeria);
 router.get('/:id/detalle', pacientesMedicoController.renderDetallePaciente);
+// Derivar a cirugía de urgencia
+router.post('/:id/derivar-cirugia', pacientesMedicoController.derivarACirugiaUrgencia);
 
 //  APIs
 router.get('/api/pacientes', pacientesMedicoController.obtenerPacientes);

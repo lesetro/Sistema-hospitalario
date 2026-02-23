@@ -224,44 +224,44 @@ block content
                 .alert.alert-info
                   i.fas.fa-info-circle.me-2
                   span#textoInfoSeleccionada
-            
+          
               .col-md-6
                 label.form-label Paciente ID *
                 input.form-control(type='number' id='nuevoPacienteId' name='paciente_id' required readonly)
-              
+            
               .col-md-6
                 label.form-label Tipo de Alta *
                 select.form-select(id='nuevoTipoAlta' name='tipo_alta' required)
                   option(value='') Seleccione tipo
-                  option(value='Alta Voluntaria') Alta Voluntaria
-                  option(value='Alta Médica') Alta Médica
-                  option(value='Alta por Mejoría') Alta por Mejoría
-                  option(value='Alta por Petición') Alta por Petición
-            
+                  option(value='Voluntaria') Voluntaria
+                  option(value='Medica') Médica
+                  option(value='Contraindicada') Contraindicada
+          
               .col-md-6
                 label.form-label Internación ID
                 input.form-control(type='number' id='nuevaInternacionId' name='internacion_id' readonly)
-              
+            
               .col-md-6
                 label.form-label Admisión ID
                 input.form-control(type='number' id='nuevaAdmisionId' name='admision_id' readonly)
                 small.text-muted Debe especificar internación o admisión
-            
+          
               .col-md-12
                 label.form-label Estado del Paciente al Alta *
                 select.form-select(id='nuevoEstadoPaciente' name='estado_paciente' required)
                   option(value='') Seleccione estado
                   option(value='Estable') Estable
-                  option(value='Mejorado') Mejorado
-                  option(value='Recuperado') Recuperado
-                  option(value='En tratamiento') En tratamiento
-            
+                  option(value='Grave') Grave
+                  option(value='Critico') Crítico
+                  option(value='Fallecido') Fallecido
+                  option(value='Sin_Evaluar') Sin Evaluar
+          
               .col-md-12
                 label.form-label Instrucciones Post-Alta
                 textarea.form-control(id='nuevasInstrucciones' name='instrucciones_post_alta' rows='6' placeholder='Indicaciones...')
         .modal-footer
           button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
-          button.btn.btn-success(type='submit' form='formNuevaAlta')
+          button.btn.btn-success(type='button' onclick='submitNuevaAlta()')
             i.fas.fa-save.me-2
             | Registrar Alta
 
@@ -280,5 +280,48 @@ block content
         .modal-footer
           button.btn.btn-secondary(data-bs-dismiss='modal') Cerrar
 
+  // Modal Alta desde Solicitud 
+  #modalAltaSolicitud.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-warning
+          h5.modal-title
+            i.fas.fa-user-nurse.me-2
+            | Otorgar Alta Médica
+          button.btn-close(data-bs-dismiss='modal')
+        .modal-body
+          input(type='hidden' id='solicitudListaEsperaId')
+          input(type='hidden' id='solicitudPacienteId')
+          
+          .alert.alert-info.mb-3
+            i.fas.fa-user.me-2
+            span#solicitudNombrePaciente
+          
+          .mb-3
+            label.form-label Tipo de Alta *
+            select.form-select#solicitudTipoAlta
+              option(value='Voluntaria') Voluntaria
+              option(value='Medica' selected) Médica
+              option(value='Contraindicada') Contraindicada
+          
+          .mb-3
+            label.form-label Estado del Paciente *
+            select.form-select#solicitudEstadoPaciente
+              option(value='Estable' selected) Estable
+              option(value='Grave') Grave
+              option(value='Critico') Crítico
+              option(value='Sin_Evaluar') Sin Evaluar
+          
+          .mb-3
+            label.form-label Instrucciones Post-Alta
+            textarea.form-control#solicitudInstrucciones(rows='4' placeholder='Indicaciones...') Seguimiento ambulatorio. Control en 7 días.
+        
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-success(type='button' onclick='submitAltaSolicitud()')
+            i.fas.fa-check.me-2
+            | Otorgar Alta
+
 block scripts
   script(src='/js/medico/altas-medicas.js')
+

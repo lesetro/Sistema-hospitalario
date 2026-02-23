@@ -454,7 +454,7 @@ exports.crearIntervencion = async (req, res, next) => {
       iniciar_inmediatamente
     } = req.body;
     
-    console.log(' Creando intervención quirúrgica:', { paciente_id, tipo_procedimiento, habitacion_id });
+    console.log('🔪 Creando intervención quirúrgica:', { paciente_id, tipo_procedimiento, habitacion_id });
     
     // Validaciones
     if (!paciente_id || !tipo_procedimiento || !habitacion_id) {
@@ -483,7 +483,77 @@ exports.crearIntervencion = async (req, res, next) => {
       });
     }
     
+    // ========================================
+    // ✅ LIBERAR CAMA DE EMERGENCIAS (si tiene)
+    // ========================================
+    let camaEmergenciasLiberada = null;
+    
+    // Buscar internación activa en emergencias
+    const internacionActiva = await Internacion.findOne({
+      where: {
+        paciente_id: paciente_id,
+        fecha_alta: null
+      },
+      include: [
+        { 
+          model: Cama, 
+          as: 'cama',
+          include: [{
+            model: Habitacion,
+            as: 'habitacion',
+            include: [{ model: Sector, as: 'sector' }]
+          }]
+        }
+      ],
+      transaction
+    });
+    
+    if (internacionActiva?.cama) {
+      camaEmergenciasLiberada = internacionActiva.cama;
+      
+      // Liberar la cama
+      await camaEmergenciasLiberada.update({
+        estado: 'EnLimpieza',
+        sexo_ocupante: null
+      }, { transaction });
+      
+      console.log(`🧹 Cama ${camaEmergenciasLiberada.numero} de emergencias liberada para limpieza`);
+    } else {
+      // Buscar en ListaEspera si tiene habitación asignada
+      const listaConCama = await ListaEspera.findOne({
+        where: {
+          paciente_id: paciente_id,
+          estado: 'ASIGNADO',
+          habitacion_id: { [Op.ne]: null }
+        },
+        transaction
+      });
+      
+      if (listaConCama?.habitacion_id) {
+        const camaOcupada = await Cama.findOne({
+          where: {
+            habitacion_id: listaConCama.habitacion_id,
+            estado: 'Ocupada'
+          },
+          transaction
+        });
+        
+        if (camaOcupada) {
+          camaEmergenciasLiberada = camaOcupada;
+          
+          await camaOcupada.update({
+            estado: 'EnLimpieza',
+            sexo_ocupante: null
+          }, { transaction });
+          
+          console.log(`🧹 Cama ${camaOcupada.numero} liberada para limpieza`);
+        }
+      }
+    }
+    
+    // ========================================
     // Verificar quirófano disponible
+    // ========================================
     const habitacion = await Habitacion.findByPk(habitacion_id, { transaction });
     if (!habitacion) {
       await transaction.rollback();
@@ -493,7 +563,7 @@ exports.crearIntervencion = async (req, res, next) => {
       });
     }
     
-    //  Buscar una cama libre en el quirófano
+    // Buscar una cama libre en el quirófano
     const camaLibre = await Cama.findOne({
       where: {
         habitacion_id: habitacion_id,
@@ -510,15 +580,15 @@ exports.crearIntervencion = async (req, res, next) => {
       });
     }
     
-    console.log(` Cama encontrada: ${camaLibre.numero} (ID: ${camaLibre.id})`);
+    console.log(`🛏️ Cama encontrada en quirófano: ${camaLibre.numero} (ID: ${camaLibre.id})`);
     
-    //  Asignar la cama al paciente
+    // Asignar la cama al paciente
     await camaLibre.update({
       estado: 'Ocupada',
       sexo_ocupante: paciente.usuario?.sexo || null
     }, { transaction });
     
-    console.log(` Cama ${camaLibre.numero} asignada al paciente`);
+    console.log(`✅ Cama ${camaLibre.numero} asignada al paciente en quirófano`);
     
     // Determinar estado inicial
     let estadoInicial = 'PROGRAMADA';
@@ -526,7 +596,7 @@ exports.crearIntervencion = async (req, res, next) => {
       estadoInicial = es_urgencia ? 'EN_CIRUGIA' : 'PRE_OPERATORIO';
     }
     
-    // Crear intervención (incluir cama_id si el modelo lo soporta)
+    // Crear intervención
     const datosIntervencion = {
       paciente_id,
       medico_id: medicoId,
@@ -559,15 +629,16 @@ exports.crearIntervencion = async (req, res, next) => {
     
     await transaction.commit();
     
-    console.log(` Intervención creada: ID ${intervencion.id}, Cama: ${camaLibre.numero}`);
+    console.log(`✅ Intervención creada: ID ${intervencion.id}, Cama quirófano: ${camaLibre.numero}`);
     
     res.json({
       success: true,
-      message: 'Intervención quirúrgica creada correctamente',
+      message: `Intervención quirúrgica creada correctamente${camaEmergenciasLiberada ? `. Cama ${camaEmergenciasLiberada.numero} de emergencias en limpieza.` : ''}`,
       data: {
         id: intervencion.id,
         estado: intervencion.estado_cirugia,
-        cama: camaLibre.numero
+        cama_quirofano: camaLibre.numero,
+        cama_emergencias_liberada: camaEmergenciasLiberada?.numero || null
       }
     });
     
@@ -712,7 +783,6 @@ exports.finalizarCirugia = async (req, res, next) => {
     // ========================================
     const requiereInternacion = resultado_cirugia === 'REQUIERE_INTERNACION';
     const requiereUCI = resultado_cirugia === 'REQUIERE_UCI';
-    const esAlta = resultado_cirugia === 'EXITOSA' || resultado_cirugia === 'EXITOSA_CON_COMPLICACIONES';
     
     let internacionCreada = null;
     let camaAsignada = null;
@@ -753,14 +823,12 @@ exports.finalizarCirugia = async (req, res, next) => {
       });
       
       if (!sectorDestino) {
-        console.log(`⚠️ Sector ${nombreSectorDestino} no encontrado, buscando alternativa...`);
         sectorDestino = await Sector.findOne({
           where: {
             nombre: { [Op.or]: [
               { [Op.like]: '%Internación%' },
               { [Op.like]: '%Internacion%' },
-              { [Op.like]: '%UTI%' },
-              { [Op.like]: '%Terapia%' }
+              { [Op.like]: '%UTI%' }
             ]}
           },
           transaction
@@ -782,14 +850,8 @@ exports.finalizarCirugia = async (req, res, next) => {
         if (camaAsignada) {
           const sexoPaciente = intervencion.paciente?.usuario?.sexo || null;
           
-          // Ocupar la cama
-          await camaAsignada.update({
-            estado: 'Ocupada',
-            sexo_ocupante: sexoPaciente
-          }, { transaction });
-          
           // ========================================
-          // BUSCAR TIPO DE INTERNACIÓN
+          // BUSCAR DATOS REQUERIDOS
           // ========================================
           let tipoInternacion = await TipoInternacion.findOne({
             where: {
@@ -798,25 +860,17 @@ exports.finalizarCirugia = async (req, res, next) => {
             transaction
           });
           
-          // Si no encuentra, buscar cualquier tipo de internación
           if (!tipoInternacion) {
             tipoInternacion = await TipoInternacion.findOne({ transaction });
           }
           
-          // ========================================
-          // BUSCAR MÉDICO DEL SECTOR DESTINO
-          // ========================================
           let medicoDestino = await Medico.findOne({
             where: { sector_id: sectorDestino.id },
             transaction
           });
           
-          // Si no hay médico en el sector, usar el cirujano actual
           const medicoAsignadoId = medicoDestino?.id || medicoId;
           
-          // ========================================
-          // BUSCAR O CREAR TIPO DE TURNO PARA INTERNACIÓN
-          // ========================================
           let tipoTurnoInternacion = await TipoTurno.findOne({
             where: {
               nombre: { [Op.or]: [
@@ -828,89 +882,107 @@ exports.finalizarCirugia = async (req, res, next) => {
             transaction
           });
           
-          // Si no existe, usar cualquier tipo de turno
           if (!tipoTurnoInternacion) {
             tipoTurnoInternacion = await TipoTurno.findOne({ transaction });
           }
           
           // ========================================
-          // CREAR LISTA DE ESPERA PARA INTERNACIÓN
-          // ========================================
-          const listaEsperaInternacion = await ListaEspera.create({
-            paciente_id: intervencion.paciente_id,
-            tipo_turno_id: tipoTurnoInternacion.id,
-            medico_id: medicoAsignadoId,
-            habitacion_id: camaAsignada.habitacion_id,
-            prioridad: requiereUCI ? 'ALTA' : 'MEDIA',
-            estado: 'COMPLETADO',
-            creador_tipo: 'MEDICO',
-            creador_id: req.user.usuario_id,
-            fecha_registro: new Date()
-          }, { transaction });
-          
-          console.log(`📋 Lista de espera creada: ID ${listaEsperaInternacion.id}`);
-          
-          // ========================================
-          // CREAR LA INTERNACIÓN
-          // ========================================
-          internacionCreada = await Internacion.create({
-            paciente_id: intervencion.paciente_id,
-            medico_id: medicoAsignadoId,
-            cama_id: camaAsignada.id,
-            habitacion_id: camaAsignada.habitacion_id,
-            tipo_internacion_id: tipoInternacion.id,
-            lista_espera_id: listaEsperaInternacion.id,
-            fecha_ingreso: new Date(),
-            motivo: `Post-operatorio: ${intervencion.tipo_procedimiento}`,
-            estado: 'ACTIVA',
-            observaciones: `Derivado desde cirugía. Resultado: ${resultado_cirugia}. ${notas_postoperatorio || ''}`
-          }, { transaction });
-          
-          console.log(` Internación creada: ID ${internacionCreada.id}, Cama: ${camaAsignada.numero}`);
+// CREAR LISTA DE ESPERA
+// ========================================
+const listaEsperaInternacion = await ListaEspera.create({
+  paciente_id: intervencion.paciente_id,
+  tipo_turno_id: tipoTurnoInternacion.id,
+  medico_id: medicoAsignadoId,
+  habitacion_id: camaAsignada.habitacion_id,
+  prioridad: requiereUCI ? 'ALTA' : 'MEDIA',
+  estado: 'ASIGNADO',  // ✅ CAMBIAR de 'COMPLETADO' a 'ASIGNADO'
+  creador_tipo: 'MEDICO',
+  creador_id: req.user.usuario_id,
+  fecha_registro: new Date()
+}, { transaction });
+
+console.log(`📋 Lista de espera creada: ID ${listaEsperaInternacion.id}`);
+
+// ========================================
+// CREAR INTERNACIÓN
+// ========================================
+internacionCreada = await Internacion.create({
+  paciente_id: intervencion.paciente_id,
+  medico_id: medicoAsignadoId,
+  cama_id: camaAsignada.id,
+  habitacion_id: camaAsignada.habitacion_id,
+  tipo_internacion_id: tipoInternacion.id,
+  lista_espera_id: listaEsperaInternacion.id,
+  fecha_inicio: new Date(),
+  motivo: `Post-operatorio: ${intervencion.tipo_procedimiento}`,
+  estado_paciente: 'Estable',
+  observaciones: `Derivado desde cirugía. Resultado: ${resultado_cirugia}. ${notas_postoperatorio || ''}`
+}, { transaction });
+
+console.log(`✅ Internación creada: ID ${internacionCreada.id}`);
+
+// ========================================
+//  AHORA SÍ: MARCAR LISTA COMO COMPLETADA
+// ========================================
+await listaEsperaInternacion.update({
+  estado: 'COMPLETADO'
+}, { transaction });
+
+// ========================================
+// OCUPAR LA CAMA
+// ========================================
+await camaAsignada.update({
+  estado: 'Ocupada',
+  sexo_ocupante: sexoPaciente
+}, { transaction });
+
+console.log(` Cama ${camaAsignada.numero} asignada al paciente`);
           
           // ========================================
           // NOTIFICAR AL SECTOR DESTINO
           // ========================================
           const medicosDestino = await Medico.findAll({
             where: { sector_id: sectorDestino.id },
-            include: [{ model: Usuario, as: 'usuario' }],
             transaction
           });
           
           const enfermerosDestino = await Enfermero.findAll({
             where: { sector_id: sectorDestino.id },
-            include: [{ model: Usuario, as: 'usuario' }],
             transaction
           });
           
+          const nombrePaciente = `${intervencion.paciente?.usuario?.nombre} ${intervencion.paciente?.usuario?.apellido}`;
+          const mensajeNotificacion = `🏥 Nuevo paciente post-operatorio: ${nombrePaciente}. Cirugía: ${intervencion.tipo_procedimiento}. Cama asignada: ${camaAsignada.numero}`;
+          
           const notificaciones = [];
-          const mensajeNotificacion = `Nuevo paciente post-operatorio: ${intervencion.paciente?.usuario?.nombre} ${intervencion.paciente?.usuario?.apellido}. Cirugía: ${intervencion.tipo_procedimiento}. Cama: ${camaAsignada.numero}`;
           
           for (const medico of medicosDestino) {
             notificaciones.push({
               usuario_id: medico.usuario_id,
-              titulo: '🏥 Nuevo paciente post-operatorio',
+              remitente_id: req.user.usuario_id,
               mensaje: mensajeNotificacion,
-              tipo: 'DERIVACION_INTERNA',
               leida: false,
-              fecha: new Date()
+              eliminado: false,
+              created_at: new Date(),
+              updated_at: new Date()
             });
           }
           
           for (const enfermero of enfermerosDestino) {
             notificaciones.push({
               usuario_id: enfermero.usuario_id,
-              titulo: '🏥 Nuevo paciente post-operatorio',
+              remitente_id: req.user.usuario_id,
               mensaje: mensajeNotificacion,
-              tipo: 'DERIVACION_INTERNA',
               leida: false,
-              fecha: new Date()
+              eliminado: false,
+              created_at: new Date(),
+              updated_at: new Date()
             });
           }
           
           if (notificaciones.length > 0) {
             await Notificacion.bulkCreate(notificaciones, { transaction });
-            console.log(` ${notificaciones.length} notificaciones enviadas al sector ${sectorDestino.nombre}`);
+            console.log(`📨 ${notificaciones.length} notificaciones enviadas al sector ${sectorDestino.nombre}`);
           }
           
         } else {
@@ -922,14 +994,15 @@ exports.finalizarCirugia = async (req, res, next) => {
             transaction
           });
           
+          const nombrePaciente = `${intervencion.paciente?.usuario?.nombre} ${intervencion.paciente?.usuario?.apellido}`;
+          
           for (const admin of administrativos) {
             await Notificacion.create({
               usuario_id: admin.id,
-              titulo: '⚠️ URGENTE: Paciente sin cama disponible',
-              mensaje: `El paciente ${intervencion.paciente?.usuario?.nombre} ${intervencion.paciente?.usuario?.apellido} requiere ${requiereUCI ? 'UCI' : 'internación'} pero no hay camas disponibles. Cirugía: ${intervencion.tipo_procedimiento}`,
-              tipo: 'ALERTA_CAMA',
+              remitente_id: req.user.usuario_id,
+              mensaje: `⚠️ URGENTE: ${nombrePaciente} requiere ${requiereUCI ? 'UCI' : 'internación'} pero no hay camas disponibles. Cirugía: ${intervencion.tipo_procedimiento}`,
               leida: false,
-              fecha: new Date()
+              eliminado: false
             }, { transaction });
           }
         }
@@ -939,7 +1012,7 @@ exports.finalizarCirugia = async (req, res, next) => {
     }
     
     // ========================================
-    // ACTUALIZAR LISTA DE ESPERA ORIGINAL (de cirugía)
+    // ACTUALIZAR LISTA DE ESPERA ORIGINAL
     // ========================================
     if (intervencion.lista_espera_id) {
       await ListaEspera.update({
@@ -967,11 +1040,8 @@ exports.finalizarCirugia = async (req, res, next) => {
     
     await transaction.commit();
     
-    console.log(` Cirugía finalizada correctamente`);
+    console.log(`✅ Cirugía finalizada correctamente`);
     
-    // ========================================
-    // RESPUESTA
-    // ========================================
     res.json({
       success: true,
       message: 'Cirugía finalizada correctamente',

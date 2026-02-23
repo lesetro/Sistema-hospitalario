@@ -111,7 +111,7 @@ block content
           nav.mt-3#paginacion-container
             ul.pagination.justify-content-center#paginacion
 
-  // ✅ Modal Detalle Paciente — header único
+  //  Modal Detalle Paciente — header único
   #modalDetallePaciente.modal.fade(tabindex='-1')
     .modal-dialog.modal-xl
       .modal-content
@@ -172,5 +172,40 @@ block content
             i.fas.fa-check.me-2
             | Confirmar Solicitud
 
+  // Modal Derivar a Cirugía de Urgencia
+  #modalDerivarCirugia.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-danger.text-white
+          h5.modal-title
+            i.fas.fa-procedures.me-2
+            | Derivar a Cirugía de Urgencia
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          input(type='hidden' id='cirugiaPacienteId')
+          .alert.alert-danger.mb-3
+            i.fas.fa-exclamation-triangle.me-2
+            | El paciente será agregado a la lista de cirugías de urgencia y se notificará a los cirujanos de guardia.
+          p.mb-2
+            strong Paciente:
+            br
+            span#cirugiaPacienteNombre.text-muted -
+          
+          .mb-3
+            label.form-label Prioridad
+            select.form-select#cirugiaPrioridad
+              option(value='ALTA' selected) Alta
+              option(value='MEDIA') Media
+              option(value='BAJA') Baja
+          
+          .mb-3
+            label.form-label Observaciones / Motivo
+            textarea.form-control#cirugiaObservaciones(rows='3' placeholder='Describa el motivo de la derivación...')
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-danger(onclick='confirmarDerivarCirugia()')
+            i.fas.fa-procedures.me-2
+            | Confirmar Derivación
+            
 block scripts
   script(src='/js/medico/pacientes.js')
