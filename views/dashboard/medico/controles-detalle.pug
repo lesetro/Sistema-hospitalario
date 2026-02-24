@@ -1,0 +1,263 @@
+extends layout
+
+block content
+  - const pacienteData = control.evaluacion?.paciente || control.paciente
+  
+  .container-fluid
+    nav(aria-label="breadcrumb" style="--bs-breadcrumb-divider: '>';")
+      ol.breadcrumb
+        li.breadcrumb-item
+          a(href="/medico" class="text-decoration-none")
+            i.fas.fa-home.me-1
+            | Dashboard
+        li.breadcrumb-item
+          a(href="/medico/pacientes" class="text-decoration-none")
+            i.fas.fa-users.me-1
+            | Pacientes
+        li.breadcrumb-item.active(aria-current="page")
+          i.fas.fa-clipboard-list.me-1
+          | Detalle de Control ##{control.id}
+
+    .row.justify-content-center
+      .col-lg-12
+        .card.border-0.shadow-sm
+          .card-header.bg-primary.text-white.py-3
+            .d-flex.align-items-center
+              i.fas.fa-clipboard-list.fa-2x.me-3
+              div
+                h4.mb-0 Control de Enfermería ##{control.id}
+                small.text-white-50 Realizado el #{new Date(control.createdAt).toLocaleString('es-AR')}
+          
+          .card-body.p-4
+            // Datos del paciente
+            .row.mb-4
+              .col-md-6
+                .card.h-100.border-0.bg-light
+                  .card-body
+                    h5.card-title.text-primary.mb-3
+                      i.fas.fa-user-circle.me-2
+                      | Datos del Paciente
+                    table.table.table-borderless
+                      tr
+                        td(style="width: 120px")
+                          strong Nombre:
+                        td #{pacienteData.usuario.nombre} #{pacienteData.usuario.apellido}
+                      tr
+                        td
+                          strong DNI:
+                        td #{pacienteData.usuario.dni}
+                      tr
+                        td
+                          strong Edad:
+                        td 
+                          - const edad = Math.floor((new Date() - new Date(pacienteData.usuario.fecha_nacimiento)) / (1000 * 60 * 60 * 24 * 365.25))
+                          | #{edad} años
+                      tr
+                        td
+                          strong Sexo:
+                        td #{pacienteData.usuario.sexo}
+                      tr
+                        td
+                          strong Teléfono:
+                        td #{pacienteData.usuario.telefono || 'N/A'}
+              
+              .col-md-6
+                .card.h-100.border-0.bg-light
+                  .card-body
+                    h5.card-title.text-primary.mb-3
+                      i.fas.fa-info-circle.me-2
+                      | Información del Control
+                    table.table.table-borderless
+                      tr
+                        td(style="width: 120px")
+                          strong Estado:
+                        td
+                          if control.estado === 'COMPLETADO'
+                            span.badge.bg-success.px-3.py-2
+                              i.fas.fa-check-circle.me-1
+                              | COMPLETADO
+                          else if control.estado === 'PENDIENTE'
+                            span.badge.bg-warning.px-3.py-2
+                              i.fas.fa-clock.me-1
+                              | PENDIENTE
+                          else
+                            span.badge.bg-secondary.px-3.py-2
+                              i.fas.fa-hourglass.me-1
+                              | #{control.estado}
+                      tr
+                        td
+                          strong Enfermero:
+                        td
+                          if control.evaluacion && control.evaluacion.enfermero && control.evaluacion.enfermero.usuario
+                            | #{control.evaluacion.enfermero.usuario.nombre} #{control.evaluacion.enfermero.usuario.apellido}
+                          else
+                            span.text-muted No asignado
+                      tr
+                        td
+                          strong Fecha Control:
+                        td= new Date(control.createdAt).toLocaleDateString('es-AR')
+                      tr
+                        td
+                          strong Grupo Sanguíneo:
+                        td
+                          if control.grupo_sanguineo
+                            span.badge.bg-danger.px-3.py-2
+                              | #{control.grupo_sanguineo} #{control.factor_rh || ''}
+                          else
+                            span.text-muted No registrado
+
+            // Alergias (si existen)
+            if control.alergias
+              .alert.alert-warning.mb-4
+                .d-flex
+                  i.fas.fa-exclamation-triangle.fa-2x.me-3
+                  div
+                    h5.alert-heading.mb-1 Alergias Registradas
+                    p.mb-0= control.alergias
+
+            // Signos Vitales y Medidas
+            .row.mb-4
+              .col-12
+                .card.border-0.bg-danger.text-white
+                  .card-header.bg-danger.text-white.py-2
+                    h5.mb-0
+                      i.fas.fa-heartbeat.me-2
+                      | Signos Vitales
+                  .card-body
+                    .row.text-center
+                      .col-md-3.mb-3
+                        .bg-white.text-dark.rounded.p-3.shadow-sm
+                          h6.text-muted Presión Arterial
+                          h3.mb-0= control.presion_arterial || 'N/A'
+                      .col-md-3.mb-3
+                        .bg-white.text-dark.rounded.p-3.shadow-sm
+                          h6.text-muted Frec. Cardíaca
+                          h3.mb-0= control.frecuencia_cardiaca ? `${control.frecuencia_cardiaca} lpm` : 'N/A'
+                      .col-md-3.mb-3
+                        .bg-white.text-dark.rounded.p-3.shadow-sm
+                          h6.text-muted Temperatura
+                          h3.mb-0= control.temperatura ? `${control.temperatura}°C` : 'N/A'
+                      .col-md-3.mb-3
+                        .bg-white.text-dark.rounded.p-3.shadow-sm
+                          h6.text-muted Sat. Oxígeno
+                          h3.mb-0= control.nivel_oxigeno ? `${control.nivel_oxigeno}%` : 'N/A'
+
+            // Medidas Corporales e IMC
+            .row.mb-4
+              .col-md-4
+                .card.text-center.h-100.border-0.shadow-sm
+                  .card-body.py-4
+                    i.fas.fa-weight.fa-3x.text-primary.mb-3
+                    h5.text-muted Peso
+                    h2.display-6= control.peso ? `${control.peso} kg` : 'N/A'
+              .col-md-4
+                .card.text-center.h-100.border-0.shadow-sm
+                  .card-body.py-4
+                    i.fas.fa-ruler-vertical.fa-3x.text-primary.mb-3
+                    h5.text-muted Altura
+                    h2.display-6= control.altura ? `${control.altura} cm` : 'N/A'
+              .col-md-4
+                .card.text-center.h-100.border-0.shadow-sm
+                  .card-body.py-4
+                    i.fas.fa-calculator.fa-3x.text-primary.mb-3
+                    h5.text-muted IMC
+                    if control.peso && control.altura
+                      - const imc = (control.peso / Math.pow(control.altura / 100, 2)).toFixed(1)
+                      - let categoria = ''
+                      - let color = ''
+                      if imc < 18.5
+                        - categoria = 'Bajo peso'
+                        - color = 'info'
+                      else if imc < 25
+                        - categoria = 'Normal'
+                        - color = 'success'
+                      else if imc < 30
+                        - categoria = 'Sobrepeso'
+                        - color = 'warning'
+                      else
+                        - categoria = 'Obesidad'
+                        - color = 'danger'
+                      h2.display-6= imc
+                      span.badge(class=`bg-${color} mt-2 px-3 py-2`) #{categoria}
+                    else
+                      h2.display-6 N/A
+
+            // Antecedentes
+            .row.mb-4
+              .col-md-6
+                .card.h-100.border-0.shadow-sm
+                  .card-header.bg-light
+                    h6.mb-0
+                      i.fas.fa-history.me-2
+                      | Antecedentes Personales
+                  .card-body
+                    p.mb-0= control.antecedentes_personales || 'No registrados'
+              .col-md-6
+                .card.h-100.border-0.shadow-sm
+                  .card-header.bg-light
+                    h6.mb-0
+                      i.fas.fa-users.me-2
+                      | Antecedentes Familiares
+                  .card-body
+                    p.mb-0= control.antecedentes_familiares || 'No registrados'
+
+            // Valores de Laboratorio (si existen)
+            if control.nivel_hb || control.nivel_glucosa || control.nivel_creatinina
+              .card.mb-4.border-0.shadow-sm
+                .card-header.bg-info.text-white
+                  h5.mb-0
+                    i.fas.fa-flask.me-2
+                    | Valores de Laboratorio
+                .card-body
+                  .row
+                    if control.nivel_hb
+                      .col-md-3.mb-3
+                        .p-3.bg-light.rounded
+                          strong.text-muted Hemoglobina
+                          h5.mb-0.mt-2= control.nivel_hb
+                    if control.nivel_hct
+                      .col-md-3.mb-3
+                        .p-3.bg-light.rounded
+                          strong.text-muted Hematocrito
+                          h5.mb-0.mt-2= control.nivel_hct
+                    if control.nivel_leucocitos
+                      .col-md-3.mb-3
+                        .p-3.bg-light.rounded
+                          strong.text-muted Leucocitos
+                          h5.mb-0.mt-2= control.nivel_leucocitos
+                    if control.nivel_plaquetas
+                      .col-md-3.mb-3
+                        .p-3.bg-light.rounded
+                          strong.text-muted Plaquetas
+                          h5.mb-0.mt-2= control.nivel_plaquetas
+                    if control.nivel_glucosa
+                      .col-md-3.mb-3
+                        .p-3.bg-light.rounded
+                          strong.text-muted Glucosa
+                          h5.mb-0.mt-2= control.nivel_glucosa
+                    if control.nivel_creatinina
+                      .col-md-3.mb-3
+                        .p-3.bg-light.rounded
+                          strong.text-muted Creatinina
+                          h5.mb-0.mt-2= control.nivel_creatinina
+                    if control.nivel_urea
+                      .col-md-3.mb-3
+                        .p-3.bg-light.rounded
+                          strong.text-muted Urea
+                          h5.mb-0.mt-2= control.nivel_urea
+                    if control.nivel_colesterol
+                      .col-md-3.mb-3
+                        .p-3.bg-light.rounded
+                          strong.text-muted Colesterol
+                          h5.mb-0.mt-2= control.nivel_colesterol
+
+            // Botones
+            .d-flex.justify-content-between.mt-4
+              a.btn.btn-outline-secondary.btn-lg(href="/medico/pacientes")
+                i.fas.fa-arrow-left.me-2
+                | Volver a Pacientes
+              
+              // Botón para ver paciente (si quieres)
+              a.btn.btn-outline-primary.btn-lg(href=`/medico/pacientes/${pacienteData.id}/detalle`)
+                i.fas.fa-user.me-2
+                | Ver Ficha del Paciente

@@ -12,7 +12,8 @@ const {
   ObraSocial,
   HistorialMedico,
   Diagnostico,
-  Tratamiento
+  Tratamiento,Cama,
+  Habitacion
 } = require('../../models');
 const { Op } = require('sequelize');
 const db = require('../../database/db');
@@ -403,18 +404,52 @@ exports.aceptarEmergencia = async (req, res, next) => {
     }
 
     // ========================================
-    //  BUSCAR Y ASIGNAR CAMA EN EMERGENCIAS
+    // BUSCAR Y ASIGNAR CAMA EN EMERGENCIAS
     // ========================================
     let camaAsignada = null;
+    let motivoSinCama = null;
     const sexoPaciente = listaEspera.paciente?.usuario?.sexo || null;
+    const nombrePaciente = `${listaEspera.paciente?.usuario?.nombre || ''} ${listaEspera.paciente?.usuario?.apellido || ''}`.trim();
     
-    // Buscar cama libre en el sector del médico (Emergencias)
+    console.log(` Buscando cama en Emergencias para paciente con sexo: ${sexoPaciente || 'No especificado'}`);
+    
+    // Construir condición de sexo compatible
+    let whereSexoHabitacion = {};
+    
+    if (sexoPaciente === 'Masculino') {
+      whereSexoHabitacion = {
+        [Op.or]: [
+          { sexo_permitido: { [Op.in]: ['Masculino', 'Mixta', 'Individual'] } },
+          { sexo_permitido: null }
+        ]
+      };
+    } else if (sexoPaciente === 'Femenino') {
+      whereSexoHabitacion = {
+        [Op.or]: [
+          { sexo_permitido: { [Op.in]: ['Femenino', 'Mixta', 'Individual'] } },
+          { sexo_permitido: null }
+        ]
+      };
+    } else {
+      // Sexo "Otro" o no especificado - solo habitaciones Mixtas o Individuales
+      whereSexoHabitacion = {
+        [Op.or]: [
+          { sexo_permitido: { [Op.in]: ['Mixta', 'Individual'] } },
+          { tipo: 'Individual' }
+        ]
+      };
+    }
+    
+    // Buscar cama libre compatible
     camaAsignada = await Cama.findOne({
       where: { estado: 'Libre' },
       include: [{
         model: Habitacion,
         as: 'habitacion',
-        where: { sector_id: medico.sector_id }
+        where: {
+          sector_id: medico.sector_id,
+          ...whereSexoHabitacion
+        }
       }],
       transaction
     });
@@ -428,18 +463,47 @@ exports.aceptarEmergencia = async (req, res, next) => {
       
       console.log(` Cama ${camaAsignada.numero} asignada al paciente en Emergencias`);
     } else {
-      console.log(' No hay camas disponibles en Emergencias');
+      // Determinar motivo
+      if (sexoPaciente === 'Otro' || !sexoPaciente) {
+        motivoSinCama = `No hay camas disponibles compatibles. El paciente tiene sexo "${sexoPaciente || 'no especificado'}" y requiere habitación Mixta o Individual.`;
+      } else {
+        motivoSinCama = `No hay camas disponibles en Emergencias para pacientes de sexo ${sexoPaciente}.`;
+      }
+      
+      console.log(` ${motivoSinCama}`);
+      
+      // Notificar a administrativos
+      const administrativos = await Usuario.findAll({
+        where: { rol: 'ADMINISTRATIVO' },
+        transaction
+      });
+      
+      for (const admin of administrativos) {
+        await Notificacion.create({
+          usuario_id: admin.id,
+          remitente_id: req.user.usuario_id,
+          mensaje: ` EMERGENCIA SIN CAMA\n\nPaciente: ${nombrePaciente}\nDNI: ${listaEspera.paciente?.usuario?.dni || 'N/A'}\nSexo: ${sexoPaciente || 'No especificado'}\nMédico: Dr. ${req.user.nombre}\n\n${motivoSinCama}\n\nEl paciente fue aceptado pero necesita cama urgente.`,
+          leida: false,
+          eliminado: false
+        }, { transaction });
+      }
+      
+      console.log(` Notificación enviada a administrativos`);
     }
 
-    // Actualizar lista de espera
+    // ========================================
+    // ACTUALIZAR LISTA DE ESPERA
+    // ========================================
     await listaEspera.update({ 
       estado: 'ASIGNADO',
       medico_id: medico.id,
-      habitacion_id: camaAsignada?.habitacion_id || null,  // ✅ Guardar habitación
+      habitacion_id: camaAsignada?.habitacion_id || null,
       fecha_asignacion: new Date()
     }, { transaction });
 
-    // Actualizar la EvaluacionEnfermeria
+    // ========================================
+    // ACTUALIZAR EVALUACIÓN ENFERMERÍA
+    // ========================================
     const evaluacionEnfermeria = await EvaluacionEnfermeria.findOne({
       where: { 
         paciente_id: listaEspera.paciente_id,
@@ -464,10 +528,17 @@ exports.aceptarEmergencia = async (req, res, next) => {
 
       // Notificar al enfermero
       if (evaluacionEnfermeria.enfermero?.usuario) {
+        let mensajeEnfermero = `El Dr. ${req.user.nombre} aceptó atender a ${nombrePaciente}`;
+        if (camaAsignada) {
+          mensajeEnfermero += `. Cama asignada: ${camaAsignada.numero}`;
+        } else {
+          mensajeEnfermero += `.  Sin cama disponible - pendiente de asignación`;
+        }
+        
         await Notificacion.create({
           usuario_id: evaluacionEnfermeria.enfermero.usuario.id,
           remitente_id: req.user.usuario_id,
-          mensaje: `El Dr. ${req.user.nombre} aceptó atender a ${listaEspera.paciente.usuario.nombre} ${listaEspera.paciente.usuario.apellido}${camaAsignada ? `. Cama: ${camaAsignada.numero}` : ''}`,
+          mensaje: mensajeEnfermero,
           leida: false,
           tipo: 'EMERGENCIA_ACEPTADA'
         }, { transaction });
@@ -476,18 +547,28 @@ exports.aceptarEmergencia = async (req, res, next) => {
 
     await transaction.commit();
 
+    // ========================================
+    // RESPUESTA
+    // ========================================
+    let mensaje = '';
+    if (camaAsignada) {
+      mensaje = `Paciente aceptado. Cama asignada: ${camaAsignada.numero}`;
+    } else {
+      mensaje = `Paciente aceptado.  ${motivoSinCama} Se notificó a administración.`;
+    }
+
     res.json({
       success: true,
-      message: camaAsignada 
-        ? `Paciente aceptado. Cama asignada: ${camaAsignada.numero}`
-        : 'Paciente aceptado (sin cama disponible)',
+      message: mensaje,
       data: {
         ...listaEspera.toJSON(),
         cama: camaAsignada ? {
           id: camaAsignada.id,
           numero: camaAsignada.numero,
           habitacion: camaAsignada.habitacion?.numero
-        } : null
+        } : null,
+        sin_cama: !camaAsignada,
+        motivo_sin_cama: motivoSinCama
       }
     });
 

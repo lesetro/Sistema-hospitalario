@@ -15,7 +15,8 @@ const {
   Sector,
   ObraSocial,
   Especialidad,
-  TipoInternacion
+  TipoInternacion,
+  HistorialMedico
 } = require('../../models');
 const { Op } = require('sequelize');
 const db = require('../../database/db');
@@ -266,18 +267,18 @@ exports.obtenerAltaPorId = async (req, res, next) => {
     next(error);
   }
 };
-
 // ========================================
 // CREAR ALTA
 // ========================================
+
 exports.crearAlta = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
     console.log(' CREANDO ALTA MÉDICA');
-    console.log(' Datos recibidos:', req.body);
+    console.log('Datos recibidos:', req.body);
     
-    const { 
+    let { 
       paciente_id, 
       internacion_id, 
       admision_id,
@@ -288,6 +289,7 @@ exports.crearAlta = async (req, res, next) => {
     
     // Validaciones básicas
     if (!paciente_id) {
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         message: 'Debe especificar un paciente'
@@ -295,40 +297,47 @@ exports.crearAlta = async (req, res, next) => {
     }
     
     if (!internacion_id && !admision_id) {
+      await transaction.rollback();
       return res.status(400).json({
         success: false,
         message: 'Debe especificar una internación o una admisión'
       });
     }
     
-    // Validar que la internación existe
+    // ========================================
+    //  SI HAY INTERNACIÓN, IGNORAR ADMISIÓN
+    // (la admisión ya se completó cuando se creó la internación)
+    // ========================================
     if (internacion_id) {
-      console.log(`🔍 Buscando internación ${internacion_id}...`);
+      admision_id = null;  // ← EL FIX CLAVE
+      
+      console.log(` Buscando internación ${internacion_id}...`);
       
       const internacion = await Internacion.findByPk(internacion_id, {
-        include: [{ model: Paciente, as: 'paciente' }]
+        include: [{ model: Paciente, as: 'paciente' }],
+        transaction
       });
       
       if (!internacion) {
-        console.error(`❌ Internación ${internacion_id} NO encontrada`);
+        await transaction.rollback();
         return res.status(404).json({
           success: false,
           message: `La internación con ID ${internacion_id} no existe`
         });
       }
       
-      console.log(`✅ Internación ${internacion_id} encontrada`);
+      console.log(` Internación ${internacion_id} encontrada`);
       
-      // Validar que el paciente coincide
       if (internacion.paciente_id != paciente_id) {
+        await transaction.rollback();
         return res.status(400).json({
           success: false,
           message: 'El paciente no coincide con la internación'
         });
       }
       
-      // Validar que no tiene alta previa
       if (internacion.fecha_alta) {
+        await transaction.rollback();
         return res.status(400).json({
           success: false,
           message: 'Esta internación ya tiene fecha de alta registrada'
@@ -336,36 +345,55 @@ exports.crearAlta = async (req, res, next) => {
       }
     }
     
-    // Si es admisión, validar que existe
+    // Validar admisión SOLO si no hay internación
     if (admision_id) {
-      console.log(`🔍 Buscando admisión ${admision_id}...`);
+      console.log(` Buscando admisión ${admision_id}...`);
       
-      const admision = await Admision.findByPk(admision_id);
+      const admision = await Admision.findByPk(admision_id, { transaction });
       
       if (!admision) {
-        console.error(`❌ Admisión ${admision_id} NO encontrada`);
+        await transaction.rollback();
         return res.status(404).json({
           success: false,
           message: `La admisión con ID ${admision_id} no existe`
         });
       }
       
-      console.log(`✅ Admisión ${admision_id} encontrada`);
+      if (admision.estado === 'Completada') {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'La admisión ya está completada'
+        });
+      }
+      
+      console.log(`Admisión ${admision_id} encontrada`);
     }
     
-    // Obtener médico desde el usuario logueado
+    // Obtener médico
     const medico = await Medico.findOne({
-      where: { usuario_id: req.user.usuario_id }
+      where: { usuario_id: req.user.usuario_id },
+      transaction
     });
     
     if (!medico) {
+      await transaction.rollback();
       return res.status(404).json({
         success: false,
         message: 'Médico no encontrado'
       });
     }
     
-    // Crear la alta médica
+    // ========================================
+    // CREAR ALTA MÉDICA
+    // El hook afterCreate del modelo hace automáticamente:
+    // - Actualiza internacion.fecha_alta
+    // - Libera la cama (estado: 'Libre')
+    // - Actualiza lista_espera (COMPLETADO)
+    // - Marca admisión como Completada
+    // - Marca paciente como Inactivo
+    // - Crea registro en HistorialMedico
+    // ========================================
     const altaData = {
       paciente_id: parseInt(paciente_id),
       medico_id: medico.id,
@@ -383,11 +411,11 @@ exports.crearAlta = async (req, res, next) => {
     
     await transaction.commit();
     
-    console.log(`✅ Alta médica creada exitosamente. ID: ${alta.id}`);
+    console.log(` Alta médica creada exitosamente. ID: ${alta.id}`);
     
     res.json({
       success: true,
-      message: 'Alta médica registrada correctamente',
+      message: 'Alta médica registrada correctamente. Cama liberada y paciente dado de alta.',
       data: alta
     });
     
@@ -395,7 +423,6 @@ exports.crearAlta = async (req, res, next) => {
     await transaction.rollback();
     console.error('❌ Error al crear alta médica:', error);
     
-    // Mensaje más específico para error de foreign key
     if (error.name === 'SequelizeForeignKeyConstraintError') {
       return res.status(400).json({
         success: false,
@@ -403,10 +430,12 @@ exports.crearAlta = async (req, res, next) => {
       });
     }
     
-    next(error);
+    res.status(500).json({
+      success: false,
+      message: error.message || 'Error al crear alta médica'
+    });
   }
 };
-
 // ========================================
 // OBTENER ESTADÍSTICAS
 // ========================================

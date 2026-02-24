@@ -29,6 +29,10 @@ router.put('/:id', ordenesController.editar);
 // D - DELETE (Cancelar)
 router.delete('/:id', ordenesController.eliminar);
 
+// Enviar a cirugía
+router.post('/:id/enviar-cirugia', ordenesController.enviarACirugia);
+
+
 // ========================================
 // RUTAS API
 // ========================================
@@ -36,5 +40,7 @@ router.delete('/:id', ordenesController.eliminar);
 // API: Obtener órdenes pre-quirúrgicas de un paciente
 router.get('/api/paciente/:paciente_id/ordenes', ordenesController.obtenerOrdenesPaciente);
 router.get('/api/buscar-paciente', ordenesController.buscarPacienteConEvaluaciones);
+// Obtener quirófanos disponibles
+router.get('/api/quirofanos-disponibles', ordenesController.obtenerQuirofanosDisponibles);
 
 module.exports = router;

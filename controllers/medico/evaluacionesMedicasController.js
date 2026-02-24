@@ -16,6 +16,8 @@ const {
   ControlEnfermeria,
   EvaluacionEnfermeria,  
   Enfermero,
+  Especialidad,
+  ObraSocial,
   HistorialMedico
 } = require('../../models');
 const { Op } = require('sequelize');
@@ -35,7 +37,7 @@ exports.renderEvaluaciones = async (req, res, next) => {
           model: Medico,
           as: 'medico',
           include: [
-            { model: require('../../models').Especialidad, as: 'especialidad' }
+            { model: Especialidad, as: 'especialidad' }
           ]
         }
       ]
@@ -188,6 +190,64 @@ exports.verDetalle = async (req, res, next) => {
     next(error);
   }
 };
+exports.verControlMedico = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const control = await ControlEnfermeria.findByPk(id, {
+      include: [
+        {
+          model: EvaluacionEnfermeria,
+          as: 'evaluacion',
+          required: false,
+          include: [
+            {
+              model: Enfermero,
+              as: 'enfermero',
+              required: false,
+              include: [{
+                model: Usuario,
+                as: 'usuario',
+                attributes: ['nombre', 'apellido']
+              }]
+            }
+          ]
+        },
+        {
+          model: Paciente,
+          as: 'paciente',
+          required: false,
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo', 'telefono']
+          }]
+        },
+        {
+          model: EvaluacionMedica,
+          as: 'evaluacion_medica',
+          required: false
+        }
+      ]
+    });
+
+    if (!control) {
+      return res.status(404).render('error', {
+        message: 'Control de enfermería no encontrado'
+      });
+    }
+
+    res.render('dashboard/medico/controles-detalle', {
+      title: 'Detalle de Control de Enfermería',
+      user: req.user,
+      control
+    });
+
+  } catch (error) {
+    console.error('Error al ver control:', error);
+    next(error);
+  }
+};
 // ========================================
 // OBTENER EVALUACIONES MÉDICAS
 // ========================================
@@ -295,7 +355,7 @@ exports.obtenerEvaluacionPorId = async (req, res, next) => {
               attributes: { exclude: ['password'] }
             },
             {
-              model: require('../../models').ObraSocial,
+              model: ObraSocial,
               as: 'obraSocial',
               attributes: ['id', 'nombre']
             }

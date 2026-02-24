@@ -372,21 +372,21 @@ function renderizarSolicitudes(solicitudes) {
 // ABRIR MODAL ALTA (INTERNACIONES/ADMISIONES)
 // ========================================
 function abrirModalAlta(internacionId, pacienteId, tipo, admisionId = null) {
-  console.log('🏥 Abriendo modal alta:', { internacionId, pacienteId, tipo, admisionId });
+  console.log(' Abriendo modal alta:', { internacionId, pacienteId, tipo, admisionId });
   
   document.getElementById('formNuevaAlta').reset();
   document.getElementById('nuevoPacienteId').value = pacienteId;
   
   if (tipo === 'internacion') {
+    //  Solo enviar internacion_id (la admisión ya fue procesada)
     document.getElementById('nuevaInternacionId').value = internacionId;
-    // ✅ También setear admision_id si existe
-    document.getElementById('nuevaAdmisionId').value = admisionId || '';
+    document.getElementById('nuevaAdmisionId').value = ''; 
     
-    let texto = `Alta médica para internación ID: ${internacionId}`;
-    if (admisionId) texto += ` (Admisión: ${admisionId})`;
-    document.getElementById('textoInfoSeleccionada').textContent = texto;
+    document.getElementById('textoInfoSeleccionada').textContent = 
+      `Alta médica para internación ID: ${internacionId}`;
     
   } else if (tipo === 'admision') {
+    // Solo admisión (sin internación)
     document.getElementById('nuevaInternacionId').value = '';
     document.getElementById('nuevaAdmisionId').value = admisionId;
     document.getElementById('textoInfoSeleccionada').textContent = 
@@ -398,7 +398,6 @@ function abrirModalAlta(internacionId, pacienteId, tipo, admisionId = null) {
   const modal = new bootstrap.Modal(document.getElementById('modalNuevaAlta'));
   modal.show();
 }
-
 // ========================================
 // ABRIR MODAL ALTA DESDE SOLICITUD
 // ========================================

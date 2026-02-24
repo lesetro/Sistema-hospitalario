@@ -594,5 +594,93 @@ exports.derivarMedico = async (req, res, next) => {
     next(error);
   }
 };
+// ========================================
+// FORMULARIO EDITAR TRIAJE
+// ========================================
+exports.editarTriaje = async (req, res, next) => {
+  try {
+    const { id } = req.params;
+
+    const evaluacion = await EvaluacionEnfermeria.findByPk(id, {
+      include: [
+        {
+          model: Paciente,
+          as: 'paciente',
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido', 'dni', 'fecha_nacimiento', 'sexo', 'telefono']
+          }]
+        },
+        {
+          model: Enfermero,
+          as: 'enfermero',
+          include: [{
+            model: Usuario,
+            as: 'usuario',
+            attributes: ['nombre', 'apellido']
+          }],
+          required: false
+        }
+      ]
+    });
+
+    if (!evaluacion) {
+      return res.status(404).render('error', {
+        message: 'Evaluación de triaje no encontrada',
+        error: { status: 404 }
+      });
+    }
+
+    // Parsear signos vitales si existen
+    let signosVitales = {
+      presion_arterial: '',
+      frecuencia_cardiaca: '',
+      temperatura: '',
+      saturacion_oxigeno: '',
+      frecuencia_respiratoria: ''
+    };
+
+    if (evaluacion.signos_vitales) {
+      const sv = evaluacion.signos_vitales;
+      // Parsear formato: "PA: 120/80, FC: 75, T: 36.5°C, SpO2: 98%, FR: 16"
+      const paMatch = sv.match(/PA:\s*([^,]+)/);
+      const fcMatch = sv.match(/FC:\s*([^,]+)/);
+      const tMatch = sv.match(/T:\s*([^°]+)/);
+      const spo2Match = sv.match(/SpO2:\s*([^%]+)/);
+      const frMatch = sv.match(/FR:\s*([^,]+)/);
+
+      if (paMatch) signosVitales.presion_arterial = paMatch[1].trim();
+      if (fcMatch) signosVitales.frecuencia_cardiaca = fcMatch[1].trim();
+      if (tMatch) signosVitales.temperatura = tMatch[1].trim();
+      if (spo2Match) signosVitales.saturacion_oxigeno = spo2Match[1].trim();
+      if (frMatch) signosVitales.frecuencia_respiratoria = frMatch[1].trim();
+    }
+
+    // Parsear observaciones para extraer motivo
+    let motivo_consulta = '';
+    let observaciones = evaluacion.observaciones || '';
+    
+    if (observaciones.startsWith('Motivo:')) {
+      const lines = observaciones.split('\n');
+      motivo_consulta = lines[0].replace('Motivo:', '').trim();
+      observaciones = lines.slice(1).join('\n').trim();
+    }
+
+    res.render('dashboard/enfermero/triaje-editar', {
+      title: 'Editar Triaje',
+      user: req.user,
+      evaluacion,
+      signosVitales,
+      motivo_consulta,
+      observaciones_limpias: observaciones,
+      error: null
+    });
+
+  } catch (error) {
+    console.error('❌ Error al cargar triaje para editar:', error);
+    next(error);
+  }
+};
 
 module.exports = exports;

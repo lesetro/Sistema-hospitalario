@@ -53,12 +53,17 @@ module.exports = (sequelize, DataTypes) => {
       { fields: ['es_urgencia'] }    
     ]
   });
-  IntervencionQuirurgica.beforeCreate(async (intervencion, options) => {
-  const listaEspera = await sequelize.models.ListaEspera.findByPk(
-    intervencion.lista_espera_id
-  );
-  if (!listaEspera) {
-    throw new Error('Lista de espera no encontrada');
+
+ IntervencionQuirurgica.beforeCreate(async (intervencion, options) => {
+  // Solo validar si se proporciona lista_espera_id
+  if (intervencion.lista_espera_id) {
+    const listaEspera = await sequelize.models.ListaEspera.findByPk(
+      intervencion.lista_espera_id,
+      { transaction: options.transaction }  
+    );
+    if (!listaEspera) {
+      throw new Error('Lista de espera no encontrada');
+    }
   }
 });
  

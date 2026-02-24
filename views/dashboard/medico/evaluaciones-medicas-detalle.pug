@@ -277,9 +277,9 @@ block content
                           br
                           small.text-monospace= control.nivel_creatinina || 'N/A'
                   
-                  // Botón ver completo
+                  // Botón ver completo (en la lista de controles para médicos)
                   if control.estado === 'COMPLETADO'
-                    a.btn.btn-sm.btn-info.mt-2(href=`/enfermero/controles/${control.id}`)
+                    a.btn.btn-sm.btn-info.mt-2(href=`/medico/evaluaciones/controles/${control.id}/detalle`)
                       i.fas.fa-eye.me-1
                       | Ver Detalles Completos
         else

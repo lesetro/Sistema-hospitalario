@@ -67,9 +67,14 @@ block content
                         tr
                           th(style="width: 40%") Fecha:
                           td= new Date(evaluacion.fecha).toLocaleString('es-AR')
-                        tr
-                          th Enfermero:
-                          td= `${evaluacion.enfermero.usuario.nombre} ${evaluacion.enfermero.usuario.apellido}`
+                        if evaluacion.enfermero && evaluacion.enfermero.usuario
+                          tr
+                            th Enfermero:
+                            td= `${evaluacion.enfermero.usuario.nombre} ${evaluacion.enfermero.usuario.apellido}`
+                        else
+                          tr
+                            th Origen:
+                            td Orden médica
                         tr
                           th Estado:
                           td
@@ -114,9 +119,9 @@ block content
                   button.btn.btn-success(type="button" data-bs-toggle="modal" data-bs-target="#modalCompletar")
                     i.fas.fa-check.me-2
                     | Completar
-                  button.btn.btn-primary(type="button" data-bs-toggle="modal" data-bs-target="#modalDerivar")
+                  a.btn.btn-primary(href='/enfermero/evaluaciones')
                     i.fas.fa-user-md.me-2
-                    | Derivar a Médico
+                    | Derivar a Médico desde Evaluación Enfermería
 
     // Modal Completar
     .modal.fade#modalCompletar(tabindex="-1")

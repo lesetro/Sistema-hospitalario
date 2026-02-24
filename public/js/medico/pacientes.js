@@ -115,11 +115,30 @@ function mostrarPacientes(pacientes) {
   if (!tbody) return;
   
   tbody.innerHTML = pacientes.map(paciente => {
-    const estadoClass = {
-      'Activo': 'success',
-      'Inactivo': 'warning',
-      'Baja': 'danger'
-    }[paciente.estado] || 'secondary';
+    
+    // ========================================
+    // DETERMINAR BADGE DE ESTADO
+    // ========================================
+    let estadoBadge;
+    
+    if (paciente.transferido) {
+      // Paciente transferido a otro sector
+      estadoBadge = `
+        <span class="badge bg-info" title="Ahora con ${paciente.medicoActual || 'otro médico'}">
+          <i class="fas fa-exchange-alt me-1"></i>Transferido
+        </span>
+        <br>
+        <small class="text-muted">${paciente.transferidoA || 'Otro sector'}</small>
+      `;
+    } else {
+      // Estado normal
+      const estadoClass = {
+        'Activo': 'success',
+        'Inactivo': 'warning',
+        'Baja': 'danger'
+      }[paciente.estado] || 'secondary';
+      estadoBadge = `<span class="badge bg-${estadoClass}">${paciente.estado || 'N/A'}</span>`;
+    }
     
     const ultimaConsulta = paciente.ultimaEvaluacion 
       ? new Date(paciente.ultimaEvaluacion.fecha).toLocaleDateString('es-AR')
@@ -156,7 +175,7 @@ function mostrarPacientes(pacientes) {
             '<span class="text-muted">Sin obra social</span>'}
         </td>
         <td>
-          <span class="badge bg-${estadoClass}">${paciente.estado || 'N/A'}</span>
+          ${estadoBadge}
         </td>
         <td>
           <small>
@@ -177,7 +196,6 @@ function mostrarPacientes(pacientes) {
             <!--  Nueva evaluación → página evaluaciones con paciente precargado -->
             <button class="btn btn-sm btn-outline-success"
                     onclick="window.location.href='/medico/evaluaciones?paciente_dni=${paciente.usuario.dni}'"
-
                     title="Nueva evaluación médica">
               <i class="fas fa-stethoscope"></i>
             </button>
@@ -195,11 +213,18 @@ function mostrarPacientes(pacientes) {
                     title="Solicitar control de enfermería">
               <i class="fas fa-heartbeat"></i>
             </button>
-            <!--  NUEVO: Derivar a cirugía -->
+            
+            <!--  Derivar a cirugía -->
             <button class="btn btn-sm btn-outline-danger"
                     onclick="abrirModalDerivarCirugia(${paciente.id}, '${nombreEscapado}')"
                     title="Derivar a cirugía de urgencia">
               <i class="fas fa-procedures"></i>
+            </button>
+
+            
+            <button class="dropdown-item" onclick="abrirModalDerivarPrequirurgico(${paciente.id}, '${paciente.usuario.nombre} ${paciente.usuario.apellido}')">
+                    <i class="fas fa-notes-medical me-2 text-info"></i>
+                    Derivar a Pre-Quirúrgico
             </button>
           
           </div>
@@ -414,5 +439,67 @@ async function confirmarDerivarCirugia() {
   } catch (error) {
     console.error('Error:', error);
     mostrarAlerta('error', 'Error al derivar a cirugía');
+  }
+}
+
+// ========================================
+// DERIVAR A PRE-QUIRÚRGICO
+// ========================================
+
+function abrirModalDerivarPrequirurgico(pacienteId, nombre) {
+  document.getElementById('prequirurgicoPacienteId').value = pacienteId;
+  document.getElementById('prequirurgicoPacienteNombre').textContent = nombre;
+  document.getElementById('prequirurgicoNombre').value = '';
+  document.getElementById('prequirurgicoDescripcion').value = '';
+  document.getElementById('prequirurgicoObservaciones').value = '';
+  document.getElementById('prequirurgicoPrioridad').value = 'ALTA';
+  
+  const modal = new bootstrap.Modal(document.getElementById('modalDerivarPrequirurgico'));
+  modal.show();
+}
+
+async function confirmarDerivarPrequirurgico() {
+  const pacienteId = document.getElementById('prequirurgicoPacienteId').value;
+  const nombre = document.getElementById('prequirurgicoNombre').value;
+  const prioridad = document.getElementById('prequirurgicoPrioridad').value;
+  const descripcion = document.getElementById('prequirurgicoDescripcion').value;
+  const observaciones = document.getElementById('prequirurgicoObservaciones').value;
+  
+  if (!nombre.trim()) {
+    alert('Por favor ingrese el nombre del procedimiento');
+    return;
+  }
+  
+  try {
+    const response = await fetch(`/medico/pacientes/${pacienteId}/derivar-prequirurgico`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        nombre, prioridad, descripcion,
+        observaciones_especiales: observaciones
+      })
+    });
+    
+    const data = await response.json();
+    
+    if (data.success) {
+      alert(`✅ ${data.message}`);
+      bootstrap.Modal.getInstance(document.getElementById('modalDerivarPrequirurgico')).hide();
+      cargarPacientes();
+    } else {
+      // Manejar diferentes tipos de error
+      if (data.tipo === 'SIN_CAMAS') {
+        alert(`⚠️ ${data.message}\n\nContacte al administrativo para asignar una cama.`);
+      } else if (data.tipo === 'SIN_EVALUACION') {
+        alert(`⚠️ ${data.message}\n\nPrimero debe realizar una evaluación médica al paciente.`);
+      } else if (data.tipo === 'INCOMPATIBILIDAD_SEXO') {
+        alert(`⚠️ ${data.message}\n\nContacte al administrativo.`);
+      } else {
+        alert(` Mensaje : ${data.message}`);
+      }
+    }
+  } catch (error) {
+    console.error('Error:', error);
+    alert('Error al derivar paciente a pre-quirúrgico');
   }
 }

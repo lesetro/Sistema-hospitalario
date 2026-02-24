@@ -16,9 +16,12 @@ const {
   ControlEnfermeria,
   MotivoConsulta,
   Habitacion,
+  ProcedimientoPreQuirurgico,
   Sector,
   Notificacion,
   Tratamiento,
+  Turno,
+  TipoInternacion,
   Cama
 } = require('../../models');
 const { Op } = require('sequelize');
@@ -70,7 +73,7 @@ exports.renderPacientes = async (req, res, next) => {
 // ========================================
 exports.obtenerPacientes = async (req, res, next) => {
   try {
-    console.log('👥 obtenerPacientes - usuario_id:', req.user.usuario_id);
+    console.log(' obtenerPacientes - usuario_id:', req.user.usuario_id);
     
     const medico = await Medico.findOne({
       where: { usuario_id: req.user.usuario_id }
@@ -80,21 +83,12 @@ exports.obtenerPacientes = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Médico no encontrado' });
     }
 
-    console.log('✅ Médico encontrado:', medico.id);
+    console.log(' Médico encontrado:', medico.id);
 
     const { busqueda, estado, obraSocial, page = 1, limit = 10 } = req.query;
     const offset = (page - 1) * limit;
 
-    const whereUsuario = {};
     const wherePaciente = {};
-
-    if (busqueda) {
-      whereUsuario[Op.or] = [
-        { nombre:   { [Op.like]: `%${busqueda}%` } },
-        { apellido: { [Op.like]: `%${busqueda}%` } },
-        { dni:      { [Op.like]: `%${busqueda}%` } }
-      ];
-    }
 
     if (estado && estado !== 'TODOS') {
       wherePaciente.estado = estado;
@@ -104,9 +98,9 @@ exports.obtenerPacientes = async (req, res, next) => {
       wherePaciente.obra_social_id = obraSocial;
     }
 
-    // ✅ Las 3 fuentes: evaluaciones, internaciones, urgencias
-    console.log('🔍 Buscando pacientes del médico...');
-    const [porEvaluacion, porInternacion, porUrgencia] = await Promise.all([
+    // Las 4 fuentes: evaluaciones, internaciones, urgencias, turnos 
+    console.log(' Buscando pacientes del médico...');
+    const [porEvaluacion, porInternacion, porUrgencia, porTurno] = await Promise.all([
       EvaluacionMedica.findAll({
         where: { medico_id: medico.id },
         attributes: ['paciente_id'],
@@ -121,17 +115,26 @@ exports.obtenerPacientes = async (req, res, next) => {
         where: { medico_id: medico.id },
         attributes: ['paciente_id'],
         raw: true
+      }),
+      Turno.findAll({
+        where: { 
+          medico_id: medico.id,
+          paciente_id: { [Op.ne]: null }
+        },
+        attributes: ['paciente_id'],
+        raw: true
       })
     ]);
 
     const todosLosIds = [
       ...porEvaluacion.map(e => e.paciente_id),
       ...porInternacion.map(i => i.paciente_id),
-      ...porUrgencia.map(u => u.paciente_id)
+      ...porUrgencia.map(u => u.paciente_id),
+      ...porTurno.map(t => t.paciente_id)
     ];
 
     const pacientesIds = [...new Set(todosLosIds)];
-    console.log('✅ Pacientes encontrados:', pacientesIds.length);
+    console.log(' Pacientes encontrados (incluyendo turnos):', pacientesIds.length);
 
     if (pacientesIds.length === 0) {
       return res.json({
@@ -143,13 +146,66 @@ exports.obtenerPacientes = async (req, res, next) => {
 
     wherePaciente.id = { [Op.in]: pacientesIds };
 
+    // ========================================
+    // SI HAY BÚSQUEDA, FILTRAR PRIMERO POR USUARIO
+    // ========================================
+    let pacientesFiltrados = null;
+    
+    if (busqueda) {
+      // Buscar usuarios que coincidan con la búsqueda
+      const usuariosCoincidentes = await Usuario.findAll({
+        where: {
+          [Op.or]: [
+            { nombre: { [Op.like]: `%${busqueda}%` } },
+            { apellido: { [Op.like]: `%${busqueda}%` } },
+            { dni: { [Op.like]: `%${busqueda}%` } }
+          ]
+        },
+        attributes: ['id'],
+        raw: true
+      });
+
+      const userIds = usuariosCoincidentes.map(u => u.id);
+      
+      if (userIds.length === 0) {
+        return res.json({
+          success: true,
+          data: [],
+          pagination: { total: 0, page: parseInt(page), totalPages: 0 }
+        });
+      }
+
+      // Ahora buscar pacientes que pertenezcan a esos usuarios Y estén en la lista del médico
+      pacientesFiltrados = await Paciente.findAll({
+        where: {
+          ...wherePaciente,
+          usuario_id: { [Op.in]: userIds }
+        },
+        attributes: ['id'],
+        raw: true
+      });
+
+      const pacientesFiltradosIds = pacientesFiltrados.map(p => p.id);
+      
+      if (pacientesFiltradosIds.length === 0) {
+        return res.json({
+          success: true,
+          data: [],
+          pagination: { total: 0, page: parseInt(page), totalPages: 0 }
+        });
+      }
+
+      // Actualizar wherePaciente con los IDs filtrados
+      wherePaciente.id = { [Op.in]: pacientesFiltradosIds };
+    }
+
     const { count, rows: pacientes } = await Paciente.findAndCountAll({
       where: wherePaciente,
       include: [
         {
           model: Usuario,
           as: 'usuario',
-          where: Object.keys(whereUsuario).length > 0 ? whereUsuario : undefined,
+          required: true,
           attributes: ['id', 'nombre', 'apellido', 'dni', 'telefono', 'email', 'fecha_nacimiento', 'sexo']
         },
         {
@@ -165,7 +221,7 @@ exports.obtenerPacientes = async (req, res, next) => {
       distinct: true
     });
 
-    console.log('✅ Total de pacientes encontrados:', count);
+    console.log(' Total de pacientes encontrados después de filtros:', count);
 
     const pacientesConInfo = await Promise.all(pacientes.map(async (paciente) => {
       const ultimaEvaluacion = await EvaluacionMedica.findOne({
@@ -178,18 +234,62 @@ exports.obtenerPacientes = async (req, res, next) => {
         where: { paciente_id: paciente.id, medico_id: medico.id }
       });
 
+      // Internación activa CONMIGO
       const internacionActiva = await Internacion.findOne({
         where: { paciente_id: paciente.id, medico_id: medico.id, fecha_alta: null }
       });
+
+      // ========================================
+      // VERIFICAR SI FUE TRANSFERIDO A OTRO SECTOR
+      // ========================================
+      let transferido = false;
+      let transferidoA = null;
+      let medicoActual = null;
+      
+      // Buscar internación activa con OTRO médico
+      const internacionOtroMedico = await Internacion.findOne({
+        where: {
+          paciente_id: paciente.id,
+          fecha_alta: null,
+          medico_id: { [Op.ne]: medico.id }
+        },
+        include: [
+          {
+            model: Medico,
+            as: 'medico',
+            include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }]
+          },
+          {
+            model: Habitacion,
+            as: 'habitacion',
+            include: [{ model: Sector, as: 'sector', attributes: ['nombre'] }]
+          }
+        ]
+      });
+      
+      if (internacionOtroMedico) {
+        transferido = true;
+        transferidoA = internacionOtroMedico.habitacion?.sector?.nombre || 'Otro sector';
+        medicoActual = internacionOtroMedico.medico?.usuario 
+          ? `Dr. ${internacionOtroMedico.medico.usuario.nombre} ${internacionOtroMedico.medico.usuario.apellido}`
+          : 'Otro médico';
+      }
 
       return {
         ...paciente.toJSON(),
         ultimaEvaluacion,
         totalEvaluaciones,
-        internacionActiva: !!internacionActiva
+        internacionActiva: !!internacionActiva,
+        transferido,
+        transferidoA,
+        medicoActual
       };
     }));
-    console.log('Paciente ejemplo:', JSON.stringify(pacientes[0], null, 2));
+
+    if (pacientesConInfo.length > 0) {
+      console.log('Paciente ejemplo con info:', JSON.stringify(pacientesConInfo[0], null, 2));
+    }
+    
     res.json({
       success: true,
       data: pacientesConInfo,
@@ -205,7 +305,6 @@ exports.obtenerPacientes = async (req, res, next) => {
     next(error);
   }
 };
-
 // ========================================
 // OBTENER DETALLE DE UN PACIENTE
 // ========================================
@@ -781,3 +880,317 @@ exports.derivarACirugiaUrgencia = async (req, res, next) => {
     });
   }
 };
+
+exports.derivarAPrequirurgico = async (req, res, next) => {
+  const transaction = await db.sequelize.transaction();
+  
+  try {
+    const { id: pacienteId } = req.params;
+    const { 
+      evaluacion_medica_id,
+      nombre,
+      descripcion,
+      prioridad = 'ALTA',
+      checklist_requerido,
+      observaciones_especiales 
+    } = req.body;
+    
+    const medicoId = req.user.medico_id;
+    const usuarioId = req.user.usuario_id;
+    
+    console.log(` Derivando paciente ${pacienteId} a pre-quirúrgico`);
+    
+    // ========================================
+    // 1. VALIDAR PACIENTE
+    // ========================================
+    const paciente = await Paciente.findByPk(pacienteId, {
+      include: [
+        { model: Usuario, as: 'usuario', attributes: ['id', 'nombre', 'apellido', 'dni', 'sexo'] },
+        { model: ObraSocial, as: 'obraSocial', attributes: ['id', 'nombre'] }
+      ],
+      transaction
+    });
+    
+    if (!paciente) {
+      await transaction.rollback();
+      return res.status(404).json({
+        success: false,
+        message: 'Paciente no encontrado'
+      });
+    }
+    
+    // ========================================
+    // 2. VALIDAR EVALUACIÓN MÉDICA (REQUERIDA)
+    // ========================================
+    let evaluacionMedicaId = evaluacion_medica_id;
+
+    // Si no se proporciona, buscar la última evaluación del paciente con este médico
+    if (!evaluacionMedicaId) {
+      const ultimaEvaluacion = await EvaluacionMedica.findOne({
+        where: { 
+          paciente_id: pacienteId,
+          medico_id: medicoId
+        },
+        order: [['fecha', 'DESC']],
+        transaction
+      });
+  
+      if (ultimaEvaluacion) {
+        evaluacionMedicaId = ultimaEvaluacion.id;
+        console.log(` Usando última evaluación médica: ${evaluacionMedicaId}`);
+      } else {
+        // NO tiene evaluación médica - ERROR
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'El paciente no tiene evaluación médica previa. Debe realizar una evaluación antes de derivar a pre-quirúrgico.',
+          tipo: 'SIN_EVALUACION'
+        });
+      }
+    }
+    
+    // ========================================
+    // 3. VERIFICAR SI YA TIENE INTERNACIÓN ACTIVA
+    // ========================================
+    let internacion = await Internacion.findOne({
+      where: {
+        paciente_id: pacienteId,
+        fecha_alta: null
+      },
+      include: [
+        { model: Cama, as: 'cama' },
+        { model: Habitacion, as: 'habitacion' }
+      ],
+      transaction
+    });
+    
+    let camaAsignada = null;
+    let yaEstadaInternado = false;
+    
+    if (internacion) {
+      // ══════════════════════════════════════════════
+      // ESCENARIO A: YA TIENE CAMA - Solo actualizar
+      // ══════════════════════════════════════════════
+      yaEstadaInternado = true;
+      
+      await internacion.update({
+        es_prequirurgica: true,
+        estado_operacion: 'Prequirurgico',
+        evaluacion_medica_id: evaluacion_medica_id || internacion.evaluacion_medica_id
+      }, { transaction });
+      
+      camaAsignada = internacion.cama;
+      console.log(` Paciente ya internado. Cama actual: ${camaAsignada?.numero}`);
+      
+    } else {
+      // ══════════════════════════════════════════════
+      // ESCENARIO B: NO TIENE CAMA - Buscar y asignar
+      // ══════════════════════════════════════════════
+      
+      // Obtener sector del médico
+      const medico = await Medico.findByPk(medicoId, {
+        include: [{ model: Sector, as: 'sector' }],
+        transaction
+      });
+      
+      if (!medico?.sector_id) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'El médico no tiene sector asignado'
+        });
+      }
+      
+      const sectorId = medico.sector_id;
+      const sexoPaciente = paciente.usuario.sexo;
+      
+      // Buscar cama libre en el sector del médico
+      const camaLibre = await Cama.findOne({
+        where: { estado: 'Libre' },
+        include: [{
+          model: Habitacion,
+          as: 'habitacion',
+          where: { sector_id: sectorId },
+          include: [{ model: Sector, as: 'sector' }]
+        }],
+        transaction
+      });
+      
+      if (!camaLibre) {
+        await transaction.rollback();
+        return res.status(400).json({
+          success: false,
+          message: 'No hay camas disponibles en su sector para pre-quirúrgico. Contacte al administrativo.',
+          tipo: 'SIN_CAMAS'
+        });
+      }
+      
+      // Validar compatibilidad de sexo en habitaciones dobles
+      if (camaLibre.habitacion.tipo === 'Doble') {
+        const camaOcupada = await Cama.findOne({
+          where: {
+            habitacion_id: camaLibre.habitacion_id,
+            estado: 'Ocupada',
+            id: { [Op.ne]: camaLibre.id }
+          },
+          transaction
+        });
+        
+        if (camaOcupada && camaOcupada.sexo_ocupante && camaOcupada.sexo_ocupante !== sexoPaciente) {
+          await transaction.rollback();
+          return res.status(400).json({
+            success: false,
+            message: `Incompatibilidad de sexo en habitación doble. Contacte al administrativo.`,
+            tipo: 'INCOMPATIBILIDAD_SEXO'
+          });
+        }
+      }
+      
+      // Crear lista de espera (requerida por internación)
+      const listaEspera = await ListaEspera.create({
+        paciente_id: pacienteId,
+        tipo_turno_id: 1, // Ajustar según tu BD
+        prioridad: prioridad,
+        estado: 'ASIGNADO',
+        habitacion_id: camaLibre.habitacion_id,
+        creador_tipo: 'MEDICO',
+        creador_id: usuarioId,
+        fecha_registro: new Date(),
+        observaciones: `Derivación a pre-quirúrgico por Dr. ${req.user.nombre}`
+      }, { transaction });
+      
+      // Buscar tipo de internación pre-quirúrgica
+      const tipoInternacion = await TipoInternacion.findOne({
+        where: { 
+          nombre: { [Op.like]: '%Pre%Quir%' }
+        },
+        transaction
+      });
+      
+      // Crear internación pre-quirúrgica
+      internacion = await Internacion.create({
+        paciente_id: pacienteId,
+        medico_id: medicoId,
+        cama_id: camaLibre.id,
+        habitacion_id: camaLibre.habitacion_id,
+        tipo_internacion_id: tipoInternacion?.id || 1,
+        administrativo_id: null, // Médico puede crear sin administrativo
+        evaluacion_medica_id: evaluacion_medica_id || null,
+        es_prequirurgica: true,
+        estado_operacion: 'Prequirurgico',
+        estado_estudios: 'Pendientes',
+        estado_paciente: 'Sin_Evaluar',
+        fecha_inicio: new Date(),
+        obra_social_id: paciente.obra_social_id,
+        lista_espera_id: listaEspera.id
+      }, { transaction });
+      
+      // Marcar cama como ocupada
+      await camaLibre.update({
+        estado: 'Ocupada',
+        sexo_ocupante: sexoPaciente
+      }, { transaction });
+      
+      camaAsignada = camaLibre;
+      console.log(`✅ Nueva internación pre-quirúrgica. Cama asignada: ${camaAsignada.numero}`);
+    }
+    
+    // ========================================
+    // 4. CREAR PROCEDIMIENTO PRE-QUIRÚRGICO
+    // ========================================
+    
+    // Construir descripción completa
+    let descripcionCompleta = descripcion || 'Preparación pre-quirúrgica estándar';
+    
+    if (observaciones_especiales) {
+      descripcionCompleta += `\n\n=== OBSERVACIONES ESPECIALES DEL MÉDICO ===\n${observaciones_especiales}`;
+    }
+    
+    if (checklist_requerido) {
+      descripcionCompleta += `\n\n=== CHECKLIST REQUERIDO ===\n${checklist_requerido}`;
+    }
+    
+    const prequirurgico = await ProcedimientoPreQuirurgico.create({
+      evaluacion_medica_id: evaluacionMedicaId,  
+      medico_id: medicoId,
+      paciente_id: pacienteId,
+      nombre: nombre || 'Preparación Pre-quirúrgica',
+      descripcion: descripcionCompleta,
+      estado: 'Pendiente',
+      prioridad: prioridad,
+      fecha_orden: new Date()
+    }, { transaction });
+    
+    console.log(`✅ Procedimiento pre-quirúrgico creado: ${prequirurgico.id}`);
+    
+    // ========================================
+    // 5. CREAR REGISTRO EN HISTORIAL MÉDICO
+    // ========================================
+    await HistorialMedico.create({
+      paciente_id: pacienteId,
+      descripcion: `Derivado a pre-quirúrgico. Prioridad: ${prioridad}. Cama: ${camaAsignada?.numero || 'N/A'}. ${observaciones_especiales || ''}`,
+      tipo_evento: 'Derivacion',
+      fecha: new Date()
+    }, { transaction });
+    
+    // ========================================
+    // 6. NOTIFICAR A ENFERMERÍA
+    // ========================================
+    const enfermeros = await Enfermero.findAll({
+      where: { sector_id: camaAsignada?.habitacion?.sector_id || internacion.habitacion?.sector_id },
+      include: [{ model: Usuario, as: 'usuario' }],
+      transaction
+    });
+    
+    const mensajeEnfermeria = 
+      `🏥 **NUEVO PRE-QUIRÚRGICO**\n\n` +
+      `Paciente: ${paciente.usuario.nombre} ${paciente.usuario.apellido}\n` +
+      `DNI: ${paciente.usuario.dni}\n` +
+      `Cama: ${camaAsignada?.numero || 'N/A'}\n` +
+      `Prioridad: ${prioridad}\n` +
+      `Médico: Dr. ${req.user.nombre}\n\n` +
+      `Se requiere completar checklist pre-quirúrgico.`;
+    
+    for (const enfermero of enfermeros) {
+      await Notificacion.create({
+        usuario_id: enfermero.usuario_id,
+        remitente_id: usuarioId,
+        mensaje: mensajeEnfermeria,
+        leida: false,
+        tipo: 'PREQUIRURGICO'
+      }, { transaction });
+    }
+    
+    await transaction.commit();
+    
+    console.log(`✅ Paciente derivado a pre-quirúrgico exitosamente`);
+    
+    res.json({
+      success: true,
+      message: yaEstadaInternado 
+        ? `Paciente ${paciente.usuario.nombre} ${paciente.usuario.apellido} derivado a pre-quirúrgico (ya estaba internado en cama ${camaAsignada?.numero}).`
+        : `Paciente ${paciente.usuario.nombre} ${paciente.usuario.apellido} internado y derivado a pre-quirúrgico. Cama ${camaAsignada?.numero} asignada.`,
+      data: {
+        prequirurgico_id: prequirurgico.id,
+        internacion_id: internacion.id,
+        cama: camaAsignada?.numero || null,
+        ya_estaba_internado: yaEstadaInternado
+      }
+    });
+    
+  } catch (error) {
+    await transaction.rollback();
+    console.error('❌ Error al derivar a pre-quirúrgico:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error al derivar paciente a pre-quirúrgico',
+      error: error.message
+    });
+  }
+};
+
+
+
+
+
+

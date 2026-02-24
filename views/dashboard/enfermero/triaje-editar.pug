@@ -1,0 +1,192 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    .row.mb-4
+      .col-12
+        .d-flex.justify-content-between.align-items-center
+          div
+            h2.mb-1
+              i.fas.fa-edit.me-2
+              | Editar Triaje
+            p.text-muted.mb-0 Modificar evaluación de triaje
+          a.btn.btn-outline-secondary(href='/enfermero/triaje')
+            i.fas.fa-arrow-left.me-2
+            | Volver
+
+    .row
+      .col-lg-8
+        .card.border-0.shadow-sm
+          .card-header.bg-white
+            h5.mb-0
+              i.fas.fa-user.me-2
+              | Paciente: 
+              if evaluacion.paciente && evaluacion.paciente.usuario
+                | #{evaluacion.paciente.usuario.nombre} #{evaluacion.paciente.usuario.apellido}
+                small.text-muted.ms-2 (DNI: #{evaluacion.paciente.usuario.dni})
+          
+          .card-body
+            form#form-editar-triaje(method='POST' action=`/enfermero/triaje/${evaluacion.id}/actualizar`)
+              
+              //- Nivel de Triaje
+              .mb-4
+                label.form-label.fw-bold
+                  i.fas.fa-exclamation-triangle.me-2
+                  | Nivel de Triaje *
+                .btn-group.w-100(role='group')
+                  input.btn-check#nivel-rojo(type='radio' name='nivel_triaje' value='Rojo' checked=(evaluacion.nivel_triaje === 'Rojo'))
+                  label.btn.btn-outline-danger(for='nivel-rojo')
+                    i.fas.fa-ambulance.me-1
+                    | Rojo
+                  
+                  input.btn-check#nivel-amarillo(type='radio' name='nivel_triaje' value='Amarillo' checked=(evaluacion.nivel_triaje === 'Amarillo'))
+                  label.btn.btn-outline-warning(for='nivel-amarillo')
+                    i.fas.fa-exclamation-triangle.me-1
+                    | Amarillo
+                  
+                  input.btn-check#nivel-verde(type='radio' name='nivel_triaje' value='Verde' checked=(evaluacion.nivel_triaje === 'Verde'))
+                  label.btn.btn-outline-success(for='nivel-verde')
+                    i.fas.fa-check-circle.me-1
+                    | Verde
+                  
+                  input.btn-check#nivel-negro(type='radio' name='nivel_triaje' value='Negro' checked=(evaluacion.nivel_triaje === 'Negro'))
+                  label.btn.btn-outline-dark(for='nivel-negro')
+                    i.fas.fa-times-circle.me-1
+                    | Negro
+
+              //- Motivo de Consulta
+              .mb-4
+                label.form-label.fw-bold
+                  i.fas.fa-comment-medical.me-2
+                  | Motivo de Consulta
+                input.form-control(type='text' name='motivo_consulta' value=motivo_consulta placeholder='Ej: Dolor abdominal, fiebre...')
+
+              //- Signos Vitales
+              .mb-4
+                label.form-label.fw-bold
+                  i.fas.fa-heartbeat.me-2
+                  | Signos Vitales
+                .row.g-3
+                  .col-md-4
+                    label.form-label.small Presión Arterial
+                    input.form-control(type='text' name='presion_arterial' value=signosVitales.presion_arterial placeholder='120/80')
+                  .col-md-4
+                    label.form-label.small Frecuencia Cardíaca
+                    input.form-control(type='text' name='frecuencia_cardiaca' value=signosVitales.frecuencia_cardiaca placeholder='75')
+                  .col-md-4
+                    label.form-label.small Temperatura (°C)
+                    input.form-control(type='text' name='temperatura' value=signosVitales.temperatura placeholder='36.5')
+                  .col-md-6
+                    label.form-label.small Saturación O2 (%)
+                    input.form-control(type='text' name='saturacion_oxigeno' value=signosVitales.saturacion_oxigeno placeholder='98')
+                  .col-md-6
+                    label.form-label.small Frecuencia Respiratoria
+                    input.form-control(type='text' name='frecuencia_respiratoria' value=signosVitales.frecuencia_respiratoria placeholder='16')
+
+              //- Estado/Tipo Egreso
+              .mb-4
+                label.form-label.fw-bold
+                  i.fas.fa-clipboard-check.me-2
+                  | Estado
+                select.form-select(name='tipo_egreso')
+                  option(value='PENDIENTE_EVALUACION' selected=(evaluacion.tipo_egreso === 'PENDIENTE_EVALUACION')) Pendiente de evaluación
+                  option(value='DERIVACION_MEDICO' selected=(evaluacion.tipo_egreso === 'DERIVACION_MEDICO')) Derivado a médico
+                  option(value='DERIVACION_URGENCIA' selected=(evaluacion.tipo_egreso === 'DERIVACION_URGENCIA')) Derivado a urgencia
+                  option(value='PROCEDIMIENTO_COMPLETADO' selected=(evaluacion.tipo_egreso === 'PROCEDIMIENTO_COMPLETADO')) Completado
+
+              //- Observaciones
+              .mb-4
+                label.form-label.fw-bold
+                  i.fas.fa-notes-medical.me-2
+                  | Observaciones
+                textarea.form-control(name='observaciones' rows='4' placeholder='Observaciones adicionales...')= observaciones_limpias
+
+              //- Botones
+              .d-flex.justify-content-between
+                a.btn.btn-outline-secondary(href='/enfermero/triaje')
+                  i.fas.fa-times.me-2
+                  | Cancelar
+                button.btn.btn-primary(type='submit')
+                  i.fas.fa-save.me-2
+                  | Guardar Cambios
+
+      //- Panel lateral con info del paciente
+      .col-lg-4
+        .card.border-0.shadow-sm
+          .card-header.bg-light
+            h6.mb-0
+              i.fas.fa-info-circle.me-2
+              | Información del Paciente
+          .card-body
+            if evaluacion.paciente && evaluacion.paciente.usuario
+              table.table.table-sm.mb-0
+                tbody
+                  tr
+                    th Nombre:
+                    td= `${evaluacion.paciente.usuario.nombre} ${evaluacion.paciente.usuario.apellido}`
+                  tr
+                    th DNI:
+                    td= evaluacion.paciente.usuario.dni
+                  tr
+                    th Sexo:
+                    td= evaluacion.paciente.usuario.sexo || 'No especificado'
+                  tr
+                    th Teléfono:
+                    td= evaluacion.paciente.usuario.telefono || 'No registrado'
+                  if evaluacion.paciente.usuario.fecha_nacimiento
+                    - const nacimiento = new Date(evaluacion.paciente.usuario.fecha_nacimiento)
+                    - const hoy = new Date()
+                    - let edad = hoy.getFullYear() - nacimiento.getFullYear()
+                    tr
+                      th Edad:
+                      td= `${edad} años`
+            else
+              p.text-muted.mb-0 Información no disponible
+
+        .card.border-0.shadow-sm.mt-3
+          .card-header.bg-light
+            h6.mb-0
+              i.fas.fa-history.me-2
+              | Datos del Triaje
+          .card-body
+            table.table.table-sm.mb-0
+              tbody
+                tr
+                  th Fecha:
+                  td= evaluacion.fecha ? new Date(evaluacion.fecha).toLocaleString('es-AR') : 'N/A'
+                tr
+                  th Creado por:
+                  if evaluacion.enfermero && evaluacion.enfermero.usuario
+                    td= `${evaluacion.enfermero.usuario.nombre} ${evaluacion.enfermero.usuario.apellido}`
+                  else
+                    td.text-muted Orden médica
+
+block scripts
+  script.
+    document.getElementById('form-editar-triaje').addEventListener('submit', async function(e) {
+      e.preventDefault();
+      
+      const form = e.target;
+      const formData = new FormData(form);
+      const data = Object.fromEntries(formData.entries());
+      
+      try {
+        const res = await fetch(`/enfermero/triaje/${#{evaluacion.id}}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        
+        const result = await res.json();
+        
+        if (result.success) {
+          alert('Triaje actualizado correctamente');
+          window.location.href = result.redirect || '/enfermero/triaje';
+        } else {
+          alert('Error: ' + (result.message || 'No se pudo actualizar'));
+        }
+      } catch (error) {
+        console.error('Error:', error);
+        alert('Error al actualizar el triaje');
+      }
+    });

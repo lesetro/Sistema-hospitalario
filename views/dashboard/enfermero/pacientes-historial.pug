@@ -1,0 +1,152 @@
+extends ../../layouts/enfermero-layout
+
+block content
+  .container-fluid
+    // Header con volver
+    .row.mb-3
+      .col-12
+        a.btn.btn-secondary(href='/enfermero/pacientes')
+          i.fas.fa-arrow-left.me-2
+          | Volver a Mis Pacientes
+
+    .row
+      // Información del paciente (similar a pacientes-detalle)
+      .col-lg-4.mb-4
+        .card.border-0.shadow-sm
+          .card-header.bg-primary.text-white
+            h5.mb-0
+              i.fas.fa-user.me-2
+              | Datos del Paciente
+          .card-body
+            .text-center.mb-3
+              .avatar.bg-primary.text-white.rounded-circle.mx-auto(style='width: 80px; height: 80px; line-height: 80px; font-size: 2rem')
+                = paciente.usuario.nombre.charAt(0) + paciente.usuario.apellido.charAt(0)
+            
+            dl.row.mb-0
+              dt.col-sm-5 Nombre:
+              dd.col-sm-7= `${paciente.usuario.nombre} ${paciente.usuario.apellido}`
+              
+              dt.col-sm-5 DNI:
+              dd.col-sm-7= paciente.usuario.dni
+              
+              dt.col-sm-5 Edad:
+              dd.col-sm-7
+                - const edad = Math.floor((new Date() - new Date(paciente.usuario.fecha_nacimiento)) / (1000 * 60 * 60 * 24 * 365))
+                = `${edad} años`
+              
+              dt.col-sm-5 Sexo:
+              dd.col-sm-7= paciente.usuario.sexo
+              
+              dt.col-sm-5 Grupo Sanguíneo:
+              dd.col-sm-7
+                if paciente.grupo_sanguineo
+                  span.badge.bg-danger= `${paciente.grupo_sanguineo} ${paciente.factor_rh || ''}`
+                else
+                  | N/A
+
+        // Estadísticas rápidas
+        .card.border-0.shadow-sm.mt-3
+          .card-header.bg-info.text-white
+            h5.mb-0
+              i.fas.fa-chart-bar.me-2
+              | Resumen
+          .card-body
+            .row.text-center
+              .col-6
+                h3.text-primary.mb-0= evaluaciones.length
+                small.text-muted Total Evaluaciones
+              .col-6
+                h3.text-success.mb-0= evaluaciones.length
+                small.text-muted Atendidas por mí
+
+      // Historial de evaluaciones (similar a la tabla de pacientes)
+      .col-lg-8.mb-4
+        .card.border-0.shadow-sm
+          .card-header.bg-white.d-flex.justify-content-between.align-items-center
+            h5.mb-0
+              i.fas.fa-history.me-2
+              | Historial de Evaluaciones
+            span.badge.bg-primary= evaluaciones.length + ' registros'
+          
+          .card-body.p-0
+            if evaluaciones.length > 0
+              .table-responsive
+                table.table.table-hover.mb-0
+                  thead.table-light
+                    tr
+                      th Fecha
+                      th Signos Vitales
+                      th Observaciones
+                  tbody
+                    each evaluacion in evaluaciones
+                      tr
+                        td
+                          strong= new Date(evaluacion.fecha).toLocaleDateString('es-AR')
+                          br
+                          small.text-muted= new Date(evaluacion.fecha).toLocaleTimeString('es-AR')
+                        td
+                          // Extraer signos vitales del formato texto
+                          - let signosText = evaluacion.signos_vitales || ''
+                          - let peso = '', presion = '', temp = ''
+                          
+                          if signosText
+                            - let partes = signosText.split(',')
+                            each parte in partes
+                              - parte = parte.trim()
+                              if parte.match(/peso:|Peso:/i)
+                                - peso = parte.replace(/peso:|Peso:/i, '').trim()
+                              if parte.match(/pa:|PA:|presion:|Presion:/i)
+                                - presion = parte.replace(/pa:|PA:|presion:|Presion:/i, '').trim()
+                              if parte.match(/temp:|Temp:|temperatura:|Temperatura:/i)
+                                - temp = parte.replace(/temp:|Temp:|temperatura:|Temperatura:/i, '').trim().replace('°C', '')
+                          
+                          .d-flex.flex-wrap.gap-2
+                            if peso
+                              span.badge.bg-success
+                                i.fas.fa-weight.me-1
+                                | #{peso} kg
+                            if presion
+                              span.badge.bg-success
+                                i.fas.fa-heart.me-1
+                                | #{presion}
+                            if temp
+                              span.badge.bg-success
+                                i.fas.fa-thermometer-half.me-1
+                                | #{temp}°C
+                            if !peso && !presion && !temp && signosText
+                              span.badge.bg-secondary= signosText
+                            if !signosText
+                              span.badge.bg-secondary Sin datos
+                        
+                        td
+                          if evaluacion.observaciones
+                            small.text-muted= evaluacion.observaciones.substring(0, 60)
+                            if evaluacion.observaciones.length > 60
+                              | ...
+                          else
+                            small.text-muted -
+            else
+              .p-5.text-center.text-muted
+                i.fas.fa-notes-medical.fa-4x.mb-3
+                h5 No hay evaluaciones registradas
+                p.mb-0 Este paciente no tiene evaluaciones en su historial
+
+    // Acciones rápidas (similar a pacientes-detalle)
+    .row
+      .col-12
+        .card.border-0.shadow-sm
+          .card-body.text-center
+            a.btn.btn-primary.me-2(href=`/enfermero/evaluaciones/nueva?paciente_id=${paciente.id}`)
+              i.fas.fa-plus.me-2
+              | Nueva Evaluación
+            a.btn.btn-success.me-2(href=`/enfermero/signos-vitales/registro?paciente_id=${paciente.id}`)
+              i.fas.fa-heartbeat.me-2
+              | Registrar Signos Vitales
+
+block scripts
+  script.
+    
+    function verDetalle(id) {
+      // Por ahora redirige o muestra alert
+      window.location.href = `/enfermero/evaluaciones/${id}`;
+    }

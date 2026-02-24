@@ -206,6 +206,53 @@ block content
           button.btn.btn-danger(onclick='confirmarDerivarCirugia()')
             i.fas.fa-procedures.me-2
             | Confirmar Derivación
-            
+
+  // Modal Derivar a Pre-Quirúrgico
+  #modalDerivarPrequirurgico.modal.fade(tabindex='-1')
+    .modal-dialog
+      .modal-content
+        .modal-header.bg-info.text-white
+          h5.modal-title
+            i.fas.fa-notes-medical.me-2
+            | Derivar a Pre-Quirúrgico
+          button.btn-close.btn-close-white(data-bs-dismiss='modal')
+        .modal-body
+          input(type='hidden' id='prequirurgicoPacienteId')
+          
+          .alert.alert-info.mb-3
+            i.fas.fa-info-circle.me-2
+            | El paciente será preparado para cirugía. Si no tiene cama, se le asignará una automáticamente.
+          
+          p.mb-2
+            strong Paciente:
+            br
+            span#prequirurgicoPacienteNombre.text-muted -
+          
+          .mb-3
+            label.form-label Nombre del procedimiento
+            input.form-control#prequirurgicoNombre(type='text' placeholder='Ej: Apendicectomía')
+          
+          .mb-3
+            label.form-label Prioridad
+            select.form-select#prequirurgicoPrioridad
+              option(value='URGENTE') Urgente
+              option(value='ALTA' selected) Alta
+              option(value='MEDIA') Media
+              option(value='BAJA') Baja
+          
+          .mb-3
+            label.form-label Descripción / Indicaciones
+            textarea.form-control#prequirurgicoDescripcion(rows='3' placeholder='Describa las indicaciones para enfermería...')
+          
+          .mb-3
+            label.form-label Observaciones especiales
+            textarea.form-control#prequirurgicoObservaciones(rows='2' placeholder='Alergias, condiciones especiales, etc.')
+          
+        .modal-footer
+          button.btn.btn-secondary(data-bs-dismiss='modal') Cancelar
+          button.btn.btn-info(onclick='confirmarDerivarPrequirurgico()')
+            i.fas.fa-notes-medical.me-2
+            | Confirmar Derivación
+           
 block scripts
   script(src='/js/medico/pacientes.js')

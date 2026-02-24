@@ -38,15 +38,28 @@ async function verHistorial(pacienteId) {
   }
 }
 
-// Mostrar historial en modal
 function mostrarHistorial(controles) {
   let html = '<div class="table-responsive"><table class="table table-sm"><thead><tr><th>Fecha</th><th>Enfermero</th><th>Peso</th><th>P.A.</th><th>Temp.</th><th>Grupo</th></tr></thead><tbody>';
   
   controles.forEach(control => {
+    // Formatear fecha que viene como "23/2/2026" a "23/02/2026" con 2 dígitos
+    let fechaFormateada = control.fecha || 'N/A';
+    
+    // Si quieres normalizar a siempre 2 dígitos (opcional)
+    if (control.fecha) {
+      const partes = control.fecha.split('/');
+      if (partes.length === 3) {
+        const dia = partes[0].padStart(2, '0');
+        const mes = partes[1].padStart(2, '0');
+        const año = partes[2];
+        fechaFormateada = `${dia}/${mes}/${año}`;
+      }
+    }
+    
     html += `
       <tr>
-        <td><small>${new Date(control.fecha).toLocaleDateString('es-AR')}</small></td>
-        <td><small>${control.enfermero}</small></td>
+        <td><small>${fechaFormateada}</small></td>
+        <td><small>${control.enfermero || 'N/A'}</small></td>
         <td><small>${control.peso || 'N/A'} kg</small></td>
         <td><small>${control.presion_arterial || 'N/A'}</small></td>
         <td><small>${control.temperatura || 'N/A'}°C</small></td>

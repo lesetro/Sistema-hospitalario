@@ -44,5 +44,9 @@ router.post('/:id/solicitar-control',evaluacionesMedicasController.solicitarCont
 // Obtener estadísticas de evaluaciones
 router.get('/api/estadisticas', evaluacionesMedicasController.obtenerEstadisticas);
 router.get('/:id', evaluacionesMedicasController.verDetalle);
+// ========================================
+// RUTAS DE CONTROLES DE ENFERMERÍA PARA MÉDICOS
+// ========================================
+router.get('/controles/:id/detalle', evaluacionesMedicasController.verControlMedico);
 
 module.exports = router;

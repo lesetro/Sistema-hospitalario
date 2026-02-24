@@ -26,6 +26,7 @@ exports.listarPacientes = async (req, res, next) => {
           {
             model: Paciente,
             as: 'paciente',
+            required: true, // Solo incluir si tiene paciente
             include: [{
               model: Usuario,
               as: 'usuario',
@@ -50,12 +51,17 @@ exports.listarPacientes = async (req, res, next) => {
         ]
       });
       
-      pacientes = internados.map(i => ({
-        paciente: i.paciente,
-        tipo: 'internado',
-        ubicacion: `${i.cama.habitacion.numero} - Cama ${i.cama.numero}`,
-        internacion_id: i.id
-      }));
+      // Filtrar internados que tengan paciente
+      pacientes = internados
+        .filter(i => i.paciente && i.paciente.usuario) // Solo si tiene paciente y usuario
+        .map(i => ({
+          paciente: i.paciente,
+          tipo: 'internado',
+          ubicacion: i.cama && i.cama.habitacion 
+            ? `${i.cama.habitacion.numero} - Cama ${i.cama.numero}`
+            : 'Ubicación no disponible',
+          internacion_id: i.id
+        }));
     }
     
     if (tipo_paciente === 'evaluaciones' || !tipo_paciente) {
@@ -71,6 +77,7 @@ exports.listarPacientes = async (req, res, next) => {
         include: [{
           model: Paciente,
           as: 'paciente',
+          required: true, // Solo incluir si tiene paciente
           include: [{
             model: Usuario,
             as: 'usuario',
@@ -87,33 +94,54 @@ exports.listarPacientes = async (req, res, next) => {
         order: [['fecha', 'DESC']]
       });
       
-      const pacientesEval = evaluaciones.map(e => ({
-        paciente: e.paciente,
-        tipo: 'evaluacion',
-        ubicacion: 'En evaluación',
-        evaluacion_id: e.id
-      }));
+      // Filtrar evaluaciones que tengan paciente
+      const pacientesEval = evaluaciones
+        .filter(e => e.paciente && e.paciente.usuario) // Solo si tiene paciente y usuario
+        .map(e => ({
+          paciente: e.paciente,
+          tipo: 'evaluacion',
+          ubicacion: 'En evaluación',
+          evaluacion_id: e.id
+        }));
       
       pacientes = [...pacientes, ...pacientesEval];
     }
 
+    // Obtener últimos signos vitales SOLO para pacientes válidos
+    const pacientesConSignos = [];
+    
     for (let item of pacientes) {
-      const ultimaEvaluacion = await EvaluacionEnfermeria.findOne({
-        where: { paciente_id: item.paciente.id },
-        order: [['fecha', 'DESC']],
-        attributes: ['signos_vitales', 'fecha']
-      });
+      // Validación adicional antes de procesar
+      if (!item.paciente || !item.paciente.id) {
+        console.warn('Paciente sin ID válido:', item);
+        continue; // Saltar este item y continuar con el siguiente
+      }
       
-      item.ultimos_signos = ultimaEvaluacion ? {
-        signos: ultimaEvaluacion.signos_vitales,
-        fecha: ultimaEvaluacion.fecha
-      } : null;
+      try {
+        const ultimaEvaluacion = await EvaluacionEnfermeria.findOne({
+          where: { paciente_id: item.paciente.id },
+          order: [['fecha', 'DESC']],
+          attributes: ['signos_vitales', 'fecha']
+        });
+        
+        item.ultimos_signos = ultimaEvaluacion ? {
+          signos: ultimaEvaluacion.signos_vitales,
+          fecha: ultimaEvaluacion.fecha
+        } : null;
+        
+        pacientesConSignos.push(item);
+      } catch (error) {
+        console.error(`Error al obtener signos para paciente ${item.paciente.id}:`, error);
+        // Aún así agregar el paciente pero sin signos
+        item.ultimos_signos = null;
+        pacientesConSignos.push(item);
+      }
     }
 
     res.render('dashboard/enfermero/signos-vitales', {
       title: 'Signos Vitales',
       user: req.user,
-      pacientes,
+      pacientes: pacientesConSignos, 
       filtros: { tipo_paciente, busqueda }
     });
 

@@ -1,4 +1,5 @@
 const { 
+  Administrativo,
   IntervencionQuirurgica,
   Paciente,
   Usuario,
@@ -18,6 +19,7 @@ const {
   HistorialMedico,
   ControlEnfermeria,
   TipoDeServicio,
+  SolicitudDerivacion,
   EstudioSolicitado
 } = require('../../models');
 const { Op } = require('sequelize');
@@ -733,6 +735,10 @@ exports.actualizarEstado = async (req, res, next) => {
 // ========================================
 // FINALIZAR CIRUGÍA
 // ========================================
+
+// ========================================
+// FINALIZAR CIRUGÍA
+// ========================================
 exports.finalizarCirugia = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
@@ -779,42 +785,44 @@ exports.finalizarCirugia = async (req, res, next) => {
     }, { transaction });
     
     // ========================================
-    // DETERMINAR DESTINO DEL PACIENTE
+    // VARIABLES PARA INTERNACIÓN
     // ========================================
-    const requiereInternacion = resultado_cirugia === 'REQUIERE_INTERNACION';
-    const requiereUCI = resultado_cirugia === 'REQUIERE_UCI';
-    
     let internacionCreada = null;
     let camaAsignada = null;
     let sectorDestino = null;
+    let camaQuirofanoLiberada = false;
+    let motivoSinCama = null;
+    
+    const requiereUCI = resultado_cirugia === 'REQUIERE_UCI';
+    const pacienteFallecido = resultado_cirugia === 'FALLECIDO';
+    const sexoPaciente = intervencion.paciente?.usuario?.sexo || null;
+    const nombrePaciente = `${intervencion.paciente?.usuario?.nombre || ''} ${intervencion.paciente?.usuario?.apellido || ''}`.trim();
     
     // ========================================
-    // LIBERAR CAMA DEL QUIRÓFANO
+    // TODOS LOS PACIENTES VAN A INTERNACIÓN (excepto fallecidos)
     // ========================================
-    const camaQuirofano = await Cama.findOne({
-      where: {
-        habitacion_id: intervencion.habitacion_id,
-        estado: 'Ocupada'
-      },
-      transaction
-    });
-    
-    if (camaQuirofano) {
-      await camaQuirofano.update({
-        estado: 'EnLimpieza',
-        sexo_ocupante: null
-      }, { transaction });
-      console.log(`🧹 Cama quirófano ${camaQuirofano.numero} liberada para limpieza`);
-    }
-    
-    // ========================================
-    // SI REQUIERE INTERNACIÓN O UCI
-    // ========================================
-    if (requiereInternacion || requiereUCI) {
-      console.log(`🏥 Paciente requiere ${requiereUCI ? 'UCI' : 'Internación'}`);
+    if (!pacienteFallecido) {
+      console.log(`🏥 Buscando cama de internación para paciente post-operatorio`);
+      console.log(`👤 Sexo del paciente: ${sexoPaciente || 'No especificado'}`);
+      
+      // Determinar sector destino según resultado
+      let nombreSectorDestino = 'Internación';
+      let prioridadInternacion = 'MEDIA';
+      let estadoPaciente = 'Estable';
+      
+      if (requiereUCI) {
+        nombreSectorDestino = 'UTI';
+        prioridadInternacion = 'ALTA';
+        estadoPaciente = 'Crítico';
+      } else if (resultado_cirugia === 'EXITOSA_CON_COMPLICACIONES') {
+        prioridadInternacion = 'ALTA';
+        estadoPaciente = 'En observación';
+      } else if (resultado_cirugia === 'REQUIERE_INTERNACION') {
+        prioridadInternacion = 'MEDIA';
+        estadoPaciente = 'Estable';
+      }
       
       // Buscar el sector destino
-      const nombreSectorDestino = requiereUCI ? 'UTI' : 'Internación';
       sectorDestino = await Sector.findOne({
         where: {
           nombre: { [Op.like]: `%${nombreSectorDestino}%` }
@@ -836,20 +844,44 @@ exports.finalizarCirugia = async (req, res, next) => {
       }
       
       if (sectorDestino) {
-        // Buscar cama libre en el sector destino
+        // ========================================
+        // BUSCAR CAMA COMPATIBLE CON SEXO
+        // ========================================
+        let whereSexoHabitacion = {};
+        
+        if (sexoPaciente === 'Masculino') {
+          whereSexoHabitacion = {
+            sexo_permitido: { [Op.in]: ['Masculino', 'Mixto', 'Individual', null] }
+          };
+        } else if (sexoPaciente === 'Femenino') {
+          whereSexoHabitacion = {
+            sexo_permitido: { [Op.in]: ['Femenino', 'Mixto', 'Individual', null] }
+          };
+        } else {
+          // Sexo "Otro" o no especificado - solo habitaciones Mixtas o Individuales
+          whereSexoHabitacion = {
+            [Op.or]: [
+              { sexo_permitido: { [Op.in]: ['Mixto', 'Individual'] } },
+              { tipo: 'Individual' }
+            ]
+          };
+        }
+        
+        // Buscar cama libre en el sector destino CON SEXO COMPATIBLE
         camaAsignada = await Cama.findOne({
           where: { estado: 'Libre' },
           include: [{
             model: Habitacion,
             as: 'habitacion',
-            where: { sector_id: sectorDestino.id }
+            where: {
+              sector_id: sectorDestino.id,
+              ...whereSexoHabitacion
+            }
           }],
           transaction
         });
         
         if (camaAsignada) {
-          const sexoPaciente = intervencion.paciente?.usuario?.sexo || null;
-          
           // ========================================
           // BUSCAR DATOS REQUERIDOS
           // ========================================
@@ -887,57 +919,99 @@ exports.finalizarCirugia = async (req, res, next) => {
           }
           
           // ========================================
-// CREAR LISTA DE ESPERA
-// ========================================
-const listaEsperaInternacion = await ListaEspera.create({
-  paciente_id: intervencion.paciente_id,
-  tipo_turno_id: tipoTurnoInternacion.id,
-  medico_id: medicoAsignadoId,
-  habitacion_id: camaAsignada.habitacion_id,
-  prioridad: requiereUCI ? 'ALTA' : 'MEDIA',
-  estado: 'ASIGNADO',  // ✅ CAMBIAR de 'COMPLETADO' a 'ASIGNADO'
-  creador_tipo: 'MEDICO',
-  creador_id: req.user.usuario_id,
-  fecha_registro: new Date()
-}, { transaction });
-
-console.log(`📋 Lista de espera creada: ID ${listaEsperaInternacion.id}`);
-
-// ========================================
-// CREAR INTERNACIÓN
-// ========================================
-internacionCreada = await Internacion.create({
-  paciente_id: intervencion.paciente_id,
-  medico_id: medicoAsignadoId,
-  cama_id: camaAsignada.id,
-  habitacion_id: camaAsignada.habitacion_id,
-  tipo_internacion_id: tipoInternacion.id,
-  lista_espera_id: listaEsperaInternacion.id,
-  fecha_inicio: new Date(),
-  motivo: `Post-operatorio: ${intervencion.tipo_procedimiento}`,
-  estado_paciente: 'Estable',
-  observaciones: `Derivado desde cirugía. Resultado: ${resultado_cirugia}. ${notas_postoperatorio || ''}`
-}, { transaction });
-
-console.log(`✅ Internación creada: ID ${internacionCreada.id}`);
-
-// ========================================
-//  AHORA SÍ: MARCAR LISTA COMO COMPLETADA
-// ========================================
-await listaEsperaInternacion.update({
-  estado: 'COMPLETADO'
-}, { transaction });
-
-// ========================================
-// OCUPAR LA CAMA
-// ========================================
-await camaAsignada.update({
-  estado: 'Ocupada',
-  sexo_ocupante: sexoPaciente
-}, { transaction });
-
-console.log(` Cama ${camaAsignada.numero} asignada al paciente`);
+          // CREAR LISTA DE ESPERA
+          // ========================================
+          const listaEsperaInternacion = await ListaEspera.create({
+            paciente_id: intervencion.paciente_id,
+            tipo_turno_id: tipoTurnoInternacion.id,
+            medico_id: medicoAsignadoId,
+            habitacion_id: camaAsignada.habitacion_id,
+            prioridad: prioridadInternacion,
+            estado: 'EN_PROCESO',
+            creador_tipo: 'MEDICO',
+            creador_id: req.user.usuario_id,
+            fecha_registro: new Date(),
+            observaciones: `Post-operatorio: ${intervencion.tipo_procedimiento}. Resultado: ${resultado_cirugia}`
+          }, { transaction });
           
+          console.log(` Lista de espera creada: ID ${listaEsperaInternacion.id}`);
+          
+          // ========================================
+          // CREAR INTERNACIÓN
+          // ========================================
+          internacionCreada = await Internacion.create({
+            paciente_id: intervencion.paciente_id,
+            medico_id: medicoAsignadoId,
+            cama_id: camaAsignada.id,
+            habitacion_id: camaAsignada.habitacion_id,
+            tipo_internacion_id: tipoInternacion.id,
+            lista_espera_id: listaEsperaInternacion.id,
+            fecha_inicio: new Date(),
+            motivo: `Post-operatorio: ${intervencion.tipo_procedimiento}`,
+            estado_paciente: estadoPaciente,
+            observaciones: `Resultado cirugía: ${resultado_cirugia}. ${notas_postoperatorio || ''}`
+          }, { transaction });
+          
+          console.log(` Internación creada: ID ${internacionCreada.id}`);
+
+          await listaEsperaInternacion.update({
+            estado: 'COMPLETADO'
+          }, { transaction });
+
+          // ========================================
+          // OCUPAR LA CAMA DE INTERNACIÓN
+          // ========================================
+          await camaAsignada.update({
+            estado: 'Ocupada',
+            sexo_ocupante: sexoPaciente
+          }, { transaction });
+          
+          console.log(` Cama ${camaAsignada.numero} asignada al paciente en ${sectorDestino.nombre}`);
+          
+          // ========================================
+          // LIBERAR CAMA DEL QUIRÓFANO
+          // ========================================
+          const camaQuirofano = await Cama.findOne({
+            where: {
+              habitacion_id: intervencion.habitacion_id,
+              estado: 'Ocupada'
+            },
+            transaction
+          });
+          
+          if (camaQuirofano) {
+            await camaQuirofano.update({
+              estado: 'EnLimpieza',
+              sexo_ocupante: null
+            }, { transaction });
+            camaQuirofanoLiberada = true;
+            console.log(` Cama quirófano ${camaQuirofano.numero} liberada para limpieza`);
+          }
+          // Buscar sector de origen (quirófano/emergencias)
+          const sectorOrigen = await Sector.findOne({
+            where: {
+              [Op.or]: [
+                { nombre: { [Op.like]: '%Quirófano%' } },
+                { nombre: { [Op.like]: '%Quirofano%' } }
+              ]
+            },
+              transaction
+          });
+
+        if (sectorOrigen && sectorDestino) {
+          await SolicitudDerivacion.create({
+            paciente_id: intervencion.paciente_id,
+            origen_id: sectorOrigen.id,
+            destino_id: sectorDestino.id,
+            tipo: 'Interna',
+            estado: 'Aprobada',
+            fecha: new Date(),
+            motivo: `Post-operatorio: ${intervencion.tipo_procedimiento}. Resultado: ${resultado_cirugia}`,
+            responsable_id: req.user.usuario_id
+          }, { transaction });
+  
+          console.log(` Derivación registrada: ${sectorOrigen.nombre} → ${sectorDestino.nombre}`);
+          }
           // ========================================
           // NOTIFICAR AL SECTOR DESTINO
           // ========================================
@@ -951,8 +1025,7 @@ console.log(` Cama ${camaAsignada.numero} asignada al paciente`);
             transaction
           });
           
-          const nombrePaciente = `${intervencion.paciente?.usuario?.nombre} ${intervencion.paciente?.usuario?.apellido}`;
-          const mensajeNotificacion = `🏥 Nuevo paciente post-operatorio: ${nombrePaciente}. Cirugía: ${intervencion.tipo_procedimiento}. Cama asignada: ${camaAsignada.numero}`;
+          const mensajeNotificacion = ` Nuevo paciente post-operatorio: ${nombrePaciente}. Cirugía: ${intervencion.tipo_procedimiento}. Resultado: ${resultado_cirugia}. Cama: ${camaAsignada.numero}`;
           
           const notificaciones = [];
           
@@ -982,37 +1055,72 @@ console.log(` Cama ${camaAsignada.numero} asignada al paciente`);
           
           if (notificaciones.length > 0) {
             await Notificacion.bulkCreate(notificaciones, { transaction });
-            console.log(`📨 ${notificaciones.length} notificaciones enviadas al sector ${sectorDestino.nombre}`);
+            console.log(` ${notificaciones.length} notificaciones enviadas al sector ${sectorDestino.nombre}`);
           }
           
         } else {
-          console.log(`⚠️ No hay camas disponibles en ${sectorDestino.nombre}`);
+          // ========================================
+          // NO HAY CAMA COMPATIBLE - PACIENTE QUEDA EN QUIRÓFANO
+          // ========================================
+          if (sexoPaciente === 'Otro' || !sexoPaciente) {
+            motivoSinCama = `No hay camas disponibles compatibles. El paciente tiene sexo "${sexoPaciente || 'no especificado'}" y requiere habitación Mixta o Individual.`;
+          } else {
+            motivoSinCama = `No hay camas disponibles en ${sectorDestino.nombre} para pacientes de sexo ${sexoPaciente}.`;
+          }
           
-          // Notificar a administrativos
-          const administrativos = await Usuario.findAll({
-            where: { rol: 'ADMINISTRATIVO' },
-            transaction
+          console.log(` ${motivoSinCama}`);
+          console.log(` Paciente permanece en observación post-operatoria en quirófano`);
+          
+          // NO liberar la cama del quirófano - el paciente se queda ahí
+          
+          // Notificar a administrativos para que gestionen una cama
+          const administrativos = await Administrativo.findAll({
+          include: [{ model: Usuario, as: 'usuario' }],
+          transaction
           });
-          
-          const nombrePaciente = `${intervencion.paciente?.usuario?.nombre} ${intervencion.paciente?.usuario?.apellido}`;
-          
+
           for (const admin of administrativos) {
             await Notificacion.create({
-              usuario_id: admin.id,
+              usuario_id: admin.usuario_id,
               remitente_id: req.user.usuario_id,
-              mensaje: `⚠️ URGENTE: ${nombrePaciente} requiere ${requiereUCI ? 'UCI' : 'internación'} pero no hay camas disponibles. Cirugía: ${intervencion.tipo_procedimiento}`,
+              mensaje: `🚨 URGENTE - PACIENTE SIN CAMA\n\nPaciente: ${nombrePaciente}\nCirugía: ${intervencion.tipo_procedimiento}\nResultado: ${resultado_cirugia}\nSexo: ${sexoPaciente || 'No especificado'}\n\n${motivoSinCama}\n\nEl paciente permanece en observación en quirófano hasta que se libere una cama compatible.`,
               leida: false,
               eliminado: false
             }, { transaction });
           }
+          
+          console.log(` Notificación enviada a administrativos`);
         }
       } else {
-        console.log('⚠️ No se encontró sector de internación');
+        motivoSinCama = 'No se encontró sector de internación en el sistema.';
+        console.log(` ${motivoSinCama}`);
+      }
+    } else {
+      // ========================================
+      // PACIENTE FALLECIDO - LIBERAR CAMA
+      // ========================================
+      console.log(' Paciente fallecido - Liberando cama de quirófano');
+      
+      const camaQuirofano = await Cama.findOne({
+        where: {
+          habitacion_id: intervencion.habitacion_id,
+          estado: 'Ocupada'
+        },
+        transaction
+      });
+      
+      if (camaQuirofano) {
+        await camaQuirofano.update({
+          estado: 'EnLimpieza',
+          sexo_ocupante: null
+        }, { transaction });
+        camaQuirofanoLiberada = true;
+        console.log(` Cama quirófano ${camaQuirofano.numero} liberada para limpieza`);
       }
     }
     
     // ========================================
-    // ACTUALIZAR LISTA DE ESPERA ORIGINAL
+    // ACTUALIZAR LISTA DE ESPERA ORIGINAL (de cirugía)
     // ========================================
     if (intervencion.lista_espera_id) {
       await ListaEspera.update({
@@ -1029,6 +1137,10 @@ console.log(` Cama ${camaAsignada.numero} asignada al paciente`);
     let descripcionHistorial = `Cirugía: ${intervencion.tipo_procedimiento}. Resultado: ${resultado_cirugia}`;
     if (internacionCreada) {
       descripcionHistorial += `. Derivado a ${sectorDestino?.nombre || 'Internación'}, Cama: ${camaAsignada?.numero}`;
+    } else if (pacienteFallecido) {
+      descripcionHistorial += `. Paciente fallecido durante/después del procedimiento.`;
+    } else if (motivoSinCama) {
+      descripcionHistorial += `. Permanece en observación en quirófano: ${motivoSinCama}`;
     }
     
     await HistorialMedico.create({
@@ -1042,19 +1154,32 @@ console.log(` Cama ${camaAsignada.numero} asignada al paciente`);
     
     console.log(`✅ Cirugía finalizada correctamente`);
     
+    // ========================================
+    // RESPUESTA
+    // ========================================
+    let mensaje = '';
+    if (internacionCreada) {
+      mensaje = `Cirugía finalizada. Paciente derivado a ${sectorDestino?.nombre}, Cama: ${camaAsignada?.numero}`;
+    } else if (pacienteFallecido) {
+      mensaje = 'Cirugía finalizada. Paciente fallecido.';
+    } else if (motivoSinCama) {
+      mensaje = `Cirugía finalizada. ${motivoSinCama} Paciente permanece en observación en quirófano. Se notificó a administración.`;
+    }
+    
     res.json({
       success: true,
-      message: 'Cirugía finalizada correctamente',
+      message: mensaje,
       data: {
         resultado: resultado_cirugia,
-        requiere_internacion: requiereInternacion || requiereUCI,
         internacion: internacionCreada ? {
           id: internacionCreada.id,
           sector: sectorDestino?.nombre,
           cama: camaAsignada?.numero,
           habitacion: camaAsignada?.habitacion?.numero
         } : null,
-        sin_cama_disponible: (requiereInternacion || requiereUCI) && !camaAsignada
+        paciente_en_quirofano: !internacionCreada && !pacienteFallecido,
+        motivo_sin_cama: motivoSinCama,
+        cama_quirofano_liberada: camaQuirofanoLiberada
       }
     });
     
