@@ -1858,18 +1858,34 @@ exports.apiAsignarPaciente = async (req, res, next) => {
       return res.status(404).json({ success: false, message: 'Paciente no encontrado' });
     }
 
-    // 2. Validar que no esté ya internado
-    const internacionActiva = await Internacion.findOne({
-      where: { paciente_id, fecha_alta: null },
-      transaction
-    });
+    // 2. Validar internación activa (permitir si viene de quirófano)
+const internacionActiva = await Internacion.findOne({
+  where: { paciente_id, fecha_alta: null },
+  include: [{ model: Cama, as: 'cama' }],
+  transaction
+});
 
-    if (internacionActiva) {
-      await transaction.rollback();
-      return res.status(400).json({ success: false, message: 'El paciente ya tiene una internación activa' });
-    }
+let esMovimientoDesdeQuirofano = false;
+let camaALiberar = null;
+
+if (internacionActiva) {
+  if (internacionActiva.estado_operacion === 'EnCirugia') {
+    esMovimientoDesdeQuirofano = true;
+    camaALiberar = internacionActiva.cama;
+    console.log(`🔄 Paciente en quirófano, se permitirá movimiento`);
+  } else {
+    await transaction.rollback();
+    return res.status(400).json({ 
+      success: false, 
+      message: `El paciente ya tiene una internación activa en cama ${internacionActiva.cama?.numero || 'N/A'}` 
+    });
+  }
+}
 
     //  3. Buscar admisión activa sin alta médica
+    let admisionActiva = null;
+
+    if (!esMovimientoDesdeQuirofano) {
     const admisiones = await Admision.findAll({
       where: { paciente_id },
       include: [{ model: AltaMedica, as: 'alta_medica', required: false }],
@@ -1877,7 +1893,7 @@ exports.apiAsignarPaciente = async (req, res, next) => {
       transaction
     });
 
-    const admisionActiva = admisiones.find(adm => !adm.alta_medica);
+    admisionActiva = admisiones.find(adm => !adm.alta_medica);
 
     if (!admisionActiva) {
       await transaction.rollback();
@@ -1886,6 +1902,7 @@ exports.apiAsignarPaciente = async (req, res, next) => {
         message: 'El paciente no tiene admisión activa válida. Debe crearse una admisión primero.'
       });
     }
+  }
 
     // 4. Validar cama
     const cama = await Cama.findOne({
@@ -1951,6 +1968,50 @@ exports.apiAsignarPaciente = async (req, res, next) => {
       where: { usuario_id: usuarioId },
       transaction
     });
+    // ===== EJECUTAR SEGÚN CASO =====
+if (esMovimientoDesdeQuirofano) {
+  // MOVER DESDE QUIRÓFANO (no crear nueva internación)
+  if (camaALiberar) {
+    await camaALiberar.update({
+      estado: 'EnLimpieza',
+      sexo_ocupante: null
+    }, { transaction });
+    console.log(`✅ Cama quirófano ${camaALiberar.numero} liberada`);
+  }
+  
+  await internacionActiva.update({
+    cama_id,
+    habitacion_id: habitacion.id,
+    medico_id,
+    estado_operacion: 'Postquirurgico',
+    estado_paciente: 'En_Observacion'
+  }, { transaction });
+  
+  // Ocupar cama destino
+  await cama.update({ estado: 'Ocupada', sexo_ocupante: sexoPaciente }, { transaction });
+  
+  await transaction.commit();
+  
+  return res.json({
+    success: true,
+    message: `Paciente trasladado desde quirófano a cama ${cama.numero}. Cama ${camaALiberar?.numero || 'anterior'} liberada.`,
+    data: {
+      internacion_id: internacionActiva.id,
+      movido_desde_quirofano: true,
+      cama: {
+        id: cama.id,
+        numero: cama.numero,
+        habitacion: habitacion.numero,
+        sector: habitacion.sector.nombre
+      },
+      paciente: {
+        id: paciente.id,
+        nombre: `${paciente.usuario.nombre} ${paciente.usuario.apellido}`,
+        dni: paciente.usuario.dni
+      }
+    }
+  });
+}
 
     // ===== CREAR LISTA DE ESPERA =====
     const listaEspera = await ListaEspera.create({
