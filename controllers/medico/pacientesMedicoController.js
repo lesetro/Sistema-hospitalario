@@ -666,7 +666,7 @@ exports.derivarACirugiaUrgencia = async (req, res, next) => {
     const medicoId = req.user.medico_id;
     const usuarioId = req.user.usuario_id;
     
-    console.log(`🔪 Derivando paciente ${pacienteId} a cirugía de urgencia`);
+    console.log(` Derivando paciente ${pacienteId} a cirugía de urgencia`);
     
     // 1. Validar paciente
     const paciente = await Paciente.findByPk(pacienteId, {
@@ -683,6 +683,55 @@ exports.derivarACirugiaUrgencia = async (req, res, next) => {
       return res.status(404).json({
         success: false,
         message: 'Paciente no encontrado'
+      });
+    }
+    // ========================================
+    // 1.1 VALIDAR QUE NO ESTÉ CON OTRO MÉDICO (NUEVO)
+    // ========================================
+    const internacionOtroMedico = await Internacion.findOne({
+      where: {
+        paciente_id: pacienteId,
+        fecha_alta: null,
+        medico_id: { [Op.ne]: medicoId }
+      },
+      include: [
+        { model: Medico, as: 'medico', include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] },
+        { model: Habitacion, as: 'habitacion', include: [{ model: Sector, as: 'sector', attributes: ['nombre'] }] }
+      ],
+      transaction
+    });
+
+    if (internacionOtroMedico) {
+      await transaction.rollback();
+      const drActual = internacionOtroMedico.medico?.usuario;
+      const sectorActual = internacionOtroMedico.habitacion?.sector?.nombre || 'otro sector';
+        return res.status(403).json({
+        success: false,
+        message: `El paciente está internado en ${sectorActual} con Dr. ${drActual?.nombre} ${drActual?.apellido}. No puede derivarlo.`,
+        tipo: 'PACIENTE_TRANSFERIDO'
+      });
+    }
+
+
+    // ========================================
+    // 1.2 VALIDAR QUE NO TENGA PRE-QUIRÚRGICO ACTIVO (NUEVO)
+    // ========================================
+    const prequirurgicoActivo = await ProcedimientoPreQuirurgico.findOne({
+      where: {
+        paciente_id: pacienteId,
+        estado: { [Op.in]: ['Pendiente', 'Completado'] }
+      },
+      transaction
+    });
+
+    if (prequirurgicoActivo) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `El paciente tiene un pre-quirúrgico ${prequirurgicoActivo.estado.toLowerCase()} (Orden #${prequirurgicoActivo.id}). Debe enviarlo a cirugía desde allí.`,
+        tipo: 'TIENE_PREQUIRURGICO',
+        prequirurgico_id: prequirurgicoActivo.id,
+        redirect: `/medico/ordenes-prequirurgico/${prequirurgicoActivo.id}`
       });
     }
     

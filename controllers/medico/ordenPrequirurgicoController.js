@@ -780,7 +780,7 @@ exports.enviarACirugia = async (req, res, next) => {
   const transaction = await db.sequelize.transaction();
   
   try {
-    const { id } = req.params; // ID del procedimiento pre-quirúrgico
+    const { id } = req.params;
     const { 
       quirofano_id,
       tipo_procedimiento,
@@ -791,7 +791,7 @@ exports.enviarACirugia = async (req, res, next) => {
     const medicoId = req.user.medico_id;
     const usuarioId = req.user.usuario_id;
     
-    console.log(`🔪 Enviando pre-quirúrgico ${id} a cirugía`);
+    console.log(` Enviando pre-quirúrgico ${id} a cirugía`);
     
     // ========================================
     // 1. OBTENER PROCEDIMIENTO PRE-QUIRÚRGICO
@@ -841,7 +841,7 @@ exports.enviarACirugia = async (req, res, next) => {
       });
     }
     
-    // Obtener paciente (puede venir de evaluacion_medica o directamente)
+    // Obtener paciente
     const paciente = prequirurgico.paciente || prequirurgico.evaluacion_medica?.paciente;
     
     if (!paciente) {
@@ -853,7 +853,79 @@ exports.enviarACirugia = async (req, res, next) => {
     }
     
     // ========================================
-    // 3. BUSCAR INTERNACIÓN PRE-QUIRÚRGICA ACTIVA
+    // 3. VALIDAR QUE NO TENGA INTERVENCIÓN ACTIVA 
+    // ========================================
+    const intervencionActiva = await IntervencionQuirurgica.findOne({
+      where: {
+        paciente_id: paciente.id,
+        [Op.or]: [
+          { fecha_fin: null },
+          { resultado_cirugia: null }
+        ]
+      },
+      transaction
+    });
+
+    if (intervencionActiva) {
+      await transaction.rollback();
+      return res.status(400).json({
+        success: false,
+        message: `El paciente ya está en una intervención quirúrgica activa (ID: ${intervencionActiva.id}). Debe finalizar esa cirugía primero.`,
+        tipo: 'INTERVENCION_ACTIVA',
+        intervencion_id: intervencionActiva.id
+      });
+    }
+    // ========================================
+    // 3.1 VALIDAR QUE NO ESTÉ CON OTRO MÉDICO (NUEVO)
+    // ========================================
+    const internacionOtroMedico = await Internacion.findOne({
+      where: {
+        paciente_id: paciente.id,  //  paciente.id
+        fecha_alta: null,
+        medico_id: { [Op.ne]: medicoId }
+      },
+      include: [
+        { model: Medico, as: 'medico', include: [{ model: Usuario, as: 'usuario', attributes: ['nombre', 'apellido'] }] },
+        { model: Habitacion, as: 'habitacion', include: [{ model: Sector, as: 'sector', attributes: ['nombre'] }] }
+      ],
+      transaction
+    });
+
+    if (internacionOtroMedico) {
+      await transaction.rollback();
+      const drActual = internacionOtroMedico.medico?.usuario;
+      const sectorActual = internacionOtroMedico.habitacion?.sector?.nombre || 'otro sector';
+      return res.status(403).json({
+        success: false,
+        message: `El paciente está internado en ${sectorActual} con Dr. ${drActual?.nombre} ${drActual?.apellido}. No puede derivarlo.`,
+        tipo: 'PACIENTE_TRANSFERIDO'
+      });
+    }
+    
+    // ========================================
+    // 4. INVALIDAR OTRAS ÓRDENES PRE-QUIRÚRGICAS 
+    // ========================================
+    const ordenesInvalidadas = await ProcedimientoPreQuirurgico.update(
+      { 
+        estado: 'SinEfecto',
+        descripcion: db.sequelize.literal(`CONCAT(COALESCE(descripcion, ''), '\n\n=== ORDEN SIN EFECTO ===\nMotivo: Otra orden (#${id}) fue enviada a cirugía.\nFecha: ${new Date().toLocaleString('es-AR')}')`)
+      },
+      {
+        where: {
+          paciente_id: paciente.id,
+          id: { [Op.ne]: id },  // Todas EXCEPTO la que estamos enviando
+          estado: { [Op.in]: ['Pendiente', 'Completado'] }  // Solo las activas
+        },
+        transaction
+      }
+    );
+    
+    if (ordenesInvalidadas[0] > 0) {
+      console.log(` Se invalidaron ${ordenesInvalidadas[0]} órdenes pre-quirúrgicas anteriores`);
+    }
+    
+    // ========================================
+    // 5. BUSCAR INTERNACIÓN PRE-QUIRÚRGICA ACTIVA
     // ========================================
     const internacion = await Internacion.findOne({
       where: {
@@ -869,7 +941,7 @@ exports.enviarACirugia = async (req, res, next) => {
     });
     
     // ========================================
-    // 4. BUSCAR/VALIDAR QUIRÓFANO
+    // 6. BUSCAR/VALIDAR QUIRÓFANO
     // ========================================
     let quirofano = null;
     if (quirofano_id) {
@@ -882,13 +954,12 @@ exports.enviarACirugia = async (req, res, next) => {
         });
       }
     } else {
-      // Buscar quirófano de cirugía disponible
       quirofano = await Habitacion.findOne({
         include: [{
           model: TipoDeServicio,
           as: 'tipoServicio',
           where: { 
-            nombre: { [Op.like]: '%Cirug%' }  // Busca "Cirugía de Urgencia"
+            nombre: { [Op.like]: '%Cirug%' }
           }
         }],
         transaction
@@ -905,7 +976,7 @@ exports.enviarACirugia = async (req, res, next) => {
     }
     
     // ========================================
-    // 5. CREAR LISTA DE ESPERA PARA CIRUGÍA
+    // 7. CREAR LISTA DE ESPERA PARA CIRUGÍA
     // ========================================
     const tipoTurnoCirugia = await TipoTurno.findOne({
       where: { nombre: { [Op.like]: '%CIRUG%' } },
@@ -925,7 +996,7 @@ exports.enviarACirugia = async (req, res, next) => {
     }, { transaction });
     
     // ========================================
-    // 6. CREAR INTERVENCIÓN QUIRÚRGICA
+    // 8. CREAR INTERVENCIÓN QUIRÚRGICA
     // ========================================
     const intervencion = await IntervencionQuirurgica.create({
       paciente_id: paciente.id,
@@ -938,13 +1009,14 @@ exports.enviarACirugia = async (req, res, next) => {
       observaciones: observaciones || `Derivado desde pre-quirúrgico #${prequirurgico.id}`
     }, { transaction });
     
-    console.log(`✅ Intervención quirúrgica creada: ${intervencion.id}`);
+    console.log(` Intervención quirúrgica creada: ${intervencion.id}`);
+    
     // ========================================
-    // 6.1 OCUPAR CAMA DEL QUIRÓFANO
+    // 8.1 OCUPAR CAMA DEL QUIRÓFANO
     // ========================================
     const camaQuirofano = await Cama.findOne({
       where: { 
-       habitacion_id: quirofano.id,
+        habitacion_id: quirofano.id,
         estado: 'Libre'
       },
       transaction
@@ -955,23 +1027,30 @@ exports.enviarACirugia = async (req, res, next) => {
         estado: 'Ocupada',
         sexo_ocupante: paciente.usuario.sexo
       }, { transaction });
-      console.log(`✅ Cama quirófano ${camaQuirofano.numero} ocupada`);
+      console.log(` Cama quirófano ${camaQuirofano.numero} ocupada`);
     } else {
-     console.log(`⚠️ No se encontró cama libre en quirófano ${quirofano.numero}`);
+      console.log(` No se encontró cama libre en quirófano ${quirofano.numero}`);
     }
+    
     // ========================================
-    // 7. LIBERAR CAMA DE PRE-QUIRÚRGICO
+    // 9. LIBERAR CAMA DE PRE-QUIRÚRGICO (CON VALIDACIÓN)
     // ========================================
     let camaLiberada = null;
     
     if (internacion?.cama) {
-      camaLiberada = internacion.cama;
-      
-      // Poner cama en limpieza
-      await camaLiberada.update({
-        estado: 'EnLimpieza',
-        sexo_ocupante: null
-      }, { transaction });
+      // VALIDAR que la cama esté realmente ocupada
+      if (internacion.cama.estado === 'Ocupada') {
+        camaLiberada = internacion.cama;
+        
+        await camaLiberada.update({
+          estado: 'EnLimpieza',
+          sexo_ocupante: null
+        }, { transaction });
+        
+        console.log(` Cama ${camaLiberada.numero} liberada (en limpieza)`);
+      } else {
+        console.log(` Cama ${internacion.cama.numero} ya no estaba ocupada (estado: ${internacion.cama.estado})`);
+      }
       
       // Marcar internación pre-quirúrgica como terminada
       await internacion.update({
@@ -979,12 +1058,10 @@ exports.enviarACirugia = async (req, res, next) => {
         estado_operacion: 'Postquirurgico',
         intervencion_quirurgica_id: intervencion.id
       }, { transaction });
-      
-      console.log(`✅ Cama ${camaLiberada.numero} liberada (en limpieza)`);
     }
     
     // ========================================
-    // 8. ACTUALIZAR ESTADO DEL PRE-QUIRÚRGICO
+    // 10. ACTUALIZAR ESTADO DEL PRE-QUIRÚRGICO
     // ========================================
     await prequirurgico.update({
       estado: 'EnCirugia',
@@ -996,7 +1073,7 @@ exports.enviarACirugia = async (req, res, next) => {
     }, { transaction });
     
     // ========================================
-    // 9. COMPLETAR LISTAS DE ESPERA ANTERIORES
+    // 11. COMPLETAR LISTAS DE ESPERA ANTERIORES
     // ========================================
     await ListaEspera.update(
       { estado: 'COMPLETADO' },
@@ -1011,20 +1088,21 @@ exports.enviarACirugia = async (req, res, next) => {
     );
     
     // ========================================
-    // 10. REGISTRO EN HISTORIAL MÉDICO
+    // 12. REGISTRO EN HISTORIAL MÉDICO
     // ========================================
     await HistorialMedico.create({
       paciente_id: paciente.id,
-      descripcion: `Enviado a cirugía desde pre-quirúrgico. ` +
+      descripcion: `Enviado a cirugía desde pre-quirúrgico #${prequirurgico.id}. ` +
         `Quirófano: ${quirofano.numero}. ` +
         `Tipo: ${tipo_procedimiento || 'No especificado'}. ` +
-        (camaLiberada ? `Cama ${camaLiberada.numero} liberada.` : ''),
+        (camaLiberada ? `Cama ${camaLiberada.numero} liberada. ` : '') +
+        (ordenesInvalidadas[0] > 0 ? `${ordenesInvalidadas[0]} órdenes anteriores invalidadas.` : ''),
       tipo_evento: 'Cirugia',
       fecha: new Date()
     }, { transaction });
     
     // ========================================
-    // 11. NOTIFICAR A PERSONAL DE QUIRÓFANO
+    // 13. NOTIFICAR A PERSONAL DE QUIRÓFANO
     // ========================================
     const sectorQuirofano = await Sector.findOne({
       where: { nombre: { [Op.like]: '%Quir%' } },
@@ -1032,7 +1110,6 @@ exports.enviarACirugia = async (req, res, next) => {
     });
     
     if (sectorQuirofano) {
-      // Notificar a médicos del quirófano
       const medicosQuirofano = await Medico.findAll({
         where: { sector_id: sectorQuirofano.id },
         include: [{ model: Usuario, as: 'usuario' }],
@@ -1062,17 +1139,19 @@ exports.enviarACirugia = async (req, res, next) => {
     
     await transaction.commit();
     
-    console.log(`✅ Paciente enviado a cirugía exitosamente`);
+    console.log(` Paciente enviado a cirugía exitosamente`);
     
     res.json({
       success: true,
       message: `Paciente ${paciente.usuario.nombre} ${paciente.usuario.apellido} enviado a cirugía.` +
-        (camaLiberada ? ` Cama ${camaLiberada.numero} liberada.` : ''),
+        (camaLiberada ? ` Cama ${camaLiberada.numero} liberada.` : '') +
+        (ordenesInvalidadas[0] > 0 ? ` ${ordenesInvalidadas[0]} órdenes anteriores invalidadas.` : ''),
       data: {
         intervencion_id: intervencion.id,
         quirofano: quirofano.numero,
         cama_liberada: camaLiberada?.numero || null,
-        lista_espera_cirugia_id: listaEsperaCirugia.id
+        lista_espera_cirugia_id: listaEsperaCirugia.id,
+        ordenes_invalidadas: ordenesInvalidadas[0]
       },
       redirect: '/medico/ordenes-prequirurgico'
     });
@@ -1087,7 +1166,6 @@ exports.enviarACirugia = async (req, res, next) => {
     });
   }
 };
-
 // ========================================
 // MÉTODO AUXILIAR: Obtener quirófanos disponibles
 // ========================================

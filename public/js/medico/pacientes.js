@@ -430,6 +430,13 @@ async function confirmarDerivarCirugia() {
     const data = await response.json();
     bootstrap.Modal.getInstance(document.getElementById('modalDerivarCirugia')).hide();
     
+    // En el frontend, al recibir el error:
+    if (data.tipo === 'TIENE_PREQUIRURGICO') {
+      alert(data.message);
+      if (data.redirect && confirm('¿Desea ir al pre-quirúrgico?')) {
+        window.location.href = data.redirect;
+     }
+    }   
     if (data.success) {
       mostrarAlerta('success', data.message);
       cargarPacientes(); // Refrescar lista

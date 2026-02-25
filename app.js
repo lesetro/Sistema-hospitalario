@@ -4,50 +4,10 @@ const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
-require("dotenv").config();
+require("dotenv").config(); 
 
 const db = require("./database/db");
 const app = express();
-
-// ========================================
-// FUNCIONES HELPER PARA FORMATO DE FECHAS
-// ========================================
-const formatDate = (dateString) => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
-};
-
-const formatDateTime = (dateString) => {
-  if (!dateString) return 'N/A';
-  const date = new Date(dateString);
-  return date.toLocaleDateString('es-AR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-};
-
-const calcularEdad = (fechaNacimiento) => {
-  if (!fechaNacimiento) return 'N/A';
-  const hoy = new Date();
-  const nacimiento = new Date(fechaNacimiento);
-  let edad = hoy.getFullYear() - nacimiento.getFullYear();
-  const mes = hoy.getMonth() - nacimiento.getMonth();
-  
-  if (mes < 0 || (mes === 0 && hoy.getDate() < nacimiento.getDate())) {
-    edad--;
-  }
-  
-  return edad;
-};
 
 
 // ========================================
@@ -58,7 +18,8 @@ app.use(cors());
 
 // Body parser
 app.use(express.json());
-app.use(express.urlencoded({ extended: true }));
+app.use(express.urlencoded({ extended: true })); //Parsea peticiones con Content-Type:
+// express.urlencoded() convierte esto a: { email: 'user@test.com', password: '123' } -->
 
 // Cookie parser (IMPORTANTE para leer cookies del JWT)
 app.use(cookieParser());

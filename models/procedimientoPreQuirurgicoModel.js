@@ -4,7 +4,7 @@ module.exports = (sequelize, DataTypes) => {
     evaluacion_medica_id: { type: DataTypes.INTEGER, allowNull: false, references: { model: 'evaluacionesmedicas', key: 'id' } },
     nombre: { type: DataTypes.STRING(100), allowNull: false }, // Ejemplo: "Ayuno", "Administración de antibióticos"
     descripcion: { type: DataTypes.TEXT, allowNull: true },
-    estado: { type: DataTypes.ENUM('Pendiente', 'Completado'), defaultValue: 'Pendiente' },
+    estado: { type: DataTypes.ENUM('Pendiente', 'Completado','SinEfecto','Cancelada','EnCirugia'), defaultValue: 'Pendiente' },
     medico_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'medicos', key: 'id' } },
     paciente_id: { type: DataTypes.INTEGER, allowNull: true, references: { model: 'pacientes', key: 'id' } },
     prioridad: { type: DataTypes.ENUM('BAJA', 'MEDIA', 'ALTA'), defaultValue: 'MEDIA' },

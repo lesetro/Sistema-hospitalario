@@ -159,14 +159,14 @@ module.exports = {
         nombre: { type: Sequelize.STRING(100), allowNull: false },
         descripcion: { type: Sequelize.TEXT, allowNull: true },
         estado: {
-          type: Sequelize.ENUM('Pendiente', 'Completado'),
+          type: Sequelize.ENUM('Pendiente', 'Completado','SinEfecto','EnCirugia','Cancelada'),
           defaultValue: 'Pendiente'
         },
         medico_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'medicos', key: 'id' } },
         paciente_id: { type: Sequelize.INTEGER, allowNull: true, references: { model: 'pacientes', key: 'id' } },
         prioridad: { type: Sequelize.ENUM('BAJA', 'MEDIA', 'ALTA'), defaultValue: 'MEDIA' },
         fecha_orden: { type: Sequelize.DATE, allowNull: true, defaultValue: Sequelize.NOW },
-    
+        
         created_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') },
         updated_at: { type: Sequelize.DATE, allowNull: false, defaultValue: Sequelize.literal('CURRENT_TIMESTAMP') }
       }, { transaction, engine: 'InnoDB', charset: 'utf8mb4', collate: 'utf8mb4_unicode_ci' });

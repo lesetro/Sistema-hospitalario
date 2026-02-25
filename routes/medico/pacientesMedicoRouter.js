@@ -11,9 +11,11 @@ router.get('/', pacientesMedicoController.renderPacientes);
 router.post('/:id/solicitar-controles', pacientesMedicoController.solicitarControlesEnfermeria);
 router.get('/:id/detalle', pacientesMedicoController.renderDetallePaciente);
 // Derivar a cirugía de urgencia
+router.post('/:id/derivar-cirugia', pacientesMedicoController.derivarACirugiaUrgencia);
 
 // Derivar a pre-quirúrgico
 router.post('/:id/derivar-prequirurgico', pacientesMedicoController.derivarAPrequirurgico);
+
 //  APIs
 router.get('/api/pacientes', pacientesMedicoController.obtenerPacientes);
 router.get('/api/pacientes/:pacienteId/historial', pacientesMedicoController.obtenerHistorialPaciente);
