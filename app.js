@@ -4,7 +4,7 @@ const cookieParser = require("cookie-parser");
 const session = require("express-session");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
-require("dotenv").config(); 
+require("dotenv").config(); //cargar variables de entorno
 
 const db = require("./database/db");
 const app = express();
